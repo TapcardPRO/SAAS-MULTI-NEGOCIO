@@ -242,21 +242,40 @@ export default async function BusinessPage({
             ) : null}
           </nav>
 
-          <a
-            href={bookingHref}
-            className="hidden rounded-xl px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 sm:inline-flex"
-            style={{
-              backgroundColor:
-                primaryColor,
+          <div className="hidden items-center gap-2 sm:flex">
+            <a
+              href={`/${slug}/cliente`}
+              className="inline-flex rounded-xl border px-4 py-3 text-sm font-semibold transition hover:-translate-y-0.5"
+              style={{
+                borderColor:
+                  `${textColor}18`,
 
-              color:
-                getContrastColor(
-                  primaryColor
-                ),
-            }}
-          >
-            Agendar horário
-          </a>
+                backgroundColor:
+                  `${textColor}08`,
+
+                color:
+                  textColor,
+              }}
+            >
+              Minha conta
+            </a>
+
+            <a
+              href={bookingHref}
+              className="inline-flex rounded-xl px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5"
+              style={{
+                backgroundColor:
+                  primaryColor,
+
+                color:
+                  getContrastColor(
+                    primaryColor
+                  ),
+              }}
+            >
+              Agendar horário
+            </a>
+          </div>
         </div>
       </header>
 
