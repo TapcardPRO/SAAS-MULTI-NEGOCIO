@@ -204,6 +204,13 @@ export default async function BusinessPage({
               Serviços
             </a>
 
+            <a
+              href="#sobre"
+              className="text-sm opacity-60 transition hover:opacity-100"
+            >
+              Sobre nós
+            </a>
+
             {showProfessionals &&
             professionals.length >
               0 ? (
@@ -858,7 +865,11 @@ export default async function BusinessPage({
           SOBRE
       ================================================== */}
 
-      <section className="mx-auto max-w-7xl px-5 py-24 sm:px-6 sm:py-32">
+      <section
+        id="sobre"
+        className="scroll-mt-24"
+      >
+        <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6 sm:py-32">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div className="relative">
             <div
@@ -984,6 +995,7 @@ export default async function BusinessPage({
               />
             </div>
           </div>
+        </div>
         </div>
       </section>
 

@@ -1408,7 +1408,48 @@ export default function MinhaPagina() {
           </div>
         </div>
 
+        {/* NAVEGAÇÃO DA PÁGINA */}
+        <div className="sticky top-0 z-30 mb-8 overflow-x-auto border-y border-white/10 bg-zinc-950/95 py-3 backdrop-blur-xl">
+          <div className="flex min-w-max gap-2">
+            <a
+              href="#geral"
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+            >
+              Geral
+            </a>
+
+            <a
+              href="#sobre"
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+            >
+              Sobre nós
+            </a>
+
+            <a
+              href="#galeria"
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+            >
+              Galeria
+            </a>
+
+            <a
+              href="#aparencia"
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+            >
+              Aparência
+            </a>
+
+            <a
+              href="#agendamento"
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+            >
+              Agendamento
+            </a>
+          </div>
+        </div>
+
         {/* INFORMAÇÕES */}
+        <div id="geral" className="scroll-mt-28">
         <Panel title="Informações">
           <div className="grid gap-5">
             <Field
@@ -1498,7 +1539,41 @@ export default function MinhaPagina() {
           </div>
         </Panel>
 
+        </div>
+
+        {/* SOBRE NÓS */}
+        <div id="sobre" className="scroll-mt-28">
+          <Panel
+            title="Sobre nós"
+            className="mt-8"
+          >
+            <div>
+              <label className="mb-2 block text-sm text-zinc-400">
+                Conte a história e os diferenciais do seu negócio
+              </label>
+
+              <textarea
+                value={form.description}
+                onChange={(e) =>
+                  changeField(
+                    "description",
+                    e.target.value
+                  )
+                }
+                rows={7}
+                placeholder="Ex: Somos especializados em oferecer uma experiência de atendimento completa, com qualidade, conforto e atenção aos detalhes."
+                className="w-full resize-none rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 leading-7 outline-none transition focus:border-emerald-500"
+              />
+
+              <p className="mt-2 text-xs text-zinc-500">
+                Esse texto será exibido na seção Sobre nós da página pública.
+              </p>
+            </div>
+          </Panel>
+        </div>
+
         {/* BOTÃO PRINCIPAL */}
+        <div id="agendamento" className="scroll-mt-28">
         <Panel
           title="Botão principal"
           className="mt-8"
@@ -1570,7 +1645,10 @@ export default function MinhaPagina() {
           </div>
         </Panel>
 
+        </div>
+
         {/* CORES */}
+        <div id="aparencia" className="scroll-mt-28">
         <Panel
           title="Cores"
           className="mt-8"
@@ -1716,7 +1794,10 @@ export default function MinhaPagina() {
           ) : null}
         </Panel>
 
+        </div>
+
         {/* GALERIA */}
+        <div id="galeria" className="scroll-mt-28">
         <Panel
           title="Galeria"
           className="mt-8"
@@ -1771,6 +1852,8 @@ export default function MinhaPagina() {
             )}
           </div>
         </Panel>
+
+        </div>
 
         {/* SERVIÇOS */}
         <Panel
