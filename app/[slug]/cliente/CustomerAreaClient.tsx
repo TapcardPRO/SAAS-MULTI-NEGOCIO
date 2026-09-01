@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import {
+  FormEvent,
+  ReactNode,
   useEffect,
   useState,
 } from "react";
@@ -71,27 +73,20 @@ type Overview = {
     email: string;
   } | null;
 
-  appointments:
-    Appointment[];
+  appointments: Appointment[];
+  upcomingAppointments: Appointment[];
+  appointmentHistory: Appointment[];
 
-  upcomingAppointments:
-    Appointment[];
-
-  appointmentHistory:
-    Appointment[];
-
-  membership:
-    Membership | null;
-
-  memberships:
-    Membership[];
+  membership: Membership | null;
+  memberships: Membership[];
 };
 
 type Tab =
   | "inicio"
   | "agendamentos"
   | "historico"
-  | "plano";
+  | "plano"
+  | "perfil";
 
 export default function CustomerAreaClient({
   slug,
@@ -109,14 +104,12 @@ export default function CustomerAreaClient({
   const [
     loading,
     setLoading,
-  ] =
-    useState(true);
+  ] = useState(true);
 
   const [
     error,
     setError,
-  ] =
-    useState("");
+  ] = useState("");
 
   const [
     tab,
@@ -125,6 +118,46 @@ export default function CustomerAreaClient({
     useState<Tab>(
       "inicio"
     );
+
+  const [
+    profileName,
+    setProfileName,
+  ] = useState("");
+
+  const [
+    profilePhone,
+    setProfilePhone,
+  ] = useState("");
+
+  const [
+    profileEmail,
+    setProfileEmail,
+  ] = useState("");
+
+  const [
+    profilePhotoUrl,
+    setProfilePhotoUrl,
+  ] = useState("");
+
+  const [
+    savingProfile,
+    setSavingProfile,
+  ] = useState(false);
+
+  const [
+    uploadingPhoto,
+    setUploadingPhoto,
+  ] = useState(false);
+
+  const [
+    profileMessage,
+    setProfileMessage,
+  ] = useState("");
+
+  const [
+    profileSuccess,
+    setProfileSuccess,
+  ] = useState(false);
 
   useEffect(() => {
     load();
@@ -155,6 +188,26 @@ export default function CustomerAreaClient({
       }
 
       setData(body);
+
+      setProfileName(
+        body.customer?.name ||
+          ""
+      );
+
+      setProfilePhone(
+        body.customer?.phone ||
+          ""
+      );
+
+      setProfileEmail(
+        body.customer?.email ||
+          ""
+      );
+
+      setProfilePhotoUrl(
+        body.customer?.photoUrl ||
+          ""
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -166,6 +219,182 @@ export default function CustomerAreaClient({
     }
   }
 
+  async function uploadProfilePhoto(
+    file: File
+  ) {
+    try {
+      setUploadingPhoto(true);
+      setProfileMessage("");
+      setProfileSuccess(false);
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        "file",
+        file
+      );
+
+      formData.append(
+        "folder",
+        "vellto-agenda/clientes"
+      );
+
+      const response =
+        await fetch(
+          "/api/upload",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+      const body =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+            "Erro ao enviar a foto"
+        );
+      }
+
+      if (!body.url) {
+        throw new Error(
+          "Não foi possível obter a imagem enviada"
+        );
+      }
+
+      setProfilePhotoUrl(
+        body.url
+      );
+
+      setProfileMessage(
+        "Foto enviada. Clique em Salvar alterações para confirmar."
+      );
+
+      setProfileSuccess(
+        true
+      );
+    } catch (err) {
+      setProfileMessage(
+        err instanceof Error
+          ? err.message
+          : "Erro ao enviar a foto"
+      );
+
+      setProfileSuccess(
+        false
+      );
+    } finally {
+      setUploadingPhoto(
+        false
+      );
+    }
+  }
+
+  async function saveProfile(
+    event: FormEvent
+  ) {
+    event.preventDefault();
+
+    try {
+      setSavingProfile(true);
+      setProfileMessage("");
+      setProfileSuccess(false);
+
+      const response =
+        await fetch(
+          "/api/customer/profile",
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              name:
+                profileName,
+              phone:
+                profilePhone,
+              email:
+                profileEmail,
+              photoUrl:
+                profilePhotoUrl,
+            }),
+          }
+        );
+
+      const body =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          body.message ||
+            "Erro ao atualizar perfil"
+        );
+      }
+
+      setProfileMessage(
+        "Perfil atualizado com sucesso."
+      );
+
+      setProfileSuccess(
+        true
+      );
+
+      setData((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+
+          customer: {
+            ...current.customer,
+
+            name:
+              body.customer
+                ?.name ||
+              profileName,
+
+            phone:
+              body.customer
+                ?.phone ||
+              profilePhone,
+
+            email:
+              body.customer
+                ?.email ||
+              profileEmail,
+
+            photoUrl:
+              body.customer
+                ?.photoUrl ||
+              profilePhotoUrl,
+          },
+        };
+      });
+    } catch (err) {
+      setProfileMessage(
+        err instanceof Error
+          ? err.message
+          : "Erro ao atualizar perfil"
+      );
+
+      setProfileSuccess(
+        false
+      );
+    } finally {
+      setSavingProfile(
+        false
+      );
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-zinc-950 text-white">
@@ -174,8 +403,7 @@ export default function CustomerAreaClient({
             <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-zinc-800 border-t-emerald-400" />
 
             <p className="text-sm text-zinc-400">
-              Carregando sua
-              conta...
+              Carregando sua conta...
             </p>
           </div>
         </div>
@@ -196,8 +424,7 @@ export default function CustomerAreaClient({
             </div>
 
             <h1 className="text-xl font-semibold">
-              Não foi possível
-              carregar sua conta
+              Não foi possível carregar sua conta
             </h1>
 
             <p className="mt-2 text-sm text-zinc-400">
@@ -207,7 +434,7 @@ export default function CustomerAreaClient({
             <button
               type="button"
               onClick={load}
-              className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-black transition hover:bg-emerald-400"
+              className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-black"
             >
               Tentar novamente
             </button>
@@ -281,37 +508,71 @@ export default function CustomerAreaClient({
             </div>
           </Link>
 
-          <Link
-            href={`/${slug}/agendar`}
-            className="hidden rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-400 sm:block"
-          >
-            + Agendar horário
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setTab(
+                  "perfil"
+                )
+              }
+              className="hidden items-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 sm:flex"
+            >
+              <Avatar
+                name={
+                  customer.name
+                }
+                photoUrl={
+                  customer.photoUrl
+                }
+                small
+              />
+
+              <span className="text-sm">
+                Minha conta
+              </span>
+            </button>
+
+            <Link
+              href={`/${slug}/agendar`}
+              className="hidden rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-black sm:block"
+            >
+              + Agendar horário
+            </Link>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
-        <section className="mb-8">
-          <p className="text-sm font-medium text-emerald-400">
-            Minha conta
-          </p>
+        <section className="mb-8 flex items-center gap-4">
+          <Avatar
+            name={
+              customer.name
+            }
+            photoUrl={
+              customer.photoUrl
+            }
+          />
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-            Olá, {firstName} 👋
-          </h1>
+          <div>
+            <p className="text-sm font-medium text-emerald-400">
+              Minha conta
+            </p>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">
-            Acompanhe seus
-            agendamentos e seu
-            plano em um só lugar.
-          </p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
+              Olá, {firstName} 👋
+            </h1>
+
+            <p className="mt-1 text-sm text-zinc-400">
+              Acompanhe seus agendamentos e seu plano.
+            </p>
+          </div>
         </section>
 
         <nav className="mb-8 flex gap-2 overflow-x-auto pb-2">
           <TabButton
             active={
-              tab ===
-              "inicio"
+              tab === "inicio"
             }
             onClick={() =>
               setTab(
@@ -352,7 +613,8 @@ export default function CustomerAreaClient({
 
           <TabButton
             active={
-              tab === "plano"
+              tab ===
+              "plano"
             }
             onClick={() =>
               setTab(
@@ -362,85 +624,84 @@ export default function CustomerAreaClient({
           >
             Meu plano
           </TabButton>
+
+          <TabButton
+            active={
+              tab ===
+              "perfil"
+            }
+            onClick={() =>
+              setTab(
+                "perfil"
+              )
+            }
+          >
+            Perfil
+          </TabButton>
         </nav>
 
         {tab === "inicio" && (
           <div className="space-y-6">
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="rounded-3xl border border-white/10 bg-zinc-900 p-6 lg:col-span-2">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                      Próximo
-                      agendamento
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                  Próximo agendamento
+                </p>
+
+                {nextAppointment ? (
+                  <>
+                    <h2 className="mt-4 text-2xl font-semibold">
+                      {
+                        nextAppointment.serviceName
+                      }
+                    </h2>
+
+                    <p className="mt-2 text-zinc-400">
+                      com{" "}
+                      {
+                        nextAppointment.professionalName
+                      }
                     </p>
 
-                    {nextAppointment ? (
-                      <>
-                        <h2 className="mt-4 text-2xl font-semibold">
-                          {
-                            nextAppointment.serviceName
-                          }
-                        </h2>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                      <InfoBox
+                        label="Data"
+                        value={formatDate(
+                          nextAppointment.date
+                        )}
+                      />
 
-                        <p className="mt-2 text-zinc-400">
-                          com{" "}
-                          {
-                            nextAppointment.professionalName
-                          }
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <h2 className="mt-4 text-2xl font-semibold">
-                          Nenhum horário
-                          marcado
-                        </h2>
+                      <InfoBox
+                        label="Horário"
+                        value={
+                          nextAppointment.time ||
+                          "--:--"
+                        }
+                      />
 
-                        <p className="mt-2 text-zinc-400">
-                          Quando você
-                          agendar, seu
-                          próximo horário
-                          aparecerá aqui.
-                        </p>
-                      </>
-                    )}
-                  </div>
+                      <InfoBox
+                        label="Status"
+                        value={statusLabel(
+                          nextAppointment.status
+                        )}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="mt-4 text-2xl font-semibold">
+                      Nenhum horário marcado
+                    </h2>
 
-                  <div className="rounded-2xl bg-emerald-500/10 p-3 text-2xl">
-                    📅
-                  </div>
-                </div>
-
-                {nextAppointment && (
-                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                    <InfoBox
-                      label="Data"
-                      value={formatDate(
-                        nextAppointment.date
-                      )}
-                    />
-
-                    <InfoBox
-                      label="Horário"
-                      value={
-                        nextAppointment.time ||
-                        "--:--"
-                      }
-                    />
-
-                    <InfoBox
-                      label="Status"
-                      value={statusLabel(
-                        nextAppointment.status
-                      )}
-                    />
-                  </div>
+                    <p className="mt-2 text-zinc-400">
+                      Seu próximo agendamento aparecerá aqui.
+                    </p>
+                  </>
                 )}
 
                 <Link
                   href={`/${slug}/agendar`}
-                  className="mt-6 inline-flex rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-black transition hover:bg-emerald-400"
+                  className="mt-6 inline-flex rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-black"
                 >
                   {nextAppointment
                     ? "Agendar outro horário"
@@ -480,9 +741,9 @@ export default function CustomerAreaClient({
 
                       <div className="mt-4 h-2 overflow-hidden rounded-full bg-zinc-800">
                         <div
-                          className="h-full rounded-full bg-emerald-400 transition-all"
+                          className="h-full rounded-full bg-emerald-400"
                           style={{
-                            width: `${usagePercentage(
+                            width: `${remainingPercentage(
                               membership
                             )}%`,
                           }}
@@ -497,15 +758,6 @@ export default function CustomerAreaClient({
                         }
                       />
                     </div>
-
-                    {membership.expiresAt && (
-                      <p className="mt-4 text-xs text-zinc-500">
-                        Validade até{" "}
-                        {formatDate(
-                          membership.expiresAt
-                        )}
-                      </p>
-                    )}
                   </>
                 ) : (
                   <>
@@ -514,11 +766,7 @@ export default function CustomerAreaClient({
                     </h2>
 
                     <p className="mt-2 text-sm leading-6 text-zinc-400">
-                      Você ainda não
-                      possui uma
-                      mensalidade
-                      vinculada a este
-                      estabelecimento.
+                      Você ainda não possui uma mensalidade ativa.
                     </p>
                   </>
                 )}
@@ -526,35 +774,10 @@ export default function CustomerAreaClient({
             </div>
 
             <section>
-              <div className="mb-4 flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold">
-                    Próximos
-                    agendamentos
-                  </p>
-
-                  <p className="mt-1 text-sm text-zinc-500">
-                    Seus horários
-                    marcados.
-                  </p>
-                </div>
-
-                {data
-                  .upcomingAppointments
-                  .length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setTab(
-                        "agendamentos"
-                      )
-                    }
-                    className="text-sm font-medium text-emerald-400"
-                  >
-                    Ver todos
-                  </button>
-                )}
-              </div>
+              <SectionTitle
+                title="Próximos agendamentos"
+                description="Seus horários marcados."
+              />
 
               {data
                 .upcomingAppointments
@@ -704,14 +927,14 @@ export default function CustomerAreaClient({
                       value={String(
                         membership.usedUses
                       )}
-                      label="Cortes utilizados"
+                      label="Utilizados"
                     />
 
                     <StatBox
                       value={String(
                         membership.remainingUses
                       )}
-                      label="Cortes restantes"
+                      label="Restantes"
                       highlight
                     />
                   </div>
@@ -722,7 +945,7 @@ export default function CustomerAreaClient({
                         Utilização
                       </span>
 
-                      <span className="font-medium">
+                      <span>
                         {
                           membership.usedUses
                         }
@@ -772,7 +995,7 @@ export default function CustomerAreaClient({
                     />
 
                     <DetailRow
-                      label="Validade do plano"
+                      label="Validade"
                       value={
                         membership.expiresAt
                           ? formatDate(
@@ -783,42 +1006,266 @@ export default function CustomerAreaClient({
                     />
 
                     <DetailRow
-                      label="Forma de pagamento"
+                      label="Pagamento"
                       value={paymentMethodLabel(
                         membership.paymentMethod
                       )}
                     />
                   </div>
-
-                  {membership.displayPaymentStatus !==
-                    "paid" && (
-                    <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
-                      <p className="text-sm font-semibold text-amber-300">
-                        Pagamento
-                        pendente
-                      </p>
-
-                      <p className="mt-1 text-xs leading-5 text-zinc-400">
-                        A confirmação
-                        do pagamento
-                        precisa ser
-                        realizada pelo
-                        estabelecimento
-                        ou por uma
-                        cobrança
-                        integrada.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
               <EmptyState
                 icon="💳"
                 title="Você não possui um plano ativo"
-                description="Quando um plano mensal for contratado, seus cortes e pagamentos aparecerão aqui."
+                description="Quando um plano mensal for contratado, ele aparecerá aqui."
               />
             )}
+          </section>
+        )}
+
+        {tab === "perfil" && (
+          <section>
+            <SectionTitle
+              title="Meu perfil"
+              description="Atualize seus dados pessoais."
+            />
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="rounded-3xl border border-white/10 bg-zinc-900 p-6">
+                <div className="flex flex-col items-center text-center">
+                  <Avatar
+                    name={
+                      profileName
+                    }
+                    photoUrl={
+                      profilePhotoUrl
+                    }
+                    large
+                  />
+
+                  <h3 className="mt-4 text-xl font-semibold">
+                    {profileName ||
+                      "Seu perfil"}
+                  </h3>
+
+                  <p className="mt-1 text-sm text-zinc-500">
+                    Sua foto será exibida na sua conta.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setProfilePhotoUrl(
+                        ""
+                      )
+                    }
+                    disabled={
+                      !profilePhotoUrl
+                    }
+                    className="mt-4 text-sm text-zinc-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    Remover foto
+                  </button>
+                </div>
+              </div>
+
+              <form
+                onSubmit={
+                  saveProfile
+                }
+                className="rounded-3xl border border-white/10 bg-zinc-900 p-6 lg:col-span-2"
+              >
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field
+                    label="Nome completo"
+                    value={
+                      profileName
+                    }
+                    onChange={
+                      setProfileName
+                    }
+                    placeholder="Seu nome"
+                  />
+
+                  <Field
+                    label="WhatsApp"
+                    value={
+                      profilePhone
+                    }
+                    onChange={
+                      setProfilePhone
+                    }
+                    placeholder="(21) 99999-9999"
+                    type="tel"
+                  />
+
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="E-mail"
+                      value={
+                        profileEmail
+                      }
+                      onChange={
+                        setProfileEmail
+                      }
+                      placeholder="seuemail@gmail.com"
+                      type="email"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <span className="mb-2 block text-sm font-medium text-zinc-300">
+                      Foto do perfil
+                    </span>
+
+                    <div className="rounded-2xl border border-dashed border-white/10 bg-zinc-950/50 p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <Avatar
+                          name={
+                            profileName
+                          }
+                          photoUrl={
+                            profilePhotoUrl
+                          }
+                        />
+
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-white">
+                            Escolha uma foto
+                          </p>
+
+                          <p className="mt-1 text-xs leading-5 text-zinc-500">
+                            JPG, PNG ou outra imagem de até 10 MB.
+                          </p>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <label
+                              className={`inline-flex cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-zinc-800 px-4 py-2.5 text-sm font-medium transition hover:bg-zinc-700 ${
+                                uploadingPhoto
+                                  ? "pointer-events-none opacity-50"
+                                  : ""
+                              }`}
+                            >
+                              {uploadingPhoto
+                                ? "Enviando..."
+                                : profilePhotoUrl
+                                ? "Trocar foto"
+                                : "Enviar foto"}
+
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={
+                                  uploadingPhoto
+                                }
+                                onChange={async (
+                                  event
+                                ) => {
+                                  const file =
+                                    event
+                                      .target
+                                      .files?.[0];
+
+                                  if (!file) {
+                                    return;
+                                  }
+
+                                  await uploadProfilePhoto(
+                                    file
+                                  );
+
+                                  event.target.value =
+                                    "";
+                                }}
+                              />
+                            </label>
+
+                            {profilePhotoUrl && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setProfilePhotoUrl(
+                                    ""
+                                  )
+                                }
+                                disabled={
+                                  uploadingPhoto
+                                }
+                                className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {profileMessage && (
+                  <div
+                    className={`mt-5 rounded-xl border px-4 py-3 text-sm ${
+                      profileSuccess
+                        ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                        : "border-red-500/20 bg-red-500/10 text-red-300"
+                    }`}
+                  >
+                    {
+                      profileMessage
+                    }
+                  </div>
+                )}
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <button
+                    type="submit"
+                    disabled={
+                      savingProfile
+                    }
+                    className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {savingProfile
+                      ? "Salvando..."
+                      : "Salvar alterações"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileName(
+                        customer.name ||
+                          ""
+                      );
+
+                      setProfilePhone(
+                        customer.phone ||
+                          ""
+                      );
+
+                      setProfileEmail(
+                        customer.email ||
+                          ""
+                      );
+
+                      setProfilePhotoUrl(
+                        customer.photoUrl ||
+                          ""
+                      );
+
+                      setProfileMessage(
+                        ""
+                      );
+                    }}
+                    className="rounded-xl border border-white/10 px-6 py-3 text-sm font-medium text-zinc-300"
+                  >
+                    Cancelar alterações
+                  </button>
+                </div>
+              </form>
+            </div>
           </section>
         )}
       </div>
@@ -835,6 +1282,81 @@ export default function CustomerAreaClient({
   );
 }
 
+function Avatar({
+  name,
+  photoUrl,
+  small = false,
+  large = false,
+}: {
+  name: string;
+  photoUrl: string;
+  small?: boolean;
+  large?: boolean;
+}) {
+  const size =
+    large
+      ? "h-28 w-28 text-3xl"
+      : small
+      ? "h-8 w-8 text-xs"
+      : "h-16 w-16 text-xl";
+
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={name}
+        className={`${size} rounded-full border border-white/10 object-cover`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${size} flex shrink-0 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 font-bold text-emerald-300`}
+    >
+      {getInitials(name)}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (
+    value: string
+  ) => void;
+  placeholder: string;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-zinc-300">
+        {label}
+      </span>
+
+      <input
+        type={type}
+        value={value}
+        onChange={(event) =>
+          onChange(
+            event.target.value
+          )
+        }
+        placeholder={
+          placeholder
+        }
+        className="w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-500/50"
+      />
+    </label>
+  );
+}
+
 function TabButton({
   active,
   onClick,
@@ -842,8 +1364,7 @@ function TabButton({
 }: {
   active: boolean;
   onClick: () => void;
-  children:
-    React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button
@@ -852,7 +1373,7 @@ function TabButton({
       className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition ${
         active
           ? "bg-white text-black"
-          : "border border-white/10 bg-zinc-900 text-zinc-400 hover:text-white"
+          : "border border-white/10 bg-zinc-900 text-zinc-400"
       }`}
     >
       {children}
@@ -863,8 +1384,7 @@ function TabButton({
 function AppointmentCard({
   appointment,
 }: {
-  appointment:
-    Appointment;
+  appointment: Appointment;
 }) {
   return (
     <article className="rounded-3xl border border-white/10 bg-zinc-900 p-5">
@@ -906,15 +1426,6 @@ function AppointmentCard({
           }
         />
       </div>
-
-      {appointment.hasActiveMembership && (
-        <div className="mt-4 rounded-xl border border-emerald-500/15 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-300">
-          ✓ Vinculado ao plano{" "}
-          {appointment.membershipPlanName
-            ? `• ${appointment.membershipPlanName}`
-            : ""}
-        </div>
-      )}
     </article>
   );
 }
@@ -1105,8 +1616,7 @@ function StatusBadge({
 function PaymentBadge({
   membership,
 }: {
-  membership:
-    Membership;
+  membership: Membership;
 }) {
   if (
     membership.displayPaymentStatus ===
@@ -1137,9 +1647,8 @@ function PaymentBadge({
   );
 }
 
-function usagePercentage(
-  membership:
-    Membership
+function remainingPercentage(
+  membership: Membership
 ) {
   if (
     membership.totalUses <=
@@ -1160,8 +1669,7 @@ function usagePercentage(
 }
 
 function usedPercentage(
-  membership:
-    Membership
+  membership: Membership
 ) {
   if (
     membership.totalUses <=
@@ -1179,6 +1687,38 @@ function usedPercentage(
         100
     )
   );
+}
+
+function getInitials(
+  name: string
+) {
+  const parts =
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+  if (
+    parts.length === 0
+  ) {
+    return "C";
+  }
+
+  if (
+    parts.length === 1
+  ) {
+    return parts[0]
+      .charAt(0)
+      .toUpperCase();
+  }
+
+  return (
+    parts[0]
+      .charAt(0) +
+    parts[
+      parts.length - 1
+    ].charAt(0)
+  ).toUpperCase();
 }
 
 function formatDate(
