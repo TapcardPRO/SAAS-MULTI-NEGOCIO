@@ -253,6 +253,7 @@ export async function PUT(
           .collection("saas_plans")
           .findOne({
             slug: plan,
+            active: { $ne: false },
           });
 
       if (!selectedPlan) {
@@ -260,7 +261,7 @@ export async function PUT(
           {
             ok: false,
             message:
-              "O plano selecionado não existe.",
+              "O plano selecionado não existe ou está desativado.",
           },
           {
             status: 400,
