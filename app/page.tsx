@@ -810,6 +810,434 @@ export default async function Home() {
         </div>
       </section>
 
+
+      <section className="relative overflow-hidden py-24 sm:py-32">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute left-1/2 top-1/2 h-[600px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/[0.07] blur-[150px]" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <span className="inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-emerald-400">
+              Veja a Vellto em ação
+            </span>
+
+            <h2 className="mt-6 text-3xl font-black tracking-tight sm:text-5xl">
+              Seu negócio profissional
+              <span className="block text-emerald-400">
+                em todas as telas.
+              </span>
+            </h2>
+
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-zinc-400 sm:text-lg">
+              Você administra pelo computador, acompanha pelo celular e seus
+              clientes acessam uma experiência profissional para conhecer sua
+              empresa e fazer agendamentos.
+            </p>
+          </div>
+
+          <div className="relative mx-auto mt-16 max-w-6xl sm:mt-20">
+            {/* NOTEBOOK */}
+            <div className="relative mx-auto max-w-5xl">
+              <div className="rounded-t-[24px] border border-white/10 bg-[#111512] p-2 shadow-2xl shadow-black/60 sm:rounded-t-[32px] sm:p-3">
+                <div className="overflow-hidden rounded-t-[18px] border border-white/[0.06] bg-[#080b09] sm:rounded-t-[24px]">
+
+                  {/* Browser */}
+                  <div className="flex h-10 items-center border-b border-white/[0.06] bg-[#0d100e] px-3 sm:h-12 sm:px-5">
+                    <div className="flex gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-white/10 sm:h-2.5 sm:w-2.5" />
+                      <span className="h-2 w-2 rounded-full bg-white/10 sm:h-2.5 sm:w-2.5" />
+                      <span className="h-2 w-2 rounded-full bg-emerald-400/50 sm:h-2.5 sm:w-2.5" />
+                    </div>
+
+                    <div className="mx-auto rounded-lg bg-white/[0.04] px-4 py-1 text-[7px] text-zinc-600 sm:px-12 sm:text-[9px]">
+                      velltoagenda.vercel.app/dashboard
+                    </div>
+                  </div>
+
+                  <div className="flex min-h-[320px] sm:min-h-[480px]">
+                    {/* Sidebar */}
+                    <div className="hidden w-[170px] flex-none border-r border-white/[0.06] bg-[#090c0a] p-4 sm:block lg:w-[200px]">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400 text-xs font-black text-zinc-950">
+                          V
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-black">
+                            VELLTO
+                          </p>
+                          <p className="text-[7px] text-zinc-600">
+                            Agenda & Gestão
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-7 space-y-1.5">
+                        {[
+                          "Visão geral",
+                          "Agenda",
+                          "Clientes",
+                          "Mensalistas",
+                          "Serviços",
+                          "Profissionais",
+                          "Minha página",
+                          "Financeiro",
+                        ].map((item, index) => (
+                          <div
+                            key={item}
+                            className={`rounded-lg px-3 py-2 text-[8px] ${
+                              index === 0
+                                ? "bg-emerald-400/10 font-bold text-emerald-400"
+                                : "text-zinc-600"
+                            }`}
+                          >
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Dashboard */}
+                    <div className="min-w-0 flex-1 p-3 sm:p-5 lg:p-7">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-[8px] text-zinc-600 sm:text-[10px]">
+                            Visão geral
+                          </p>
+                          <h3 className="mt-1 text-sm font-black sm:text-xl">
+                            Bom dia, Barbearia Prime 👋
+                          </h3>
+                          <p className="mt-1 hidden text-[8px] text-zinc-600 sm:block">
+                            Aqui está um resumo do seu negócio hoje.
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg bg-emerald-400 px-2.5 py-2 text-[7px] font-black text-zinc-950 sm:px-4 sm:text-[9px]">
+                          + NOVO AGENDAMENTO
+                        </div>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+                        {[
+                          ["12", "Atendimentos hoje"],
+                          ["R$ 780", "Previsto hoje"],
+                          ["124", "Clientes"],
+                          ["8", "Mensalistas ativos"],
+                        ].map(([value, label], index) => (
+                          <div
+                            key={label}
+                            className={`rounded-xl border p-3 sm:rounded-2xl sm:p-4 ${
+                              index === 0
+                                ? "border-emerald-400/20 bg-emerald-400/[0.05]"
+                                : "border-white/[0.06] bg-white/[0.025]"
+                            }`}
+                          >
+                            <p className="text-sm font-black sm:text-xl">
+                              {value}
+                            </p>
+                            <p className="mt-1 text-[7px] text-zinc-600 sm:text-[8px]">
+                              {label}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 grid gap-3 lg:grid-cols-[1.3fr_0.7fr]">
+                        {/* Agenda */}
+                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 sm:rounded-2xl sm:p-5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-[9px] font-bold sm:text-xs">
+                                Próximos atendimentos
+                              </p>
+                              <p className="mt-1 text-[7px] text-zinc-600">
+                                Agenda de hoje
+                              </p>
+                            </div>
+
+                            <span className="text-[7px] font-bold text-emerald-400">
+                              VER AGENDA
+                            </span>
+                          </div>
+
+                          <div className="mt-3 space-y-2 sm:mt-4">
+                            {[
+                              ["09:00", "Carlos Henrique", "Corte", "Confirmado"],
+                              ["10:30", "Marcos Souza", "Corte + Barba", "Confirmado"],
+                              ["13:00", "Felipe Alves", "Corte", "Agendado"],
+                              ["15:30", "Rafael Lima", "Barba", "Agendado"],
+                            ].map(([time, name, service, status]) => (
+                              <div
+                                key={time}
+                                className="flex items-center gap-2 rounded-lg border border-white/[0.05] bg-black/10 p-2 sm:gap-3 sm:p-3"
+                              >
+                                <div className="flex h-8 w-10 flex-none items-center justify-center rounded-lg bg-white/[0.04] text-[8px] font-black sm:h-10 sm:w-12 sm:text-[9px]">
+                                  {time}
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-[8px] font-bold sm:text-[10px]">
+                                    {name}
+                                  </p>
+                                  <p className="mt-0.5 truncate text-[7px] text-zinc-600">
+                                    {service}
+                                  </p>
+                                </div>
+
+                                <span
+                                  className={`hidden rounded-full px-2 py-1 text-[6px] font-black sm:block ${
+                                    status === "Confirmado"
+                                      ? "bg-emerald-400/10 text-emerald-400"
+                                      : "bg-white/[0.05] text-zinc-500"
+                                  }`}
+                                >
+                                  {status.toUpperCase()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Lateral */}
+                        <div className="hidden space-y-3 lg:block">
+                          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+                            <p className="text-[9px] font-bold">
+                              Ocupação de hoje
+                            </p>
+
+                            <div className="mt-5 flex items-end gap-2">
+                              {[45, 70, 55, 88, 68, 92, 60].map(
+                                (height, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex flex-1 items-end"
+                                    style={{ height: "70px" }}
+                                  >
+                                    <div
+                                      className={`w-full rounded-t ${
+                                        index === 5
+                                          ? "bg-emerald-400"
+                                          : "bg-white/[0.08]"
+                                      }`}
+                                      style={{ height: `${height}%` }}
+                                    />
+                                  </div>
+                                )
+                              )}
+                            </div>
+
+                            <div className="mt-3 flex justify-between text-[6px] text-zinc-700">
+                              <span>SEG</span>
+                              <span>TER</span>
+                              <span>QUA</span>
+                              <span>QUI</span>
+                              <span>SEX</span>
+                              <span>SÁB</span>
+                              <span>DOM</span>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.04] p-5">
+                            <p className="text-[8px] font-bold text-emerald-400">
+                              SUA PÁGINA ESTÁ ONLINE
+                            </p>
+                            <p className="mt-2 text-[8px] leading-4 text-zinc-500">
+                              Clientes podem visualizar seus serviços e
+                              agendar horários.
+                            </p>
+                            <div className="mt-3 rounded-lg bg-emerald-400 py-2 text-center text-[7px] font-black text-zinc-950">
+                              VER MINHA PÁGINA
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notebook base */}
+              <div className="mx-auto h-3 w-[94%] rounded-b-[50%] bg-gradient-to-b from-zinc-700 to-zinc-900 sm:h-5" />
+              <div className="mx-auto h-1.5 w-[24%] rounded-b-xl bg-zinc-800 sm:h-2" />
+
+              {/* CELULAR */}
+              <div className="absolute -bottom-10 -right-1 w-[135px] sm:-bottom-14 sm:right-3 sm:w-[190px] lg:-right-7 lg:w-[220px]">
+                <div className="rounded-[28px] border border-white/15 bg-[#121613] p-2 shadow-2xl shadow-black/80 sm:rounded-[38px] sm:p-2.5">
+                  <div className="overflow-hidden rounded-[22px] border border-white/[0.06] bg-[#080a09] sm:rounded-[30px]">
+                    <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-white/10 sm:h-2 sm:w-16" />
+
+                    <div className="relative mt-2 h-24 bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-950 sm:h-36">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-400 text-[9px] font-black text-zinc-950 sm:h-10 sm:w-10">
+                          B
+                        </div>
+
+                        <p className="mt-2 text-[9px] font-black sm:text-xs">
+                          Barbearia Prime
+                        </p>
+                        <p className="mt-1 text-[5px] text-zinc-400 sm:text-[7px]">
+                          Cuidado, estilo e atendimento.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3 sm:p-4">
+                      <div className="rounded-lg bg-emerald-400 py-2 text-center text-[6px] font-black text-zinc-950 sm:text-[8px]">
+                        AGENDAR HORÁRIO
+                      </div>
+
+                      <p className="mt-4 text-[7px] font-black sm:text-[9px]">
+                        Serviços
+                      </p>
+
+                      <div className="mt-2 space-y-1.5">
+                        {[
+                          ["Corte", "R$ 40"],
+                          ["Corte + Barba", "R$ 65"],
+                          ["Barba", "R$ 30"],
+                        ].map(([name, price]) => (
+                          <div
+                            key={name}
+                            className="flex items-center justify-between rounded-lg border border-white/[0.05] bg-white/[0.02] p-2"
+                          >
+                            <span className="text-[6px] sm:text-[7px]">
+                              {name}
+                            </span>
+                            <span className="text-[6px] font-bold text-emerald-400 sm:text-[7px]">
+                              {price}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="mt-4 text-[7px] font-black sm:text-[9px]">
+                        Nossa equipe
+                      </p>
+
+                      <div className="mt-2 flex items-center gap-2 rounded-lg border border-white/[0.05] p-2">
+                        <div className="h-6 w-6 rounded-full bg-white/[0.08] sm:h-8 sm:w-8" />
+                        <div>
+                          <p className="text-[6px] font-bold sm:text-[7px]">
+                            Igor Costa
+                          </p>
+                          <p className="text-[5px] text-zinc-600 sm:text-[6px]">
+                            Barbeiro
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mx-auto mb-2 h-1 w-14 rounded-full bg-white/10 sm:mb-3 sm:w-20" />
+                  </div>
+                </div>
+              </div>
+
+              {/* TABLET */}
+              <div className="absolute -bottom-5 -left-4 hidden w-[175px] md:block lg:-left-16 lg:w-[230px]">
+                <div className="rounded-[22px] border border-white/10 bg-[#111512] p-2 shadow-2xl shadow-black/60">
+                  <div className="overflow-hidden rounded-[16px] border border-white/[0.06] bg-[#080a09]">
+                    <div className="border-b border-white/[0.05] p-3">
+                      <p className="text-[7px] font-bold uppercase tracking-wider text-emerald-400">
+                        Minha conta
+                      </p>
+                      <p className="mt-1 text-[10px] font-black">
+                        Olá, Carlos 👋
+                      </p>
+                    </div>
+
+                    <div className="p-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-lg bg-white/[0.03] p-2">
+                          <p className="text-[5px] text-zinc-600">
+                            Próximo horário
+                          </p>
+                          <p className="mt-1 text-[7px] font-bold">
+                            03/09 • 10:30
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg bg-emerald-400/[0.06] p-2">
+                          <p className="text-[5px] text-zinc-600">
+                            Meu plano
+                          </p>
+                          <p className="mt-1 text-[7px] font-bold text-emerald-400">
+                            ATIVO
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 rounded-lg border border-white/[0.05] p-3">
+                        <div className="flex justify-between">
+                          <p className="text-[6px] font-bold">
+                            Plano mensal
+                          </p>
+                          <p className="text-[6px] text-emerald-400">
+                            2 restantes
+                          </p>
+                        </div>
+
+                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                          <div className="h-full w-1/2 rounded-full bg-emerald-400" />
+                        </div>
+                      </div>
+
+                      <div className="mt-3 space-y-1.5">
+                        {[
+                          "Agendamentos",
+                          "Histórico",
+                          "Meu plano",
+                        ].map((item) => (
+                          <div
+                            key={item}
+                            className="rounded-lg bg-white/[0.025] px-3 py-2 text-[6px] text-zinc-400"
+                          >
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mx-auto mt-24 grid max-w-5xl gap-4 sm:mt-28 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
+                <p className="text-sm font-black">
+                  💻 Para você
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">
+                  Painel completo para administrar agenda, equipe, clientes e
+                  seu negócio.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.04] p-5">
+                <p className="text-sm font-black text-emerald-400">
+                  📱 Para seus clientes
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">
+                  Página profissional e agendamento online simples e rápido.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
+                <p className="text-sm font-black">
+                  ⚡ Tudo conectado
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">
+                  O que o cliente agenda aparece automaticamente na sua gestão.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="como-funciona" className="py-24 sm:py-32">
         <div className="mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div>
