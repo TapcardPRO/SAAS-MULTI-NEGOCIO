@@ -241,9 +241,12 @@ export default function CustomerAuthClient({
   }
 
   function googleLogin() {
-    setMessage(
-      "Estamos configurando o login Google. Use WhatsApp e senha neste teste."
-    );
+    setMessage("");
+
+    window.location.href =
+      `/api/customer/google/start?slug=${encodeURIComponent(
+        business.slug
+      )}`;
   }
 
   return (
