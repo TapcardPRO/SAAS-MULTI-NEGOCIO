@@ -220,6 +220,14 @@ export default function MinhaPagina() {
   const [message, setMessage] =
     useState("");
 
+  const [previewOpen, setPreviewOpen] =
+    useState(false);
+
+  const [previewDevice, setPreviewDevice] =
+    useState<"mobile" | "tablet" | "desktop">(
+      "desktop"
+    );
+
   const [
     serviceMessage,
     setServiceMessage,
@@ -1389,13 +1397,23 @@ export default function MinhaPagina() {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setPreviewOpen(true)
+              }
+              className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400"
+            >
+              👁 Ver prévia
+            </button>
+
             <a
               href={`/${slug}`}
               target="_blank"
               rel="noreferrer"
               className="rounded-xl border border-white/10 px-5 py-3 text-sm font-medium transition hover:bg-white/5"
             >
-              Ver minha página
+              Ver página publicada ↗
             </a>
 
             <button
@@ -2424,7 +2442,571 @@ export default function MinhaPagina() {
           ) : null}
         </div>
       </div>
+
+      {previewOpen ? (
+        <div className="fixed inset-0 z-[100] flex flex-col bg-black/90 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-zinc-950 px-4 py-3 sm:px-6">
+            <div>
+              <p className="text-sm font-bold text-white">
+                Prévia da página
+              </p>
+
+              <p className="text-xs text-zinc-500">
+                As alterações ainda não precisam estar salvas.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex rounded-xl border border-white/10 bg-zinc-900 p-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewDevice(
+                      "mobile"
+                    )
+                  }
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                    previewDevice ===
+                    "mobile"
+                      ? "bg-emerald-500 text-zinc-950"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Celular
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewDevice(
+                      "tablet"
+                    )
+                  }
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                    previewDevice ===
+                    "tablet"
+                      ? "bg-emerald-500 text-zinc-950"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Tablet
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewDevice(
+                      "desktop"
+                    )
+                  }
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                    previewDevice ===
+                    "desktop"
+                      ? "bg-emerald-500 text-zinc-950"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Computador
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPreviewOpen(false)
+                }
+                className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/5"
+              >
+                Fechar ✕
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-1 justify-center overflow-auto bg-zinc-900 p-3 sm:p-6">
+            <div
+              className={`min-h-full overflow-hidden bg-white shadow-2xl transition-all duration-300 ${
+                previewDevice ===
+                "mobile"
+                  ? "w-[390px] max-w-full rounded-[32px]"
+                  : previewDevice ===
+                      "tablet"
+                    ? "w-[768px] max-w-full rounded-[24px]"
+                    : "w-full max-w-[1440px] rounded-xl"
+              }`}
+            >
+              <PublicPagePreview
+                form={form}
+                services={services}
+                professionals={
+                  professionals
+                }
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
+  );
+}
+
+function PublicPagePreview({
+  form,
+  services,
+  professionals,
+}: {
+  form: BusinessForm;
+  services: Service[];
+  professionals: Professional[];
+}) {
+  const activeServices =
+    services.filter(
+      (service) =>
+        service.active !== false
+    );
+
+  const activeProfessionals =
+    professionals.filter(
+      (professional) =>
+        professional.active !==
+        false
+    );
+
+  return (
+    <div
+      className="min-h-full"
+      style={{
+        backgroundColor:
+          form.backgroundColor,
+        color: form.textColor,
+      }}
+    >
+      <div
+        className="relative min-h-[360px] overflow-hidden"
+        style={{
+          backgroundColor:
+            form.secondaryColor,
+        }}
+      >
+        {form.coverUrl ? (
+          <img
+            src={form.coverUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-50"
+          />
+        ) : null}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20" />
+
+        <div className="relative mx-auto flex min-h-[360px] max-w-6xl flex-col justify-end px-5 py-10 sm:px-8">
+          {form.logoUrl ? (
+            <img
+              src={form.logoUrl}
+              alt=""
+              className="mb-5 h-20 w-20 rounded-2xl border-2 border-white/20 object-cover shadow-xl"
+            />
+          ) : (
+            <div
+              className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl text-3xl font-black shadow-xl"
+              style={{
+                backgroundColor:
+                  form.primaryColor,
+                color:
+                  form.backgroundColor,
+              }}
+            >
+              {form.name
+                ?.charAt(0)
+                .toUpperCase() || "V"}
+            </div>
+          )}
+
+          <p
+            className="text-xs font-bold uppercase tracking-[0.2em]"
+            style={{
+              color:
+                form.primaryColor,
+            }}
+          >
+            {form.category ||
+              "Seu negócio"}
+          </p>
+
+          <h1 className="mt-2 max-w-3xl text-3xl font-black sm:text-5xl">
+            {form.name ||
+              "Nome do seu negócio"}
+          </h1>
+
+          {form.description ? (
+            <p className="mt-4 max-w-2xl text-sm leading-7 opacity-80 sm:text-base">
+              {form.description}
+            </p>
+          ) : null}
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="rounded-xl px-6 py-3 text-sm font-bold shadow-lg"
+              style={{
+                backgroundColor:
+                  form.primaryColor,
+                color:
+                  form.backgroundColor,
+              }}
+            >
+              {form.mainButtonText ||
+                "Agendar agora"}
+            </button>
+
+            {form.whatsapp ? (
+              <button
+                type="button"
+                className="rounded-xl border border-white/20 bg-black/20 px-6 py-3 text-sm font-semibold"
+              >
+                WhatsApp
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
+        {(form.address ||
+          form.instagram ||
+          form.whatsapp) && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {form.address ? (
+              <PreviewInfo
+                title="Localização"
+                value={form.address}
+              />
+            ) : null}
+
+            {form.whatsapp ? (
+              <PreviewInfo
+                title="WhatsApp"
+                value={
+                  form.whatsapp
+                }
+              />
+            ) : null}
+
+            {form.instagram ? (
+              <PreviewInfo
+                title="Instagram"
+                value={
+                  form.instagram
+                }
+              />
+            ) : null}
+          </div>
+        )}
+
+        {form.description ? (
+          <section className="py-14">
+            <p
+              className="text-xs font-bold uppercase tracking-[0.2em]"
+              style={{
+                color:
+                  form.primaryColor,
+              }}
+            >
+              Sobre nós
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black sm:text-3xl">
+              Conheça nosso negócio
+            </h2>
+
+            <p className="mt-5 max-w-3xl leading-8 opacity-70">
+              {form.description}
+            </p>
+          </section>
+        ) : null}
+
+        <section className="py-10">
+          <p
+            className="text-xs font-bold uppercase tracking-[0.2em]"
+            style={{
+              color:
+                form.primaryColor,
+            }}
+          >
+            Serviços
+          </p>
+
+          <h2 className="mt-3 text-2xl font-black sm:text-3xl">
+            {form.servicesTitle ||
+              "Nossos serviços"}
+          </h2>
+
+          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {activeServices.length >
+            0 ? (
+              activeServices
+                .slice(0, 6)
+                .map((service) => (
+                  <div
+                    key={
+                      service._id
+                    }
+                    className="overflow-hidden rounded-2xl border border-white/10"
+                    style={{
+                      backgroundColor:
+                        form.secondaryColor,
+                    }}
+                  >
+                    {service.photoUrl ? (
+                      <img
+                        src={
+                          service.photoUrl
+                        }
+                        alt=""
+                        className="h-40 w-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="h-40"
+                        style={{
+                          backgroundColor:
+                            form.primaryColor +
+                            "20",
+                        }}
+                      />
+                    )}
+
+                    <div className="p-5">
+                      <h3 className="font-bold">
+                        {
+                          service.name
+                        }
+                      </h3>
+
+                      {service.description ? (
+                        <p className="mt-2 text-sm opacity-60">
+                          {
+                            service.description
+                          }
+                        </p>
+                      ) : null}
+
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <strong
+                          style={{
+                            color:
+                              form.primaryColor,
+                          }}
+                        >
+                          {formatPrice(
+                            service.price
+                          )}
+                        </strong>
+
+                        <span className="text-xs opacity-60">
+                          {
+                            service.duration
+                          }{" "}
+                          min
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/20 p-8 text-sm opacity-50 sm:col-span-2 lg:col-span-3">
+                Seus serviços aparecerão
+                aqui.
+              </div>
+            )}
+          </div>
+        </section>
+
+        {form.showProfessionals ? (
+          <section className="py-10">
+            <p
+              className="text-xs font-bold uppercase tracking-[0.2em]"
+              style={{
+                color:
+                  form.primaryColor,
+              }}
+            >
+              Equipe
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black sm:text-3xl">
+              Nossos profissionais
+            </h2>
+
+            <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeProfessionals
+                .slice(0, 6)
+                .map(
+                  (
+                    professional
+                  ) => (
+                    <div
+                      key={
+                        professional._id
+                      }
+                      className="rounded-2xl border border-white/10 p-5"
+                      style={{
+                        backgroundColor:
+                          form.secondaryColor,
+                      }}
+                    >
+                      {professional.photoUrl ? (
+                        <img
+                          src={
+                            professional.photoUrl
+                          }
+                          alt=""
+                          className="h-52 w-full rounded-xl object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-52 items-center justify-center rounded-xl text-4xl font-black"
+                          style={{
+                            backgroundColor:
+                              form.primaryColor +
+                              "20",
+                            color:
+                              form.primaryColor,
+                          }}
+                        >
+                          {professional.name
+                            ?.charAt(
+                              0
+                            )
+                            .toUpperCase()}
+                        </div>
+                      )}
+
+                      <h3 className="mt-4 font-bold">
+                        {
+                          professional.name
+                        }
+                      </h3>
+
+                      <p className="mt-1 text-sm opacity-60">
+                        {professional.role ||
+                          "Profissional"}
+                      </p>
+                    </div>
+                  )
+                )}
+
+              {activeProfessionals.length ===
+              0 ? (
+                <div className="rounded-2xl border border-dashed border-white/20 p-8 text-sm opacity-50 sm:col-span-2 lg:col-span-3">
+                  Seus profissionais
+                  aparecerão aqui.
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {form.gallery.length >
+        0 ? (
+          <section className="py-10">
+            <p
+              className="text-xs font-bold uppercase tracking-[0.2em]"
+              style={{
+                color:
+                  form.primaryColor,
+              }}
+            >
+              Galeria
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black sm:text-3xl">
+              Nosso espaço
+            </h2>
+
+            <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {form.gallery
+                .slice(0, 6)
+                .map(
+                  (
+                    photo,
+                    index
+                  ) => (
+                    <img
+                      key={`${photo}-${index}`}
+                      src={photo}
+                      alt=""
+                      className="aspect-square w-full rounded-2xl object-cover"
+                    />
+                  )
+                )}
+            </div>
+          </section>
+        ) : null}
+
+        {form.showBookingSection ? (
+          <section
+            className="my-10 rounded-3xl p-6 sm:p-10"
+            style={{
+              backgroundColor:
+                form.secondaryColor,
+            }}
+          >
+            <p
+              className="text-xs font-bold uppercase tracking-[0.2em]"
+              style={{
+                color:
+                  form.primaryColor,
+              }}
+            >
+              {form.bookingSectionLabel ||
+                "Agendamento"}
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black sm:text-4xl">
+              {form.bookingSectionTitle ||
+                "Escolha seu horário"}
+            </h2>
+
+            <p className="mt-4 max-w-2xl leading-7 opacity-60">
+              {form.bookingSectionDescription}
+            </p>
+
+            <button
+              type="button"
+              className="mt-6 rounded-xl px-6 py-3 text-sm font-bold"
+              style={{
+                backgroundColor:
+                  form.primaryColor,
+                color:
+                  form.backgroundColor,
+              }}
+            >
+              {form.mainButtonText ||
+                "Agendar agora"}
+            </button>
+          </section>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PreviewInfo({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <p className="text-xs uppercase tracking-wider opacity-50">
+        {title}
+      </p>
+
+      <p className="mt-2 break-words text-sm font-semibold">
+        {value}
+      </p>
+    </div>
   );
 }
 
