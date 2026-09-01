@@ -1,19 +1,40 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 
-export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 12);
+/*
+=========================================================
+SENHAS
+=========================================================
+*/
+
+export async function hashPassword(
+  password: string
+) {
+  return bcrypt.hash(
+    password,
+    12
+  );
 }
 
 export async function comparePassword(
   password: string,
   hashedPassword: string
 ) {
-  return bcrypt.compare(password, hashedPassword);
+  return bcrypt.compare(
+    password,
+    hashedPassword
+  );
 }
 
+/*
+=========================================================
+SECRET
+=========================================================
+*/
+
 function getSessionSecret() {
-  const secret = process.env.SESSION_SECRET;
+  const secret =
+    process.env.SESSION_SECRET;
 
   if (!secret) {
     throw new Error(
@@ -21,14 +42,28 @@ function getSessionSecret() {
     );
   }
 
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(
+    secret
+  );
 }
 
-export async function createSessionToken(userId: string) {
-  const secret = getSessionSecret();
+/*
+=========================================================
+SESSÃO DO PAINEL
+OWNER / SUPERADMIN
+=========================================================
+*/
+
+export async function createSessionToken(
+  userId: string
+) {
+  const secret =
+    getSessionSecret();
 
   return new SignJWT({
     userId,
+    sessionType:
+      "dashboard",
   })
     .setProtectedHeader({
       alg: "HS256",
@@ -38,26 +73,110 @@ export async function createSessionToken(userId: string) {
     .sign(secret);
 }
 
-export async function verifySessionToken(token: string) {
+export async function verifySessionToken(
+  token: string
+) {
   try {
-    const secret = getSessionSecret();
+    const secret =
+      getSessionSecret();
 
-    const { payload } = await jwtVerify(
-      token,
-      secret
-    );
+    const { payload } =
+      await jwtVerify(
+        token,
+        secret
+      );
 
-    const userId = payload.userId;
+    const userId =
+      payload.userId;
 
     if (
       !userId ||
-      typeof userId !== "string"
+      typeof userId !==
+        "string"
+    ) {
+      return null;
+    }
+
+    /*
+    Compatibilidade com tokens antigos:
+    tokens anteriores não possuíam sessionType.
+    */
+
+    if (
+      payload.sessionType &&
+      payload.sessionType !==
+        "dashboard"
     ) {
       return null;
     }
 
     return {
       userId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/*
+=========================================================
+SESSÃO DO CLIENTE FINAL
+=========================================================
+*/
+
+export async function createCustomerSessionToken(
+  customerId: string
+) {
+  const secret =
+    getSessionSecret();
+
+  return new SignJWT({
+    customerId,
+
+    sessionType:
+      "customer",
+  })
+    .setProtectedHeader({
+      alg: "HS256",
+    })
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(secret);
+}
+
+export async function verifyCustomerSessionToken(
+  token: string
+) {
+  try {
+    const secret =
+      getSessionSecret();
+
+    const { payload } =
+      await jwtVerify(
+        token,
+        secret
+      );
+
+    if (
+      payload.sessionType !==
+      "customer"
+    ) {
+      return null;
+    }
+
+    const customerId =
+      payload.customerId;
+
+    if (
+      !customerId ||
+      typeof customerId !==
+        "string"
+    ) {
+      return null;
+    }
+
+    return {
+      customerId,
     };
   } catch {
     return null;

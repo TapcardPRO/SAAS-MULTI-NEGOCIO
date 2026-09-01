@@ -4,6 +4,13 @@ import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+type Props = {
+  params: Promise<{
+    slug: string;
+  }>;
+};
 
 type DaySchedule = {
   enabled: boolean;
@@ -42,13 +49,16 @@ const weekKeys: Array<keyof WeeklySchedule> = [
   "saturday",
 ];
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: Props
+) {
   try {
-    const url = new URL(request.url);
+    const { slug } = await params;
 
-    const slug = String(
-      url.searchParams.get("slug") || ""
-    ).trim();
+    const url = new URL(
+      request.url
+    );
 
     const serviceId = String(
       url.searchParams.get("serviceId") || ""
@@ -62,9 +72,16 @@ export async function GET(request: NextRequest) {
       url.searchParams.get("date") || ""
     ).trim();
 
+    /*
+    =====================================================
+    VALIDAÇÕES
+    =====================================================
+    */
+
     if (!slug) {
       return NextResponse.json(
         {
+          ok: false,
           message: "Empresa não informada",
         },
         {
@@ -79,6 +96,7 @@ export async function GET(request: NextRequest) {
     ) {
       return NextResponse.json(
         {
+          ok: false,
           message: "Serviço inválido",
         },
         {
@@ -89,11 +107,15 @@ export async function GET(request: NextRequest) {
 
     if (
       !professionalId ||
-      !ObjectId.isValid(professionalId)
+      !ObjectId.isValid(
+        professionalId
+      )
     ) {
       return NextResponse.json(
         {
-          message: "Profissional inválido",
+          ok: false,
+          message:
+            "Selecione um profissional",
         },
         {
           status: 400,
@@ -104,6 +126,7 @@ export async function GET(request: NextRequest) {
     if (!isValidDateString(date)) {
       return NextResponse.json(
         {
+          ok: false,
           message: "Data inválida",
         },
         {
@@ -115,13 +138,16 @@ export async function GET(request: NextRequest) {
     const db = await getDb();
 
     /*
-      1. BUSCAR EMPRESA
+    =====================================================
+    EMPRESA
+    =====================================================
     */
 
     const business = await db
       .collection("businesses")
       .findOne({
         slug,
+
         active: {
           $ne: false,
         },
@@ -130,7 +156,9 @@ export async function GET(request: NextRequest) {
     if (!business) {
       return NextResponse.json(
         {
-          message: "Empresa não encontrada",
+          ok: false,
+          message:
+            "Empresa não encontrada",
         },
         {
           status: 404,
@@ -138,10 +166,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const businessId = business._id;
+    const businessId =
+      business._id;
+
+    const businessFilters: any[] = [
+      {
+        businessId,
+      },
+
+      {
+        businessId:
+          businessId.toString(),
+      },
+
+      {
+        businessSlug:
+          slug,
+      },
+    ];
 
     /*
-      2. BUSCAR SERVIÇO
+    =====================================================
+    SERVIÇO
+    =====================================================
     */
 
     const serviceObjectId =
@@ -150,30 +197,23 @@ export async function GET(request: NextRequest) {
     const service = await db
       .collection("services")
       .findOne({
-        _id: serviceObjectId,
+        _id:
+          serviceObjectId,
 
         active: {
           $ne: false,
         },
 
-        $or: [
-          {
-            businessId,
-          },
-          {
-            businessId:
-              businessId.toString(),
-          },
-          {
-            businessSlug: slug,
-          },
-        ],
-      });
+        $or:
+          businessFilters,
+      } as any);
 
     if (!service) {
       return NextResponse.json(
         {
-          message: "Serviço não encontrado",
+          ok: false,
+          message:
+            "Serviço não encontrado",
         },
         {
           status: 404,
@@ -181,9 +221,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const duration = Number(
-      service.duration || 30
-    );
+    const duration =
+      Number(
+        service.duration || 30
+      );
 
     if (
       !Number.isFinite(duration) ||
@@ -191,6 +232,7 @@ export async function GET(request: NextRequest) {
     ) {
       return NextResponse.json(
         {
+          ok: false,
           message:
             "Duração do serviço inválida",
         },
@@ -201,38 +243,34 @@ export async function GET(request: NextRequest) {
     }
 
     /*
-      3. BUSCAR PROFISSIONAL
+    =====================================================
+    PROFISSIONAL
+    =====================================================
     */
 
     const professionalObjectId =
-      new ObjectId(professionalId);
+      new ObjectId(
+        professionalId
+      );
 
     const professional = await db
       .collection("professionals")
       .findOne({
-        _id: professionalObjectId,
+        _id:
+          professionalObjectId,
 
         active: {
           $ne: false,
         },
 
-        $or: [
-          {
-            businessId,
-          },
-          {
-            businessId:
-              businessId.toString(),
-          },
-          {
-            businessSlug: slug,
-          },
-        ],
-      });
+        $or:
+          businessFilters,
+      } as any);
 
     if (!professional) {
       return NextResponse.json(
         {
+          ok: false,
           message:
             "Profissional não encontrado",
         },
@@ -243,36 +281,60 @@ export async function GET(request: NextRequest) {
     }
 
     /*
-      4. BUSCAR HORÁRIOS DO PROFISSIONAL
+    =====================================================
+    HORÁRIOS CONFIGURADOS
+    =====================================================
     */
 
-    const schedule = await db
-      .collection("schedules")
-      .findOne({
-        professionalId:
-          professionalObjectId,
+    const schedule =
+      await db
+        .collection("schedules")
+        .findOne({
+          $and: [
+            {
+              $or: [
+                {
+                  professionalId:
+                    professionalObjectId,
+                },
+                {
+                  professionalId:
+                    professionalObjectId.toString(),
+                },
+              ],
+            },
 
-        $or: [
-          {
-            businessId,
-          },
-          {
-            businessId:
-              businessId.toString(),
-          },
-        ],
-      });
+            {
+              $or: [
+                {
+                  businessId,
+                },
+                {
+                  businessId:
+                    businessId.toString(),
+                },
+              ],
+            },
+          ],
+        } as any);
 
     if (
       !schedule ||
       !schedule.weekly
     ) {
       return NextResponse.json({
+        ok: true,
+
         date,
+
         serviceId,
+
         professionalId,
+
         duration,
+
         slots: [],
+
         message:
           "Profissional sem horários configurados",
       });
@@ -282,12 +344,16 @@ export async function GET(request: NextRequest) {
       schedule.weekly as WeeklySchedule;
 
     const blocks: ScheduleBlock[] =
-      Array.isArray(schedule.blocks)
+      Array.isArray(
+        schedule.blocks
+      )
         ? schedule.blocks
         : [];
 
     /*
-      5. DESCOBRIR DIA DA SEMANA
+    =====================================================
+    DIA DA SEMANA
+    =====================================================
     */
 
     const dateObject =
@@ -306,18 +372,27 @@ export async function GET(request: NextRequest) {
       day.enabled !== true
     ) {
       return NextResponse.json({
+        ok: true,
+
         date,
+
         serviceId,
+
         professionalId,
+
         duration,
+
         slots: [],
+
         message:
           "Profissional não atende nesta data",
       });
     }
 
     /*
-      6. VERIFICAR BLOQUEIO DO DIA INTEIRO
+    =====================================================
+    BLOQUEIO DO DIA INTEIRO
+    =====================================================
     */
 
     const allDayBlocked =
@@ -329,56 +404,89 @@ export async function GET(request: NextRequest) {
 
     if (allDayBlocked) {
       return NextResponse.json({
+        ok: true,
+
         date,
+
         serviceId,
+
         professionalId,
+
         duration,
+
         slots: [],
+
         message:
           "Profissional indisponível nesta data",
       });
     }
 
     /*
-      7. BUSCAR AGENDAMENTOS EXISTENTES
+    =====================================================
+    AGENDAMENTOS EXISTENTES
+    =====================================================
     */
 
-    const appointments = await db
-      .collection("appointments")
-      .find({
-        date,
+    const appointments =
+      await db
+        .collection(
+          "appointments"
+        )
+        .find({
+          date,
 
-        professionalId:
-          professionalObjectId,
+          $and: [
+            {
+              $or: [
+                {
+                  professionalId:
+                    professionalObjectId,
+                },
+                {
+                  professionalId:
+                    professionalObjectId.toString(),
+                },
+              ],
+            },
 
-        status: {
-          $nin: [
-            "cancelado",
-            "cancelled",
+            {
+              $or: [
+                {
+                  businessId,
+                },
+                {
+                  businessId:
+                    businessId.toString(),
+                },
+              ],
+            },
           ],
-        },
 
-        $or: [
-          {
-            businessId,
+          status: {
+            $nin: [
+              "cancelado",
+              "cancelled",
+              "faltou",
+            ],
           },
-          {
-            businessId:
-              businessId.toString(),
-          },
-        ],
-      })
-      .toArray();
+        } as any)
+        .toArray();
 
     /*
-      8. GERAR HORÁRIOS
+    =====================================================
+    GERAR HORÁRIOS
+    =====================================================
     */
 
     const startOfDay =
-      timeToMinutes(day.start);
+      timeToMinutes(
+        day.start
+      );
 
     const endOfDay =
-      timeToMinutes(day.end);
+      timeToMinutes(
+        day.end
+      );
 
     if (
       startOfDay === null ||
@@ -386,6 +494,7 @@ export async function GET(request: NextRequest) {
     ) {
       return NextResponse.json(
         {
+          ok: false,
           message:
             "Horário de expediente inválido",
         },
@@ -395,7 +504,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const slotInterval = 15;
+    const slotInterval =
+      15;
 
     const slots: Array<{
       time: string;
@@ -403,19 +513,24 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     for (
-      let start = startOfDay;
-      start + duration <= endOfDay;
+      let start =
+        startOfDay;
+      start + duration <=
+      endOfDay;
       start += slotInterval
     ) {
       const end =
         start + duration;
 
       /*
-        INTERVALO DO PROFISSIONAL
+      ===================================================
+      INTERVALO
+      ===================================================
       */
 
       if (
-        day.breakEnabled === true
+        day.breakEnabled ===
+        true
       ) {
         const breakStart =
           timeToMinutes(
@@ -442,20 +557,24 @@ export async function GET(request: NextRequest) {
       }
 
       /*
-        BLOQUEIOS ESPECÍFICOS
+      ===================================================
+      BLOQUEIOS
+      ===================================================
       */
 
       const blocked =
         blocks.some(
           (block) => {
             if (
-              block.date !== date
+              block.date !==
+              date
             ) {
               return false;
             }
 
             if (
-              block.allDay === true
+              block.allDay ===
+              true
             ) {
               return true;
             }
@@ -471,8 +590,10 @@ export async function GET(request: NextRequest) {
               );
 
             if (
-              blockStart === null ||
-              blockEnd === null
+              blockStart ===
+                null ||
+              blockEnd ===
+                null
             ) {
               return false;
             }
@@ -491,12 +612,16 @@ export async function GET(request: NextRequest) {
       }
 
       /*
-        AGENDAMENTOS EXISTENTES
+      ===================================================
+      HORÁRIOS OCUPADOS
+      ===================================================
       */
 
       const occupied =
         appointments.some(
-          (appointment) => {
+          (
+            appointment
+          ) => {
             const appointmentStart =
               getAppointmentStartMinutes(
                 appointment
@@ -529,7 +654,9 @@ export async function GET(request: NextRequest) {
       }
 
       /*
-        NÃO MOSTRAR HORÁRIOS QUE JÁ PASSARAM
+      ===================================================
+      HORÁRIOS QUE JÁ PASSARAM
+      ===================================================
       */
 
       if (
@@ -540,7 +667,8 @@ export async function GET(request: NextRequest) {
           currentMinutesSaoPaulo();
 
         if (
-          start <= nowMinutes
+          start <=
+          nowMinutes
         ) {
           continue;
         }
@@ -548,23 +676,39 @@ export async function GET(request: NextRequest) {
 
       slots.push({
         time:
-          minutesToTime(start),
+          minutesToTime(
+            start
+          ),
 
         endTime:
-          minutesToTime(end),
+          minutesToTime(
+            end
+          ),
       });
     }
 
+    /*
+    =====================================================
+    RETORNO
+    =====================================================
+    */
+
     return NextResponse.json({
+      ok: true,
+
       business: {
         _id:
           businessId.toString(),
 
         name:
-          business.name || "",
+          String(
+            business.name || ""
+          ),
 
         slug:
-          business.slug || "",
+          String(
+            business.slug || ""
+          ),
       },
 
       service: {
@@ -572,7 +716,9 @@ export async function GET(request: NextRequest) {
           serviceObjectId.toString(),
 
         name:
-          service.name || "",
+          String(
+            service.name || ""
+          ),
 
         duration,
 
@@ -587,7 +733,9 @@ export async function GET(request: NextRequest) {
           professionalObjectId.toString(),
 
         name:
-          professional.name || "",
+          String(
+            professional.name || ""
+          ),
       },
 
       date,
@@ -596,12 +744,13 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error(
-      "Erro em GET /api/public/availability:",
+      "GET PUBLIC AVAILABILITY ERROR:",
       error
     );
 
     return NextResponse.json(
       {
+        ok: false,
         message:
           "Erro interno ao calcular disponibilidade",
       },
@@ -611,6 +760,12 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+/*
+=========================================================
+HELPERS
+=========================================================
+*/
 
 function overlaps(
   startA: number,
@@ -626,7 +781,7 @@ function overlaps(
 
 function timeToMinutes(
   value: string
-) {
+): number | null {
   if (
     !/^([01]\d|2[0-3]):[0-5]\d$/.test(
       value
@@ -635,8 +790,12 @@ function timeToMinutes(
     return null;
   }
 
-  const [hour, minute] =
-    value.split(":").map(Number);
+  const [
+    hour,
+    minute,
+  ] = value
+    .split(":")
+    .map(Number);
 
   return (
     hour * 60 +
@@ -648,73 +807,44 @@ function minutesToTime(
   value: number
 ) {
   const hour =
-    Math.floor(value / 60);
+    Math.floor(
+      value / 60
+    );
 
   const minute =
     value % 60;
 
-  return `${String(hour).padStart(
+  return `${String(
+    hour
+  ).padStart(
     2,
     "0"
-  )}:${String(minute).padStart(
+  )}:${String(
+    minute
+  ).padStart(
     2,
     "0"
   )}`;
 }
 
-function getAppointmentStartMinutes(
-  appointment: any
+function createUTCDate(
+  value: string
 ) {
-  const value =
-    appointment.startTime ||
-    appointment.time ||
-    "";
+  const [
+    year,
+    month,
+    day,
+  ] = value
+    .split("-")
+    .map(Number);
 
-  return timeToMinutes(
-    String(value)
-  );
-}
-
-function getAppointmentEndMinutes(
-  appointment: any,
-  startMinutes: number
-) {
-  const explicitEnd =
-    appointment.endTime;
-
-  if (
-    typeof explicitEnd ===
-    "string"
-  ) {
-    const parsed =
-      timeToMinutes(
-        explicitEnd
-      );
-
-    if (parsed !== null) {
-      return parsed;
-    }
-  }
-
-  const duration =
-    Number(
-      appointment.duration ||
-        appointment.serviceDuration ||
-        30
-    );
-
-  if (
-    Number.isFinite(duration) &&
-    duration > 0
-  ) {
-    return (
-      startMinutes +
-      duration
-    );
-  }
-
-  return (
-    startMinutes + 30
+  return new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day,
+      12
+    )
   );
 }
 
@@ -729,17 +859,21 @@ function isValidDateString(
     return false;
   }
 
-  const [year, month, day] =
-    value
-      .split("-")
-      .map(Number);
+  const [
+    year,
+    month,
+    day,
+  ] = value
+    .split("-")
+    .map(Number);
 
   const date =
     new Date(
       Date.UTC(
         year,
         month - 1,
-        day
+        day,
+        12
       )
     );
 
@@ -753,20 +887,66 @@ function isValidDateString(
   );
 }
 
-function createUTCDate(
-  value: string
-) {
-  const [year, month, day] =
-    value
-      .split("-")
-      .map(Number);
+function getAppointmentStartMinutes(
+  appointment: any
+): number | null {
+  if (
+    Number.isFinite(
+      Number(
+        appointment.startMinutes
+      )
+    )
+  ) {
+    return Number(
+      appointment.startMinutes
+    );
+  }
 
-  return new Date(
-    Date.UTC(
-      year,
-      month - 1,
-      day,
-      12
+  return timeToMinutes(
+    String(
+      appointment.startTime ||
+        appointment.time ||
+        ""
+    )
+  );
+}
+
+function getAppointmentEndMinutes(
+  appointment: any,
+  appointmentStart: number
+) {
+  if (
+    Number.isFinite(
+      Number(
+        appointment.endMinutes
+      )
+    )
+  ) {
+    return Number(
+      appointment.endMinutes
+    );
+  }
+
+  const storedEnd =
+    timeToMinutes(
+      String(
+        appointment.endTime ||
+          ""
+      )
+    );
+
+  if (
+    storedEnd !== null
+  ) {
+    return storedEnd;
+  }
+
+  return (
+    appointmentStart +
+    Number(
+      appointment.duration ||
+        appointment.serviceDuration ||
+        30
     )
   );
 }
@@ -779,9 +959,14 @@ function todaySaoPaulo() {
         timeZone:
           "America/Sao_Paulo",
 
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
+        year:
+          "numeric",
+
+        month:
+          "2-digit",
+
+        day:
+          "2-digit",
       }
     );
 
@@ -793,19 +978,22 @@ function todaySaoPaulo() {
   const year =
     parts.find(
       (part) =>
-        part.type === "year"
+        part.type ===
+        "year"
     )?.value;
 
   const month =
     parts.find(
       (part) =>
-        part.type === "month"
+        part.type ===
+        "month"
     )?.value;
 
   const day =
     parts.find(
       (part) =>
-        part.type === "day"
+        part.type ===
+        "day"
     )?.value;
 
   return `${year}-${month}-${day}`;
@@ -819,9 +1007,14 @@ function currentMinutesSaoPaulo() {
         timeZone:
           "America/Sao_Paulo",
 
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23",
+        hour:
+          "2-digit",
+
+        minute:
+          "2-digit",
+
+        hour12:
+          false,
       }
     );
 
