@@ -163,16 +163,16 @@ export default function DashboardShell({
                 }
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500 font-black text-zinc-950">
-                  N
+                  V
                 </div>
 
                 <div>
-                  <h1 className="text-lg font-black sm:text-xl">
-                    Nexora
+                  <h1 className="text-lg font-black tracking-wide sm:text-xl">
+                    VELLTO
                   </h1>
 
                   <p className="text-[10px] uppercase tracking-widest text-zinc-500">
-                    Gestão inteligente
+                    Agenda & Gestão
                   </p>
                 </div>
               </Link>
