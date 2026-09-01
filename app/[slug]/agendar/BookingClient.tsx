@@ -459,13 +459,6 @@ export default function BookingClient({
             "Não foi possível realizar o agendamento."
         );
 
-        if (
-          response.status ===
-          409
-        ) {
-          await loadSlots();
-        }
-
         return;
       }
 
