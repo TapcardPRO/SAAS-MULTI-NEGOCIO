@@ -250,9 +250,9 @@ export default function CustomerAuthClient({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#050b10] px-5 py-10 text-white">
+    <main className="flex min-h-screen items-center justify-center bg-[#050b10] px-4 py-6 text-white sm:px-5 sm:py-10">
       <div className="w-full max-w-md">
-        <div className="mb-7 flex items-center justify-center gap-3">
+        <div className="mb-5 flex items-center justify-center gap-3 sm:mb-7">
           {business.logoUrl ? (
             <img
               src={
@@ -261,11 +261,11 @@ export default function CustomerAuthClient({
               alt={
                 business.name
               }
-              className="h-14 w-14 rounded-2xl object-cover"
+              className="h-11 w-11 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14 sm:rounded-2xl"
             />
           ) : (
             <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-black text-zinc-950"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg font-black text-zinc-950 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-xl"
               style={{
                 backgroundColor:
                   business.primaryColor ||
@@ -279,26 +279,26 @@ export default function CustomerAuthClient({
           )}
 
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-emerald-400">
+            <p className="hidden text-xs uppercase tracking-[0.18em] text-emerald-400 sm:block">
               Agendamento online
             </p>
 
-            <h1 className="text-xl font-bold">
+            <h1 className="max-w-[220px] truncate text-lg font-bold sm:max-w-none sm:text-xl">
               {business.name}
             </h1>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-[#0a141d] p-6 shadow-2xl sm:p-8">
+        <div className="rounded-2xl border border-white/10 bg-[#0a141d] p-4 shadow-2xl sm:rounded-3xl sm:p-8">
           <div className="text-center">
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-xl font-bold sm:text-2xl">
               {mode ===
               "login"
                 ? "Entre para agendar"
                 : "Crie sua conta"}
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-zinc-500">
+            <p className="mt-2 text-xs leading-5 text-zinc-500 sm:text-sm sm:leading-6">
               {mode ===
               "login"
                 ? "Acesse sua conta para escolher seu horário."
@@ -311,14 +311,14 @@ export default function CustomerAuthClient({
             onClick={
               googleLogin
             }
-            className="mt-7 flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white px-4 py-3.5 font-semibold text-zinc-900 transition hover:bg-zinc-100"
+            className="mt-6 flex min-h-[50px] w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white px-4 py-3 font-semibold text-zinc-900 transition hover:bg-zinc-100 sm:mt-7 sm:py-3.5"
           >
             <GoogleIcon />
 
             Continuar com Google
           </button>
 
-          <div className="my-6 flex items-center gap-4">
+          <div className="my-5 flex items-center gap-3 sm:my-6 sm:gap-4">
             <div className="h-px flex-1 bg-white/10" />
 
             <span className="text-xs uppercase tracking-wider text-zinc-600">
@@ -406,7 +406,7 @@ export default function CustomerAuthClient({
           ) : null}
 
           {message ? (
-            <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-300">
+            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-5 text-amber-300 sm:mt-5 sm:p-4 sm:text-sm">
               {message}
             </div>
           ) : null}
@@ -422,7 +422,7 @@ export default function CustomerAuthClient({
                 ? submitLogin
                 : submitRegister
             }
-            className="mt-6 w-full rounded-xl bg-emerald-500 px-5 py-4 font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-40"
+            className="mt-5 min-h-[52px] w-full rounded-xl bg-emerald-500 px-5 py-3.5 font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-40 sm:mt-6 sm:py-4"
           >
             {loading
               ? "Aguarde..."
@@ -432,7 +432,7 @@ export default function CustomerAuthClient({
                 : "Criar minha conta"}
           </button>
 
-          <div className="mt-6 border-t border-white/10 pt-6 text-center">
+          <div className="mt-5 border-t border-white/10 pt-5 text-center sm:mt-6 sm:pt-6">
             <p className="text-sm text-zinc-500">
               {mode ===
               "login"
@@ -474,7 +474,7 @@ export default function CustomerAuthClient({
 
         <a
           href={`/${business.slug}`}
-          className="mt-6 block text-center text-sm text-zinc-600 transition hover:text-zinc-400"
+          className="mt-5 block px-2 text-center text-xs text-zinc-600 transition hover:text-zinc-400 sm:mt-6 sm:text-sm"
         >
           ← Voltar para {business.name}
         </a>
@@ -530,7 +530,7 @@ function Field({
             event.target.value
           )
         }
-        className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3.5 outline-none transition placeholder:text-zinc-700 focus:border-emerald-500"
+        className="min-h-[50px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-base outline-none transition placeholder:text-zinc-700 focus:border-emerald-500 sm:py-3.5"
       />
     </label>
   );

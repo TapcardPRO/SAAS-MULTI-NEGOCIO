@@ -133,9 +133,9 @@ export default function CompleteProfileClient({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#050b10] px-5 py-10 text-white">
+    <main className="flex min-h-screen items-center justify-center bg-[#050b10] px-4 py-6 text-white sm:px-5 sm:py-10">
       <div className="w-full max-w-md">
-        <div className="mb-7 flex items-center justify-center gap-3">
+        <div className="mb-5 flex items-center justify-center gap-3 sm:mb-7">
           {business.logoUrl ? (
             <img
               src={
@@ -144,11 +144,11 @@ export default function CompleteProfileClient({
               alt={
                 business.name
               }
-              className="h-14 w-14 rounded-2xl object-cover"
+              className="h-11 w-11 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14 sm:rounded-2xl"
             />
           ) : (
             <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-black text-zinc-950"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg font-black text-zinc-950 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-xl"
               style={{
                 backgroundColor:
                   business.primaryColor ||
@@ -162,11 +162,11 @@ export default function CompleteProfileClient({
           )}
 
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-emerald-400">
+            <p className="hidden text-xs uppercase tracking-[0.18em] text-emerald-400 sm:block">
               Agendamento online
             </p>
 
-            <h1 className="text-xl font-bold">
+            <h1 className="max-w-[220px] truncate text-lg font-bold sm:max-w-none sm:text-xl">
               {
                 business.name
               }
@@ -174,7 +174,7 @@ export default function CompleteProfileClient({
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-[#0a141d] p-6 shadow-2xl sm:p-8">
+        <div className="rounded-2xl border border-white/10 bg-[#0a141d] p-4 shadow-2xl sm:rounded-3xl sm:p-8">
           <div className="text-center">
             {customer.photoUrl ? (
               <img
@@ -184,21 +184,21 @@ export default function CompleteProfileClient({
                 alt={
                   customer.name
                 }
-                className="mx-auto mb-4 h-16 w-16 rounded-full object-cover"
+                className="mx-auto mb-4 h-14 w-14 rounded-full object-cover sm:h-16 sm:w-16"
               />
             ) : null}
 
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-xl font-bold sm:text-2xl">
               Só falta seu WhatsApp
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-zinc-500">
+            <p className="mt-2 text-xs leading-5 text-zinc-500 sm:text-sm sm:leading-6">
               Sua conta Google foi conectada com sucesso.
               Informe seu WhatsApp para concluir o cadastro.
             </p>
           </div>
 
-          <div className="mt-6 rounded-xl border border-white/10 bg-[#071018] p-4">
+          <div className="mt-5 rounded-xl border border-white/10 bg-[#071018] p-3 sm:mt-6 sm:p-4">
             <p className="font-semibold text-white">
               {
                 customer.name
@@ -206,7 +206,7 @@ export default function CompleteProfileClient({
             </p>
 
             {customer.email ? (
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 break-all text-xs text-zinc-500 sm:text-sm">
                 {
                   customer.email
                 }
@@ -214,7 +214,7 @@ export default function CompleteProfileClient({
             ) : null}
           </div>
 
-          <label className="mt-6 block">
+          <label className="mt-5 block sm:mt-6">
             <span className="mb-2 block text-sm font-medium text-zinc-400">
               WhatsApp
             </span>
@@ -232,12 +232,12 @@ export default function CompleteProfileClient({
                   event.target.value
                 )
               }
-              className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3.5 outline-none transition placeholder:text-zinc-700 focus:border-emerald-500"
+              className="min-h-[50px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-base outline-none transition placeholder:text-zinc-700 focus:border-emerald-500 sm:py-3.5"
             />
           </label>
 
           {message ? (
-            <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-300">
+            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-5 text-amber-300 sm:mt-5 sm:p-4 sm:text-sm">
               {message}
             </div>
           ) : null}
@@ -250,7 +250,7 @@ export default function CompleteProfileClient({
             onClick={
               submit
             }
-            className="mt-6 w-full rounded-xl bg-emerald-500 px-5 py-4 font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-40"
+            className="mt-5 min-h-[52px] w-full rounded-xl bg-emerald-500 px-5 py-3.5 font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-40 sm:mt-6 sm:py-4"
           >
             {loading
               ? "Salvando..."

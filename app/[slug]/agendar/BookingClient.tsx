@@ -522,7 +522,7 @@ export default function BookingClient({
   if (done) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#050b10] px-5 py-10 text-white">
-        <div className="w-full max-w-lg rounded-3xl border border-emerald-500/20 bg-[#0a141d] p-8 text-center shadow-2xl">
+        <div className="w-full max-w-lg rounded-2xl border border-emerald-500/20 bg-[#0a141d] p-5 text-center shadow-2xl sm:rounded-3xl sm:p-8">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-3xl font-black text-zinc-950">
             ✓
           </div>
@@ -544,7 +544,7 @@ export default function BookingClient({
             {business.name}.
           </p>
 
-          <div className="mt-7 rounded-2xl border border-white/10 bg-black/20 p-5 text-left">
+          <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-left sm:mt-7 sm:p-5">
             <SummaryRow
               label="Serviço"
               value={
@@ -585,7 +585,7 @@ export default function BookingClient({
 
           <a
             href={`/${business.slug}`}
-            className="mt-7 inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-6 py-4 font-bold text-zinc-950 transition hover:bg-emerald-400"
+            className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-xl bg-emerald-500 px-5 py-3.5 font-bold text-zinc-950 transition hover:bg-emerald-400 sm:mt-7 sm:px-6 sm:py-4"
           >
             Voltar para {business.name}
           </a>
@@ -603,8 +603,8 @@ export default function BookingClient({
   return (
     <main className="min-h-screen bg-[#050b10] text-white">
       <div className="border-b border-white/10 bg-[#081119]">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-5 sm:px-6">
-          <div className="flex min-w-0 items-center gap-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
             {business.logoUrl ? (
               <img
                 src={
@@ -613,11 +613,11 @@ export default function BookingClient({
                 alt={
                   business.name
                 }
-                className="h-14 w-14 rounded-2xl object-cover"
+                className="h-11 w-11 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14 sm:rounded-2xl"
               />
             ) : (
               <div
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-black text-zinc-950"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg font-black text-zinc-950 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-xl"
                 style={{
                   backgroundColor:
                     business.primaryColor ||
@@ -631,11 +631,11 @@ export default function BookingClient({
             )}
 
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-400">
+              <p className="hidden text-xs font-bold uppercase tracking-[0.18em] text-emerald-400 sm:block">
                 Agendamento online
               </p>
 
-              <h1 className="truncate text-xl font-bold sm:text-2xl">
+              <h1 className="max-w-[190px] truncate text-base font-bold sm:max-w-none sm:text-2xl">
                 {business.name}
               </h1>
             </div>
@@ -656,7 +656,7 @@ export default function BookingClient({
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
         <a
           href={`/${business.slug}`}
           className="text-sm text-zinc-500 transition hover:text-white"
@@ -664,25 +664,25 @@ export default function BookingClient({
           ← Voltar
         </a>
 
-        <div className="mt-7">
-          <h2 className="text-3xl font-bold sm:text-4xl">
+        <div className="mt-6 sm:mt-7">
+          <h2 className="text-2xl font-bold leading-tight sm:text-4xl">
             Agende seu horário
           </h2>
 
-          <p className="mt-3 text-sm text-zinc-500">
+          <p className="mt-2 text-sm leading-6 text-zinc-500 sm:mt-3">
             Escolha o serviço, profissional, dia e horário.
           </p>
         </div>
 
         {/* 1 SERVIÇO */}
 
-        <section className="mt-10">
+        <section className="mt-8 sm:mt-10">
           <SectionTitle
             number="1"
             title="Escolha o serviço"
           />
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2 sm:gap-4">
             {services.map(
               (item) => {
                 const selected =
@@ -708,13 +708,13 @@ export default function BookingClient({
                         ""
                       );
                     }}
-                    className={`rounded-2xl border p-5 text-left transition ${
+                    className={`rounded-2xl border p-4 text-left transition sm:p-5 ${
                       selected
                         ? "border-emerald-500 bg-emerald-500/[0.07]"
                         : "border-white/10 bg-white/[0.025] hover:border-white/20"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between gap-3 sm:gap-4">
                       <div>
                         <h3 className="font-bold">
                           {
@@ -723,7 +723,7 @@ export default function BookingClient({
                         </h3>
 
                         {item.description ? (
-                          <p className="mt-1 text-sm text-zinc-500">
+                          <p className="mt-1 text-xs leading-5 text-zinc-500 sm:text-sm">
                             {
                               item.description
                             }

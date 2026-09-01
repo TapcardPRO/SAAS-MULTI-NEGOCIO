@@ -152,10 +152,10 @@ export default async function BusinessPage({
             `${backgroundColor}e8`,
         }}
       >
-        <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between gap-5 px-5 sm:px-6">
+        <div className="mx-auto flex min-h-[74px] max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-5 sm:px-6">
           <a
             href={`/${slug}`}
-            className="flex min-w-0 items-center gap-3"
+            className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none"
           >
             {business.logoUrl ? (
               <img
@@ -185,11 +185,11 @@ export default async function BusinessPage({
             )}
 
             <div className="min-w-0">
-              <p className="truncate font-bold">
+              <p className="max-w-[150px] truncate text-sm font-bold sm:max-w-none sm:text-base">
                 {business.name}
               </p>
 
-              <p className="truncate text-[11px] uppercase tracking-[0.16em] opacity-40">
+              <p className="hidden truncate text-[11px] uppercase tracking-[0.16em] opacity-40 sm:block">
                 {business.category ||
                   "Agendamento online"}
               </p>
@@ -242,10 +242,10 @@ export default async function BusinessPage({
             ) : null}
           </nav>
 
-          <div className="hidden items-center gap-2 sm:flex">
+          <div className="flex shrink-0 items-center gap-2">
             <a
               href={`/${slug}/cliente`}
-              className="inline-flex rounded-xl border px-4 py-3 text-sm font-semibold transition hover:-translate-y-0.5"
+              className="inline-flex rounded-xl border px-3 py-2.5 text-xs font-semibold transition hover:-translate-y-0.5 sm:px-4 sm:py-3 sm:text-sm"
               style={{
                 borderColor:
                   `${textColor}18`,
@@ -262,7 +262,7 @@ export default async function BusinessPage({
 
             <a
               href={bookingHref}
-              className="inline-flex rounded-xl px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5"
+              className="hidden rounded-xl px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 sm:inline-flex"
               style={{
                 backgroundColor:
                   primaryColor,
@@ -284,7 +284,7 @@ export default async function BusinessPage({
       ================================================== */}
 
       <section className="relative">
-        <div className="relative min-h-[680px] sm:min-h-[760px]">
+        <div className="relative min-h-[600px] sm:min-h-[680px] lg:min-h-[760px]">
           {business.coverUrl ? (
             <img
               src={
@@ -341,7 +341,7 @@ export default async function BusinessPage({
             }}
           />
 
-          <div className="relative z-10 mx-auto flex min-h-[680px] max-w-7xl items-center px-5 py-20 sm:min-h-[760px] sm:px-6">
+          <div className="relative z-10 mx-auto flex min-h-[600px] max-w-7xl items-center px-4 py-16 sm:min-h-[680px] sm:px-6 sm:py-20 lg:min-h-[760px]">
             <div className="max-w-3xl">
               <div
                 className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em]"
@@ -368,7 +368,7 @@ export default async function BusinessPage({
                   "Atendimento profissional"}
               </div>
 
-              <h1 className="mt-7 text-5xl font-black leading-[0.95] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl">
+              <h1 className="mt-6 break-words text-[2.55rem] font-black leading-[0.98] tracking-[-0.04em] text-white sm:mt-7 sm:text-6xl lg:text-7xl">
                 {business.name}
               </h1>
 
@@ -377,12 +377,12 @@ export default async function BusinessPage({
                   "Qualidade, cuidado e praticidade para você. Escolha seu serviço e reserve seu horário online."}
               </p>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row">
                 <a
                   href={
                     bookingHref
                   }
-                  className="inline-flex min-h-[56px] items-center justify-center gap-2 rounded-2xl px-7 font-bold shadow-2xl transition hover:-translate-y-1"
+                  className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl px-5 font-bold shadow-2xl transition hover:-translate-y-1 sm:w-auto sm:px-7"
                   style={{
                     backgroundColor:
                       primaryColor,
@@ -410,7 +410,7 @@ export default async function BusinessPage({
                     }
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex min-h-[56px] items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] px-7 font-semibold text-white backdrop-blur-md transition hover:bg-white/10"
+                    className="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] px-5 font-semibold text-white backdrop-blur-md transition hover:bg-white/10 sm:w-auto sm:px-7"
                   >
                     Falar no WhatsApp
                   </a>
@@ -472,7 +472,7 @@ export default async function BusinessPage({
           ATALHOS
       ================================================== */}
 
-      <section className="relative z-20 -mt-10 px-5 sm:px-6">
+      <section className="relative z-20 -mt-8 px-4 sm:-mt-10 sm:px-6">
         <div
           className="mx-auto grid max-w-7xl overflow-hidden rounded-3xl border shadow-2xl sm:grid-cols-2 lg:grid-cols-4"
           style={{
@@ -590,7 +590,7 @@ export default async function BusinessPage({
         id="servicos"
         className="scroll-mt-24"
       >
-        <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6 sm:py-32">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div className="max-w-2xl">
               <SectionLabel
@@ -601,7 +601,7 @@ export default async function BusinessPage({
                 Serviços
               </SectionLabel>
 
-              <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">
+              <h2 className="mt-4 text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
                 {business.servicesTitle ||
                   "Escolha a experiência ideal para você"}
               </h2>

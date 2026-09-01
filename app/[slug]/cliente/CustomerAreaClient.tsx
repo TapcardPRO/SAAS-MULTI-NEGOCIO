@@ -467,10 +467,10 @@ export default function CustomerAreaClient({
   return (
     <main className="min-h-screen bg-zinc-950 pb-28 text-white">
       <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-950/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-3 sm:gap-4 sm:px-6 sm:py-4">
           <Link
             href={`/${slug}`}
-            className="flex min-w-0 items-center gap-3"
+            className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3"
           >
             {business.logoUrl ? (
               <img
@@ -480,11 +480,11 @@ export default function CustomerAreaClient({
                 alt={
                   business.name
                 }
-                className="h-10 w-10 rounded-xl border border-white/10 object-cover"
+                className="h-9 w-9 shrink-0 rounded-xl border border-white/10 object-cover sm:h-10 sm:w-10"
               />
             ) : (
               <div
-                className="flex h-10 w-10 items-center justify-center rounded-xl font-bold text-black"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold text-black sm:h-10 sm:w-10"
                 style={{
                   backgroundColor:
                     business.primaryColor ||
@@ -498,17 +498,17 @@ export default function CustomerAreaClient({
             )}
 
             <div className="min-w-0">
-              <p className="truncate font-semibold">
+              <p className="max-w-[135px] truncate text-sm font-semibold sm:max-w-[220px] sm:text-base">
                 {business.name}
               </p>
 
-              <p className="text-xs text-zinc-500">
+              <p className="hidden text-xs text-zinc-500 sm:block">
                 Área do cliente
               </p>
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() =>
@@ -516,7 +516,7 @@ export default function CustomerAreaClient({
                   "perfil"
                 )
               }
-              className="hidden items-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-3 py-2 sm:flex"
+              className="flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-2.5 py-2 sm:px-3"
             >
               <Avatar
                 name={
@@ -528,23 +528,23 @@ export default function CustomerAreaClient({
                 small
               />
 
-              <span className="text-sm">
+              <span className="hidden text-sm md:inline">
                 Minha conta
               </span>
             </button>
 
             <Link
               href={`/${slug}/agendar`}
-              className="hidden rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-black sm:block"
+              className="rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-semibold text-black sm:px-4 sm:text-sm"
             >
-              + Agendar horário
+              <span className="sm:hidden">+ Agendar</span><span className="hidden sm:inline">+ Agendar horário</span>
             </Link>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
-        <section className="mb-8 flex items-center gap-4">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+        <section className="mb-6 flex items-center gap-3 sm:mb-8 sm:gap-4">
           <Avatar
             name={
               customer.name
@@ -559,17 +559,17 @@ export default function CustomerAreaClient({
               Minha conta
             </p>
 
-            <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
+            <h1 className="mt-1 text-2xl font-bold leading-tight tracking-tight sm:text-4xl">
               Olá, {firstName} 👋
             </h1>
 
-            <p className="mt-1 text-sm text-zinc-400">
+            <p className="mt-1 max-w-md text-xs leading-5 text-zinc-400 sm:text-sm">
               Acompanhe seus agendamentos e seu plano.
             </p>
           </div>
         </section>
 
-        <nav className="mb-8 flex gap-2 overflow-x-auto pb-2">
+        <nav className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:mb-8 sm:px-0">
           <TabButton
             active={
               tab === "inicio"
@@ -642,15 +642,15 @@ export default function CustomerAreaClient({
 
         {tab === "inicio" && (
           <div className="space-y-6">
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="rounded-3xl border border-white/10 bg-zinc-900 p-6 lg:col-span-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-zinc-900 p-4 sm:rounded-3xl sm:p-6 md:col-span-2 lg:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
                   Próximo agendamento
                 </p>
 
                 {nextAppointment ? (
                   <>
-                    <h2 className="mt-4 text-2xl font-semibold">
+                    <h2 className="mt-4 text-xl font-semibold sm:text-2xl">
                       {
                         nextAppointment.serviceName
                       }
