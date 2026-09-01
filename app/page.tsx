@@ -184,6 +184,632 @@ export default async function Home() {
         </div>
       </section>
 
+
+      <section
+        id="o-que-voce-recebe"
+        className="border-y border-white/[0.06] bg-[#080b09] py-24 sm:py-32"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHeading
+            eyebrow="Muito mais que uma agenda"
+            title="Veja o que você recebe ao assinar a Vellto."
+            description="Uma estrutura completa para apresentar seu negócio, receber agendamentos e administrar sua operação de forma profissional."
+          />
+
+          <div className="mt-16 space-y-20 sm:mt-20 sm:space-y-28">
+            {/* PÁGINA PÚBLICA */}
+            <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-3 py-1.5 text-xs font-bold text-emerald-400">
+                  <GlobeIcon />
+                  SUA PRESENÇA ONLINE
+                </div>
+
+                <h3 className="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
+                  Uma página profissional para apresentar o seu negócio.
+                </h3>
+
+                <p className="mt-5 text-base leading-7 text-zinc-400 sm:text-lg">
+                  Você não recebe apenas um sistema de agenda. A Vellto entrega
+                  uma página própria para sua empresa, preparada para apresentar
+                  sua marca e transformar visitantes em clientes.
+                </p>
+
+                <div className="mt-7 space-y-3">
+                  {[
+                    "Logo e identidade do seu negócio",
+                    "Imagem de capa personalizada",
+                    "Descrição e informações da empresa",
+                    "Serviços com preços e duração",
+                    "Profissionais da sua equipe",
+                    "Galeria de fotos",
+                    "Endereço e informações de contato",
+                    "Botão de agendamento online",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-emerald-400/10 text-emerald-400">
+                        <CheckIcon />
+                      </span>
+
+                      <span className="text-sm text-zinc-300 sm:text-base">
+                        {item}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="absolute -inset-8 rounded-full bg-emerald-500/10 blur-[100px]" />
+
+                <div className="relative rounded-[30px] border border-white/10 bg-[#0d100e] p-3 shadow-2xl shadow-black/50">
+                  <div className="overflow-hidden rounded-[23px] border border-white/[0.07] bg-[#080a09]">
+                    <div className="flex h-10 items-center gap-1.5 border-b border-white/[0.06] px-4">
+                      <span className="h-2 w-2 rounded-full bg-white/10" />
+                      <span className="h-2 w-2 rounded-full bg-white/10" />
+                      <span className="h-2 w-2 rounded-full bg-emerald-400/60" />
+
+                      <div className="mx-auto hidden rounded-md bg-white/[0.04] px-5 py-1 text-[8px] text-zinc-600 sm:block">
+                        velltoagenda.com/sua-empresa
+                      </div>
+                    </div>
+
+                    <div className="relative h-44 overflow-hidden bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-950 sm:h-56">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+                      <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4 sm:bottom-7 sm:left-7 sm:right-7">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-emerald-400 text-xl font-black text-zinc-950 shadow-xl sm:h-16 sm:w-16">
+                            B
+                          </div>
+
+                          <div>
+                            <p className="text-lg font-black sm:text-2xl">
+                              Barbearia Prime
+                            </p>
+                            <p className="mt-1 text-xs text-zinc-300">
+                              Cuidado, estilo e atendimento profissional.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 sm:p-6">
+                      <div className="flex gap-2 overflow-hidden">
+                        {["Início", "Serviços", "Equipe", "Galeria"].map(
+                          (item, index) => (
+                            <div
+                              key={item}
+                              className={`whitespace-nowrap rounded-lg px-3 py-2 text-[9px] font-semibold ${
+                                index === 0
+                                  ? "bg-emerald-400 text-zinc-950"
+                                  : "bg-white/[0.04] text-zinc-500"
+                              }`}
+                            >
+                              {item}
+                            </div>
+                          )
+                        )}
+                      </div>
+
+                      <div className="mt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-bold">
+                              Nossos serviços
+                            </p>
+                            <p className="mt-1 text-[9px] text-zinc-600">
+                              Escolha o serviço ideal para você
+                            </p>
+                          </div>
+
+                          <span className="rounded-lg bg-emerald-400/10 px-2 py-1 text-[8px] font-bold text-emerald-400">
+                            AGENDAR
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                          {[
+                            ["Corte", "30 min", "R$ 40"],
+                            ["Corte + Barba", "50 min", "R$ 65"],
+                            ["Barba", "25 min", "R$ 30"],
+                            ["Acabamento", "15 min", "R$ 20"],
+                          ].map(([name, time, price]) => (
+                            <div
+                              key={name}
+                              className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-3"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="text-[10px] font-semibold">
+                                    {name}
+                                  </p>
+                                  <p className="mt-1 text-[8px] text-zinc-600">
+                                    {time}
+                                  </p>
+                                </div>
+
+                                <p className="text-[9px] font-bold text-emerald-400">
+                                  {price}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-3 gap-2">
+                        <div className="h-16 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900" />
+                        <div className="h-16 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-950" />
+                        <div className="h-16 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PERSONALIZAÇÃO */}
+            <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+              <div className="order-2 lg:order-1">
+                <div className="rounded-[30px] border border-white/10 bg-[#0c0f0d] p-4 shadow-2xl shadow-black/30 sm:p-6">
+                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-5">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-400">
+                        Minha página
+                      </p>
+                      <p className="mt-1 text-lg font-bold">
+                        Personalize sua presença online
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-emerald-400 px-3 py-2 text-[9px] font-black text-zinc-950">
+                      SALVAR
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 sm:grid-cols-[0.8fr_1.2fr]">
+                    <div className="space-y-2">
+                      {[
+                        "Geral",
+                        "Sobre nós",
+                        "Galeria",
+                        "Aparência",
+                        "Agendamento",
+                      ].map((item, index) => (
+                        <div
+                          key={item}
+                          className={`rounded-xl px-4 py-3 text-xs ${
+                            index === 3
+                              ? "bg-emerald-400/10 font-bold text-emerald-400"
+                              : "bg-white/[0.025] text-zinc-500"
+                          }`}
+                        >
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="rounded-2xl border border-white/[0.06] bg-black/20 p-4">
+                      <p className="text-xs font-bold">
+                        Aparência
+                      </p>
+
+                      <div className="mt-5">
+                        <p className="text-[9px] uppercase tracking-wider text-zinc-600">
+                          Cor principal
+                        </p>
+
+                        <div className="mt-2 flex gap-2">
+                          <span className="h-7 w-7 rounded-full bg-emerald-400 ring-2 ring-emerald-400 ring-offset-2 ring-offset-[#090c0a]" />
+                          <span className="h-7 w-7 rounded-full bg-blue-500" />
+                          <span className="h-7 w-7 rounded-full bg-violet-500" />
+                          <span className="h-7 w-7 rounded-full bg-orange-500" />
+                          <span className="h-7 w-7 rounded-full bg-rose-500" />
+                        </div>
+                      </div>
+
+                      <div className="mt-5">
+                        <p className="text-[9px] uppercase tracking-wider text-zinc-600">
+                          Capa da página
+                        </p>
+
+                        <div className="mt-2 flex h-20 items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.025] text-[9px] text-zinc-600">
+                          Enviar imagem de capa
+                        </div>
+                      </div>
+
+                      <div className="mt-5">
+                        <p className="text-[9px] uppercase tracking-wider text-zinc-600">
+                          Sobre o negócio
+                        </p>
+
+                        <div className="mt-2 h-16 rounded-xl border border-white/[0.06] bg-white/[0.025] p-3 text-[8px] leading-4 text-zinc-600">
+                          Conte um pouco sobre sua empresa, seu atendimento e o
+                          que torna o seu negócio especial...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="order-1 lg:order-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-3 py-1.5 text-xs font-bold text-emerald-400">
+                  SUA MARCA, DO SEU JEITO
+                </div>
+
+                <h3 className="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
+                  Personalize sua página sem depender de ninguém.
+                </h3>
+
+                <p className="mt-5 text-base leading-7 text-zinc-400 sm:text-lg">
+                  Pelo próprio painel, você controla as informações exibidas
+                  para seus clientes e mantém sua página sempre atualizada.
+                </p>
+
+                <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                  {[
+                    "Troque sua capa",
+                    "Adicione sua logo",
+                    "Escolha suas cores",
+                    "Edite seu texto",
+                    "Atualize sua galeria",
+                    "Configure seus contatos",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] px-4 py-3"
+                    >
+                      <span className="text-emerald-400">
+                        <CheckIcon />
+                      </span>
+
+                      <span className="text-sm text-zinc-300">
+                        {item}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* AGENDAMENTO */}
+            <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-3 py-1.5 text-xs font-bold text-emerald-400">
+                  <CalendarIcon />
+                  AGENDAMENTO ONLINE
+                </div>
+
+                <h3 className="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
+                  Seu cliente agenda sozinho, a qualquer hora.
+                </h3>
+
+                <p className="mt-5 text-base leading-7 text-zinc-400 sm:text-lg">
+                  O cliente escolhe o serviço, o profissional, a data e um dos
+                  horários realmente disponíveis. O agendamento entra direto
+                  na sua agenda.
+                </p>
+
+                <div className="mt-8 space-y-4">
+                  <Benefit
+                    number="01"
+                    title="Escolhe o serviço"
+                    text="O cliente visualiza seus serviços e valores."
+                  />
+                  <Benefit
+                    number="02"
+                    title="Escolhe quem vai atender"
+                    text="Sua equipe aparece de forma organizada."
+                  />
+                  <Benefit
+                    number="03"
+                    title="Seleciona um horário disponível"
+                    text="A disponibilidade considera sua agenda configurada."
+                  />
+                </div>
+              </div>
+
+              <div className="relative mx-auto w-full max-w-lg">
+                <div className="absolute -inset-8 rounded-full bg-emerald-500/10 blur-[100px]" />
+
+                <div className="relative mx-auto max-w-[390px] rounded-[38px] border border-white/10 bg-[#0d100e] p-3 shadow-2xl shadow-black/50">
+                  <div className="overflow-hidden rounded-[29px] border border-white/[0.07] bg-[#080a09]">
+                    <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">
+                          Agendamento
+                        </p>
+                        <p className="mt-1 text-sm font-bold">
+                          Barbearia Prime
+                        </p>
+                      </div>
+
+                      <div className="h-9 w-9 rounded-xl bg-emerald-400" />
+                    </div>
+
+                    <div className="p-5">
+                      <p className="text-[10px] font-bold">
+                        1. Escolha o serviço
+                      </p>
+
+                      <div className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-400/[0.06] p-3">
+                        <div className="flex justify-between">
+                          <div>
+                            <p className="text-xs font-semibold">
+                              Corte + Barba
+                            </p>
+                            <p className="mt-1 text-[8px] text-zinc-500">
+                              50 minutos
+                            </p>
+                          </div>
+
+                          <p className="text-xs font-bold text-emerald-400">
+                            R$ 65
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-5 text-[10px] font-bold">
+                        2. Profissional
+                      </p>
+
+                      <div className="mt-3 flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] p-3">
+                        <div className="h-9 w-9 rounded-full bg-white/[0.08]" />
+                        <div>
+                          <p className="text-xs font-semibold">
+                            Igor Costa
+                          </p>
+                          <p className="mt-1 text-[8px] text-zinc-600">
+                            Barbeiro
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-5 text-[10px] font-bold">
+                        3. Escolha a data
+                      </p>
+
+                      <div className="mt-3 grid grid-cols-5 gap-1.5">
+                        {[
+                          ["01", "TER"],
+                          ["02", "QUA"],
+                          ["03", "QUI"],
+                          ["04", "SEX"],
+                          ["05", "SÁB"],
+                        ].map(([day, week], index) => (
+                          <div
+                            key={day}
+                            className={`rounded-lg py-2 text-center ${
+                              index === 2
+                                ? "bg-emerald-400 text-zinc-950"
+                                : "bg-white/[0.03] text-zinc-500"
+                            }`}
+                          >
+                            <p className="text-[7px] font-bold">
+                              {week}
+                            </p>
+                            <p className="mt-1 text-[10px] font-black">
+                              {day}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="mt-5 text-[10px] font-bold">
+                        Horários disponíveis
+                      </p>
+
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {["09:00", "10:30", "13:00", "14:30", "16:00", "17:30"].map(
+                          (time, index) => (
+                            <div
+                              key={time}
+                              className={`rounded-lg py-2 text-center text-[9px] font-bold ${
+                                index === 1
+                                  ? "bg-emerald-400 text-zinc-950"
+                                  : "border border-white/[0.06] bg-white/[0.025] text-zinc-400"
+                              }`}
+                            >
+                              {time}
+                            </div>
+                          )
+                        )}
+                      </div>
+
+                      <div className="mt-5 rounded-xl bg-emerald-400 py-3 text-center text-xs font-black text-zinc-950">
+                        Confirmar agendamento
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ÁREA DO CLIENTE + GESTÃO */}
+            <div>
+              <div className="mx-auto max-w-3xl text-center">
+                <p className="text-sm font-bold uppercase tracking-[0.22em] text-emerald-400">
+                  Experiência completa
+                </p>
+
+                <h3 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
+                  E depois do agendamento, a experiência continua.
+                </h3>
+
+                <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-zinc-400">
+                  Enquanto você administra o negócio pelo painel, seu cliente
+                  também possui uma área própria para acompanhar a relação com
+                  a sua empresa.
+                </p>
+              </div>
+
+              <div className="mt-12 grid gap-5 lg:grid-cols-2">
+                <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-5 sm:p-7">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-400">
+                      <UsersIcon />
+                    </div>
+
+                    <div>
+                      <p className="font-bold">
+                        Área do cliente
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-600">
+                        Tudo em um só acesso
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-2xl border border-white/[0.06] bg-[#080a09] p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 rounded-full bg-gradient-to-br from-emerald-400/30 to-zinc-800" />
+
+                      <div>
+                        <p className="text-sm font-bold">
+                          Olá, Carlos
+                        </p>
+                        <p className="mt-1 text-[9px] text-zinc-600">
+                          Bem-vindo à sua área
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-2">
+                      <MiniInfo label="Próximo horário" value="03/09 • 10:30" />
+                      <MiniInfo label="Plano" value="Mensal ativo" />
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {[
+                        "Meus agendamentos",
+                        "Histórico",
+                        "Meu plano",
+                        "Meu perfil",
+                      ].map((item) => (
+                        <div
+                          key={item}
+                          className="flex items-center justify-between rounded-xl border border-white/[0.05] bg-white/[0.02] px-4 py-3 text-xs"
+                        >
+                          <span>{item}</span>
+                          <span className="text-zinc-600">→</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-5 sm:p-7">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-400">
+                      <RepeatIcon />
+                    </div>
+
+                    <div>
+                      <p className="font-bold">
+                        Gestão de mensalistas
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-600">
+                        Controle de utilização
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-2xl border border-white/[0.06] bg-[#080a09] p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold">
+                          Plano Corte Mensal
+                        </p>
+                        <p className="mt-1 text-[9px] text-zinc-600">
+                          Carlos Henrique
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[8px] font-black text-emerald-400">
+                        ATIVO
+                      </span>
+                    </div>
+
+                    <div className="mt-6">
+                      <div className="flex justify-between text-[9px]">
+                        <span className="text-zinc-600">
+                          Utilizações no ciclo
+                        </span>
+                        <span className="font-bold">
+                          2 de 4
+                        </span>
+                      </div>
+
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.05]">
+                        <div className="h-full w-1/2 rounded-full bg-emerald-400" />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-3 gap-2">
+                      <MiniInfo label="Restam" value="2 cortes" />
+                      <MiniInfo label="Pagamento" value="Em dia" />
+                      <MiniInfo label="Vencimento" value="15/09" />
+                    </div>
+
+                    <div className="mt-5 rounded-xl border border-white/[0.05] bg-white/[0.02] p-3">
+                      <p className="text-[9px] font-bold">
+                        Últimas utilizações
+                      </p>
+
+                      <div className="mt-3 space-y-2 text-[8px] text-zinc-500">
+                        <div className="flex justify-between">
+                          <span>Corte • 28/08</span>
+                          <span className="text-emerald-400">
+                            Concluído
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between">
+                          <span>Corte • 14/08</span>
+                          <span className="text-emerald-400">
+                            Concluído
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 rounded-[28px] border border-emerald-400/20 bg-gradient-to-r from-emerald-400/[0.08] via-emerald-400/[0.03] to-transparent p-6 sm:p-8">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-400">
+                      Tudo conectado
+                    </p>
+
+                    <h4 className="mt-3 text-2xl font-black">
+                      Site + agendamento + gestão + área do cliente.
+                    </h4>
+
+                    <p className="mt-3 text-sm leading-6 text-zinc-400">
+                      A Vellto conecta a experiência do seu cliente com a
+                      administração do seu negócio em uma única plataforma.
+                    </p>
+                  </div>
+
+                  <a
+                    href="#planos"
+                    className="inline-flex min-h-12 flex-none items-center justify-center gap-2 rounded-xl bg-emerald-400 px-6 text-sm font-black text-zinc-950 transition hover:bg-emerald-300"
+                  >
+                    Conhecer os planos
+                    <ArrowRightIcon />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="como-funciona" className="py-24 sm:py-32">
         <div className="mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
           <div>
