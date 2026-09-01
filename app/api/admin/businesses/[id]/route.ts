@@ -238,12 +238,6 @@ export async function PUT(
 
     const body = await request.json();
 
-    const allowedPlans = [
-      "basico",
-      "profissional",
-      "premium",
-    ];
-
     const updateData: Record<
       string,
       unknown
@@ -254,11 +248,19 @@ export async function PUT(
     if (body.plan !== undefined) {
       const plan = String(body.plan);
 
-      if (!allowedPlans.includes(plan)) {
+      const selectedPlan =
+        await auth.db
+          .collection("saas_plans")
+          .findOne({
+            slug: plan,
+          });
+
+      if (!selectedPlan) {
         return NextResponse.json(
           {
             ok: false,
-            message: "Plano inválido",
+            message:
+              "O plano selecionado não existe.",
           },
           {
             status: 400,

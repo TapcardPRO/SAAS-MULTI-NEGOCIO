@@ -304,19 +304,20 @@ export async function POST(
       );
     }
 
-    const allowedPlans = [
-      "basico",
-      "profissional",
-      "premium",
-    ];
+    const selectedPlan =
+      await auth.db
+        .collection("saas_plans")
+        .findOne({
+          slug: plan,
+          active: { $ne: false },
+        });
 
-    if (
-      !allowedPlans.includes(plan)
-    ) {
+    if (!selectedPlan) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Plano inválido",
+          message:
+            "O plano selecionado não existe ou está inativo.",
         },
         {
           status: 400,

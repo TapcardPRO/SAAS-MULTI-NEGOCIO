@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+type SaasPlan = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 type Business = {
   id: string;
   name: string;
@@ -21,11 +27,40 @@ export default function EmpresasPage() {
 
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [plans, setPlans] = useState<SaasPlan[]>([]);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     loadBusinesses();
+    loadPlans();
   }, []);
+
+  async function loadPlans() {
+    try {
+      const response = await fetch(
+        "/api/admin/plans",
+        {
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPlans(data.plans || []);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function planName(slug: string) {
+    return (
+      plans.find(
+        (plan) => plan.slug === slug
+      )?.name || slug || "-"
+    );
+  }
 
   async function loadBusinesses() {
     try {
@@ -178,7 +213,7 @@ export default function EmpresasPage() {
                       <p>
                         Plano:{" "}
                         <span className="text-white">
-                          {formatPlan(business.plan)}
+                          {planName(business.plan)}
                         </span>
                       </p>
 
@@ -250,14 +285,3 @@ function StatCard({
   );
 }
 
-function formatPlan(plan: string) {
-  if (plan === "profissional") {
-    return "Profissional";
-  }
-
-  if (plan === "premium") {
-    return "Premium";
-  }
-
-  return "Básico";
-}

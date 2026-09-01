@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+type SaasPlan = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  billingCycle: string;
+  active: boolean;
+};
+
 type BusinessData = {
   id: string;
   name: string;
@@ -35,6 +44,9 @@ export default function GerenciarEmpresaPage() {
   const [business, setBusiness] =
     useState<BusinessData | null>(null);
 
+  const [plans, setPlans] =
+    useState<SaasPlan[]>([]);
+
   const [message, setMessage] = useState("");
 
   const [newPassword, setNewPassword] =
@@ -48,7 +60,27 @@ export default function GerenciarEmpresaPage() {
 
   useEffect(() => {
     loadBusiness();
+    loadPlans();
   }, [id]);
+
+  async function loadPlans() {
+    try {
+      const response = await fetch(
+        "/api/admin/plans",
+        {
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPlans(data.plans || []);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   async function loadBusiness() {
     try {
@@ -379,19 +411,40 @@ export default function GerenciarEmpresaPage() {
                         : current
                   )
                 }
-                className="w-full rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 outline-none focus:border-emerald-500"
+                className="min-h-12 w-full rounded-xl border border-white/10 bg-zinc-900 px-4 text-base outline-none focus:border-emerald-500"
               >
-                <option value="basico">
-                  Básico
-                </option>
+                {!plans.some(
+                  (plan) =>
+                    plan.slug === business.plan
+                ) ? (
+                  <option value={business.plan}>
+                    Plano atual: {business.plan}
+                  </option>
+                ) : null}
 
-                <option value="profissional">
-                  Profissional
-                </option>
-
-                <option value="premium">
-                  Premium
-                </option>
+                {plans.map((plan) => (
+                  <option
+                    key={plan.id}
+                    value={plan.slug}
+                  >
+                    {plan.name}
+                    {!plan.active
+                      ? " (inativo)"
+                      : ""}
+                    {" — "}
+                    {new Intl.NumberFormat(
+                      "pt-BR",
+                      {
+                        style: "currency",
+                        currency: "BRL",
+                      }
+                    ).format(plan.price)}
+                    {plan.billingCycle ===
+                    "yearly"
+                      ? "/ano"
+                      : "/mês"}
+                  </option>
+                ))}
               </select>
             </div>
 

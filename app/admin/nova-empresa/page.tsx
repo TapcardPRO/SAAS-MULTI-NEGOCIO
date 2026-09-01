@@ -3,12 +3,22 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+type SaasPlan = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  billingCycle: string;
+  active: boolean;
+};
+
 export default function NovaEmpresaPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [plans, setPlans] = useState<SaasPlan[]>([]);
 
   const [form, setForm] = useState({
     businessName: "",
@@ -26,7 +36,45 @@ export default function NovaEmpresaPage() {
 
   useEffect(() => {
     checkAdmin();
+    loadPlans();
   }, []);
+
+  async function loadPlans() {
+    try {
+      const response = await fetch("/api/admin/plans", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return;
+      }
+
+      const activePlans = (data.plans || []).filter(
+        (plan: SaasPlan) => plan.active
+      );
+
+      setPlans(activePlans);
+
+      if (activePlans.length > 0) {
+        setForm((current) => {
+          const exists = activePlans.some(
+            (plan: SaasPlan) => plan.slug === current.plan
+          );
+
+          return {
+            ...current,
+            plan: exists
+              ? current.plan
+              : activePlans[0].slug,
+          };
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   async function checkAdmin() {
     try {
@@ -101,6 +149,13 @@ export default function NovaEmpresaPage() {
       return;
     }
 
+    if (!form.plan) {
+      setMessage(
+        "Cadastre e ative pelo menos um plano antes de criar a empresa."
+      );
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -140,7 +195,10 @@ export default function NovaEmpresaPage() {
         ownerEmail: "",
         ownerPassword: "",
 
-        plan: "basico",
+        plan:
+          plans.length > 0
+            ? plans[0].slug
+            : "",
         active: true,
       });
     } catch (error) {
@@ -291,20 +349,37 @@ export default function NovaEmpresaPage() {
                   onChange={(e) =>
                     changeField("plan", e.target.value)
                   }
-                  className="w-full rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 outline-none focus:border-emerald-500"
+                  disabled={plans.length === 0}
+                  className="min-h-12 w-full rounded-xl border border-white/10 bg-zinc-900 px-4 text-base outline-none focus:border-emerald-500 disabled:opacity-50"
                 >
-                  <option value="basico">
-                    Básico
-                  </option>
-
-                  <option value="profissional">
-                    Profissional
-                  </option>
-
-                  <option value="premium">
-                    Premium
-                  </option>
+                  {plans.length === 0 ? (
+                    <option value="">
+                      Nenhum plano ativo cadastrado
+                    </option>
+                  ) : (
+                    plans.map((plan) => (
+                      <option
+                        key={plan.id}
+                        value={plan.slug}
+                      >
+                        {plan.name} —{" "}
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(plan.price)}
+                        {plan.billingCycle === "yearly"
+                          ? "/ano"
+                          : "/mês"}
+                      </option>
+                    ))
+                  )}
                 </select>
+
+                {plans.length === 0 ? (
+                  <p className="mt-2 text-xs text-amber-400">
+                    Cadastre e ative pelo menos um plano no Super Admin antes de criar uma nova empresa.
+                  </p>
+                ) : null}
               </div>
 
               <label className="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-zinc-900 p-4">
