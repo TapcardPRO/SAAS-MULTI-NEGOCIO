@@ -303,7 +303,7 @@ export default function BookingClient({
       setLoadingSlots(true);
       setMessage("");
       setSlots([]);
-      setTime("");
+    
 
       const query =
         new URLSearchParams({
