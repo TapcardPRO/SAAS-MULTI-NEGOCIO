@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
   user: {
     name: string;
     email: string;
+    role: string;
   };
 
   business: {
@@ -87,6 +88,44 @@ export default function DashboardShell({
 
   const [mobileMenu, setMobileMenu] =
     useState(false);
+
+  const isEmployee =
+    user.role === "employee";
+
+  const visibleMenu =
+    isEmployee
+      ? menu.filter(
+          (item) =>
+            item.href ===
+              "/dashboard/agenda" ||
+            item.href ===
+              "/dashboard/financeiro"
+        )
+      : menu;
+
+  useEffect(() => {
+    if (!isEmployee) {
+      return;
+    }
+
+    const allowed =
+      pathname.startsWith(
+        "/dashboard/agenda"
+      ) ||
+      pathname.startsWith(
+        "/dashboard/financeiro"
+      );
+
+    if (!allowed) {
+      router.replace(
+        "/dashboard/agenda"
+      );
+    }
+  }, [
+    isEmployee,
+    pathname,
+    router,
+  ]);
 
   async function logout() {
     await fetch("/api/auth/logout", {
@@ -199,7 +238,7 @@ export default function DashboardShell({
 
             {/* MENU */}
             <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pb-5 sm:px-4">
-              {menu.map((item) => {
+              {visibleMenu.map((item) => {
                 const active =
                   isActive(item.href);
 
@@ -227,7 +266,7 @@ export default function DashboardShell({
             </nav>
 
             {/* ACESSO À PÁGINA PÚBLICA */}
-            {business.slug ? (
+            {business.slug && !isEmployee ? (
               <div className="px-3 pb-3 sm:px-4 sm:pb-4">
                 <a
                   href={`/${business.slug}`}
@@ -255,7 +294,7 @@ export default function DashboardShell({
                   </p>
 
                   <p className="truncate text-xs text-zinc-500">
-                    Proprietário
+                    {isEmployee ? "Profissional" : "Proprietário"}
                   </p>
                 </div>
 

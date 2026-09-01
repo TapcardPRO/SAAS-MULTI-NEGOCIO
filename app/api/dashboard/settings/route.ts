@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
-import { requireBusinessSession } from "@/lib/tenant-auth";
+import { requireOwnerSession } from "@/lib/tenant-auth";
 import {
   comparePassword,
   hashPassword,
@@ -25,7 +25,7 @@ function fail(
 export async function GET() {
   try {
     const auth =
-      await requireBusinessSession();
+      await requireOwnerSession();
 
     if (!auth.ok) {
       return fail(
@@ -131,7 +131,7 @@ export async function PUT(
 ) {
   try {
     const auth =
-      await requireBusinessSession();
+      await requireOwnerSession();
 
     if (!auth.ok) {
       return fail(

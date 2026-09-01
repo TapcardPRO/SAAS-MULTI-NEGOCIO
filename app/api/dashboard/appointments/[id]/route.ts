@@ -86,6 +86,29 @@ export async function PUT(
       );
     }
 
+    if (auth.user.role === "employee") {
+      const employeeProfessionalId = String(
+        auth.user.professionalId || ""
+      );
+
+      if (
+        !employeeProfessionalId ||
+        String(appointment.professionalId || "") !==
+          employeeProfessionalId
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Você só pode alterar os seus próprios agendamentos.",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+    }
+
     const now = new Date();
 
     await auth.db

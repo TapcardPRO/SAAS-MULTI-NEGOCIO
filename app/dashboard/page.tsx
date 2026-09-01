@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { getDb } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
@@ -30,6 +31,10 @@ export default async function DashboardPage() {
             ),
           })
       : null;
+
+  if (user?.role === "employee") {
+    redirect("/dashboard/agenda");
+  }
 
   const businessId =
     user?.businessId &&

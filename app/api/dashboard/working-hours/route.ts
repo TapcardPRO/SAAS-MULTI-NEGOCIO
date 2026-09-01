@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireBusinessSession } from "@/lib/tenant-auth";
+import { requireOwnerSession } from "@/lib/tenant-auth";
 import { normalizeWorkingHours } from "@/lib/booking";
 
 export async function GET() {
-  const auth = await requireBusinessSession();
+  const auth = await requireOwnerSession();
   if (!auth.ok) return NextResponse.json({ ok: false, message: auth.message }, { status: auth.status });
   return NextResponse.json({ ok: true, workingHours: normalizeWorkingHours(auth.business.workingHours) });
 }
 
 export async function PUT(request: Request) {
   try {
-    const auth = await requireBusinessSession();
+    const auth = await requireOwnerSession();
     if (!auth.ok) return NextResponse.json({ ok: false, message: auth.message }, { status: auth.status });
     const body = await request.json();
     const workingHours = normalizeWorkingHours(body.workingHours);

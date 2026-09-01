@@ -40,3 +40,22 @@ export async function requireBusinessSession() {
 
   return { ok: true as const, db, user, business, businessId };
 }
+
+
+export async function requireOwnerSession() {
+  const auth = await requireBusinessSession();
+
+  if (!auth.ok) {
+    return auth;
+  }
+
+  if (auth.user.role === "employee") {
+    return {
+      ok: false as const,
+      status: 403,
+      message: "Acesso exclusivo do proprietário",
+    };
+  }
+
+  return auth;
+}

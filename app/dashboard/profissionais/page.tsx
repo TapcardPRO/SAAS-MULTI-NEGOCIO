@@ -16,6 +16,8 @@ type Professional = {
   email?: string;
   commission?: number;
   allowPanelAccess?: boolean;
+  accessEmail?: string;
+  hasPanelUser?: boolean;
   active?: boolean;
   order?: number;
 };
@@ -29,6 +31,8 @@ type EditForm = {
   photoUrl: string;
   commission: string;
   allowPanelAccess: boolean;
+  accessEmail: string;
+  password: string;
   active: boolean;
 };
 
@@ -41,6 +45,8 @@ const emptyForm: EditForm = {
   photoUrl: "",
   commission: "0",
   allowPanelAccess: false,
+  accessEmail: "",
+  password: "",
   active: true,
 };
 
@@ -149,6 +155,11 @@ export default function ProfissionaisPage() {
       allowPanelAccess:
         professional.allowPanelAccess ===
         true,
+      accessEmail:
+        professional.accessEmail ||
+        professional.email ||
+        "",
+      password: "",
       active:
         professional.active !== false,
     });
@@ -271,6 +282,10 @@ export default function ProfissionaisPage() {
                   ),
             allowPanelAccess:
               form.allowPanelAccess,
+            accessEmail:
+              form.accessEmail,
+            password:
+              form.password,
             active: form.active,
           }),
         }
@@ -740,18 +755,74 @@ export default function ProfissionaisPage() {
                     </p>
 
                     <p className="mt-1 text-sm leading-6 text-zinc-500">
-                      Prepara este
-                      profissional para
-                      acessar a própria
-                      agenda e o próprio
-                      financeiro. O login
-                      individual será
-                      configurado na
-                      próxima etapa.
+                      Ative para criar
+                      ou manter o login
+                      deste profissional.
+                      Ele verá apenas a
+                      própria agenda e o
+                      próprio financeiro.
                     </p>
                   </label>
                 </div>
               </div>
+
+              {form.allowPanelAccess ? (
+                <div className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5">
+                  <p className="font-semibold text-emerald-300">
+                    Dados de acesso
+                  </p>
+
+                  <p className="mt-1 text-sm leading-6 text-zinc-500">
+                    Este será o login usado pelo profissional na mesma tela de acesso da Vellto.
+                  </p>
+
+                  <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                    <Field
+                      label="E-mail de acesso"
+                      value={form.accessEmail}
+                      onChange={(value) =>
+                        updateForm(
+                          "accessEmail",
+                          value
+                        )
+                      }
+                      placeholder="profissional@email.com"
+                      type="email"
+                    />
+
+                    <Field
+                      label={
+                        editingProfessional.hasPanelUser
+                          ? "Nova senha (opcional)"
+                          : "Senha inicial"
+                      }
+                      value={form.password}
+                      onChange={(value) =>
+                        updateForm(
+                          "password",
+                          value
+                        )
+                      }
+                      placeholder={
+                        editingProfessional.hasPanelUser
+                          ? "Deixe vazio para manter"
+                          : "Mínimo 6 caracteres"
+                      }
+                      type="password"
+                    />
+                  </div>
+
+                  {editingProfessional.hasPanelUser ? (
+                    <p className="mt-3 text-xs text-zinc-500">
+                      O acesso já existe. Preencha uma nova senha somente se quiser alterá-la.
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-xs text-zinc-500">
+                      Na primeira ativação é obrigatório definir uma senha de pelo menos 6 caracteres.
+                    </p>
+                  )}
+                </div>
+              ) : null}
 
               {modalMessage ? (
                 <div

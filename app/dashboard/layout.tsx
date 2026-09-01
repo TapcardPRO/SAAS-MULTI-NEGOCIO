@@ -80,6 +80,7 @@ export default async function DashboardLayout({
       user={{
         name: user.name || "Usuário",
         email: user.email || "",
+        role: user.role || "owner",
       }}
       business={{
         name: business.name || "Minha empresa",

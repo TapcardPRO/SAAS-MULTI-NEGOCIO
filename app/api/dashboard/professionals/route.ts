@@ -1,169 +1,41 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 
-import { getDb } from "@/lib/db";
-import { verifySessionToken } from "@/lib/auth";
+import { requireOwnerSession } from "@/lib/tenant-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
+    const auth = await requireOwnerSession();
 
-    const token =
-      cookieStore.get("saas_session")?.value;
-
-    if (!token) {
+    if (!auth.ok) {
       return NextResponse.json(
         {
-          message: "Não autenticado",
+          message: auth.message,
         },
         {
-          status: 401,
+          status: auth.status,
         }
       );
     }
-
-    const session =
-      await verifySessionToken(token);
-
-    if (
-      !session?.userId ||
-      !ObjectId.isValid(session.userId)
-    ) {
-      return NextResponse.json(
-        {
-          message: "Sessão inválida",
-        },
-        {
-          status: 401,
-        }
-      );
-    }
-
-    const db = await getDb();
-
-    const user = await db
-      .collection("users")
-      .findOne({
-        _id: new ObjectId(session.userId),
-      });
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          message: "Usuário não encontrado",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    if (user.active === false) {
-      return NextResponse.json(
-        {
-          message: "Usuário bloqueado",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
-    if (!user.businessId) {
-      return NextResponse.json(
-        {
-          message:
-            "Usuário não possui empresa vinculada",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const businessIdString =
-      String(user.businessId);
-
-    if (
-      !ObjectId.isValid(
-        businessIdString
-      )
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "Empresa inválida",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const businessId =
-      new ObjectId(
-        businessIdString
-      );
-
-    const business = await db
-      .collection("businesses")
-      .findOne({
-        _id: businessId,
-      });
-
-    if (!business) {
-      return NextResponse.json(
-        {
-          message:
-            "Empresa não encontrada",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    if (business.active === false) {
-      return NextResponse.json(
-        {
-          message:
-            "Empresa bloqueada",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
-    /*
-      Compatibilidade:
-      profissionais antigos podem estar
-      vinculados por businessSlug.
-
-      Os novos devem usar businessId.
-    */
 
     const filters: any[] = [
       {
-        businessId,
+        businessId: auth.businessId,
       },
       {
-        businessId:
-          businessId.toString(),
+        businessId: auth.businessId.toString(),
       },
     ];
 
-    if (business.slug) {
+    if (auth.business.slug) {
       filters.push({
-        businessSlug:
-          business.slug,
+        businessSlug: auth.business.slug,
       });
     }
 
-    const professionals = await db
+    const professionals = await auth.db
       .collection("professionals")
       .find({
         $or: filters,
@@ -175,36 +47,55 @@ export async function GET() {
       .toArray();
 
     return NextResponse.json({
-      professionals:
-        professionals.map(
-          (professional) => ({
-            _id:
-              professional._id.toString(),
+      professionals: professionals.map(
+        (professional) => ({
+          _id: professional._id.toString(),
 
-            name:
-              professional.name ||
-              "Profissional",
+          name:
+            professional.name ||
+            "Profissional",
 
-            role:
-              professional.role ||
-              "",
+          role:
+            professional.role || "",
 
-            description:
-              professional.description ||
-              "",
+          description:
+            professional.description || "",
 
-            photoUrl:
-              professional.photoUrl ||
-              "",
+          photoUrl:
+            professional.photoUrl || "",
 
-            active:
-              professional.active !==
-              false,
+          phone:
+            professional.phone || "",
 
-            order:
-              professional.order || 0,
-          })
-        ),
+          email:
+            professional.email || "",
+
+          commission:
+            Number(
+              professional.commission || 0
+            ),
+
+          allowPanelAccess:
+            professional.allowPanelAccess ===
+            true,
+
+          accessEmail:
+            professional.accessEmail ||
+            professional.email ||
+            "",
+
+          hasPanelUser:
+            Boolean(
+              professional.panelUserId
+            ),
+
+          active:
+            professional.active !== false,
+
+          order:
+            professional.order || 0,
+        })
+      ),
     });
   } catch (error) {
     console.error(

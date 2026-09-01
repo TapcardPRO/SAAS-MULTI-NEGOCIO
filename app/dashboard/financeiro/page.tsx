@@ -10,6 +10,8 @@ type Appointment = {
   date?: string;
   time?: string;
   price?: number;
+  commissionPercent?: number;
+  commissionValue?: number;
   status?: string;
 };
 
@@ -18,6 +20,13 @@ export default function FinanceiroPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [period, setPeriod] = useState("30");
+
+  const [viewer, setViewer] =
+    useState<{
+      role?: string;
+      professionalName?: string;
+      commissionPercent?: number;
+    } | null>(null);
 
   useEffect(() => {
     loadFinance();
@@ -45,6 +54,7 @@ export default function FinanceiroPage() {
       }
 
       setAppointments(data.appointments || []);
+      setViewer(data.viewer || null);
     } catch (error) {
       console.error(error);
 
@@ -84,12 +94,24 @@ export default function FinanceiroPage() {
         ? revenue / completed.length
         : 0;
 
+    const commission =
+      completed.reduce(
+        (total, item) =>
+          total +
+          Number(
+            item.commissionValue ||
+              0
+          ),
+        0
+      );
+
     return {
       completed: completed.length,
       cancelled: cancelled.length,
       noShow: noShow.length,
       revenue,
       ticket,
+      commission,
     };
   }, [appointments]);
 
@@ -192,6 +214,16 @@ export default function FinanceiroPage() {
             value={money(stats.revenue)}
             detail="Somente concluídos"
           />
+
+          {viewer?.role === "employee" ? (
+            <StatCard
+              label="Minha comissão"
+              value={money(stats.commission)}
+              detail={`${Number(
+                viewer.commissionPercent || 0
+              ).toLocaleString("pt-BR")}% dos atendimentos concluídos`}
+            />
+          ) : null}
 
           <StatCard
             label="Atendimentos"

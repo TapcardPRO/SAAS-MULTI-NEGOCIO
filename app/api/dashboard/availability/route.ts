@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireBusinessSession } from "@/lib/tenant-auth";
+import { requireOwnerSession } from "@/lib/tenant-auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -47,7 +47,7 @@ export async function GET(
 ) {
   try {
     const auth =
-      await requireBusinessSession();
+      await requireOwnerSession();
 
     if (!auth.ok) {
       return NextResponse.json(

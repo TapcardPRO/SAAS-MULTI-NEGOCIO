@@ -41,6 +41,31 @@ export async function GET(request: NextRequest) {
       $or: businessFilters,
     };
 
+    if (auth.user.role === "employee") {
+      const employeeProfessionalId = String(
+        auth.user.professionalId || ""
+      );
+
+      if (!ObjectId.isValid(employeeProfessionalId)) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: "Profissional não vinculado ao usuário",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+
+      filter.professionalId = {
+        $in: [
+          employeeProfessionalId,
+          new ObjectId(employeeProfessionalId),
+        ],
+      };
+    }
+
     if (date) {
       filter.date = date;
     }
@@ -58,6 +83,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+
+      viewer: {
+        role: auth.user.role || "owner",
+        professionalId: auth.user.professionalId
+          ? String(auth.user.professionalId)
+          : null,
+      },
+
       appointments: appointments.map(
         serializeAppointment
       ),
@@ -98,6 +131,19 @@ export async function POST(request: NextRequest) {
         },
         {
           status: auth.status,
+        }
+      );
+    }
+
+    if (auth.user.role === "employee") {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "O profissional não possui permissão para criar agendamentos pelo painel.",
+        },
+        {
+          status: 403,
         }
       );
     }

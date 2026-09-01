@@ -1,179 +1,56 @@
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
+
 import { ObjectId } from "mongodb";
 
-import { getDb } from "@/lib/db";
-import { verifySessionToken } from "@/lib/auth";
+import { requireBusinessSession } from "@/lib/tenant-auth";
 
-export const dynamic = "force-dynamic";
-
-async function getAuthenticatedBusiness() {
-  const cookieStore = await cookies();
-
-  const token = cookieStore.get("saas_session")?.value;
-
-  if (!token) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário não autenticado",
-        },
-        {
-          status: 401,
-        }
-      ),
-    };
-  }
-
-  const session = await verifySessionToken(token);
-
-  if (
-    !session?.userId ||
-    !ObjectId.isValid(session.userId)
-  ) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Sessão inválida",
-        },
-        {
-          status: 401,
-        }
-      ),
-    };
-  }
-
-  const db = await getDb();
-
-  const user = await db
-    .collection("users")
-    .findOne({
-      _id: new ObjectId(session.userId),
-    });
-
-  if (!user) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário não encontrado",
-        },
-        {
-          status: 404,
-        }
-      ),
-    };
-  }
-
-  if (user.active === false) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário bloqueado",
-        },
-        {
-          status: 403,
-        }
-      ),
-    };
-  }
-
-  if (!user.businessId) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário sem empresa vinculada",
-        },
-        {
-          status: 400,
-        }
-      ),
-    };
-  }
-
-  const businessIdString = String(user.businessId);
-
-  if (!ObjectId.isValid(businessIdString)) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa inválida",
-        },
-        {
-          status: 400,
-        }
-      ),
-    };
-  }
-
-  const businessId = new ObjectId(businessIdString);
-
-  const business = await db
-    .collection("businesses")
-    .findOne({
-      _id: businessId,
-    });
-
-  if (!business) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa não encontrada",
-        },
-        {
-          status: 404,
-        }
-      ),
-    };
-  }
-
-  if (business.active === false) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa bloqueada",
-        },
-        {
-          status: 403,
-        }
-      ),
-    };
-  }
-
-  return {
-    db,
-    business,
-    businessId,
-  };
-}
+export const dynamic =
+  "force-dynamic";
 
 export async function GET(
   request: NextRequest
 ) {
   try {
     const auth =
-      await getAuthenticatedBusiness();
+      await requireBusinessSession();
 
-    if ("error" in auth) {
-      return auth.error;
+    if (!auth.ok) {
+      return NextResponse.json(
+        {
+          message:
+            auth.message,
+        },
+        {
+          status:
+            auth.status,
+        }
+      );
     }
 
-    const {
-      db,
-      businessId,
-      business,
-    } = auth;
-
-    const url = new URL(request.url);
+    const url =
+      new URL(
+        request.url
+      );
 
     const daysParam =
       Number(
-        url.searchParams.get("days") || 30
+        url.searchParams.get(
+          "days"
+        ) || 30
       );
 
     const days =
-      Number.isFinite(daysParam) &&
+      Number.isFinite(
+        daysParam
+      ) &&
       daysParam > 0
-        ? Math.min(daysParam, 3650)
+        ? Math.min(
+            daysParam,
+            3650
+          )
         : 30;
 
     const today =
@@ -185,90 +62,212 @@ export async function GET(
         days - 1
       );
 
-    const query = {
+    const query: any = {
       date: {
-        $gte: startDate,
-        $lte: today,
+        $gte:
+          startDate,
+        $lte:
+          today,
       },
 
       $or: [
         {
-          businessId,
+          businessId:
+            auth.businessId,
         },
         {
           businessId:
-            businessId.toString(),
+            auth.businessId.toString(),
         },
-        ...(business.slug
+        ...(auth.business.slug
           ? [
               {
                 businessSlug:
-                  business.slug,
+                  auth.business.slug,
               },
             ]
           : []),
       ],
     };
 
-    const appointments = await db
-      .collection("appointments")
-      .find(query)
-      .sort({
-        date: -1,
-        time: -1,
-        startTime: -1,
-      })
-      .toArray();
+    let commissionPercent =
+      0;
+
+    let professionalName =
+      "";
+
+    if (
+      auth.user.role ===
+      "employee"
+    ) {
+      const professionalId =
+        String(
+          auth.user
+            .professionalId ||
+            ""
+        );
+
+      if (
+        !ObjectId.isValid(
+          professionalId
+        )
+      ) {
+        return NextResponse.json(
+          {
+            message:
+              "Profissional não vinculado ao usuário",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+
+      query.professionalId =
+        {
+          $in: [
+            professionalId,
+            new ObjectId(
+              professionalId
+            ),
+          ],
+        };
+
+      const professional =
+        await auth.db
+          .collection(
+            "professionals"
+          )
+          .findOne({
+            _id:
+              new ObjectId(
+                professionalId
+              ),
+          });
+
+      commissionPercent =
+        Number(
+          professional
+            ?.commission ||
+            0
+        );
+
+      professionalName =
+        String(
+          professional
+            ?.name ||
+            auth.user.name ||
+            ""
+        );
+    }
+
+    const appointments =
+      await auth.db
+        .collection(
+          "appointments"
+        )
+        .find(query)
+        .sort({
+          date: -1,
+          time: -1,
+          startTime: -1,
+        })
+        .toArray();
 
     return NextResponse.json({
       period: {
         days,
         startDate,
-        endDate: today,
+        endDate:
+          today,
+      },
+
+      viewer: {
+        role:
+          auth.user.role ||
+          "owner",
+
+        professionalId:
+          auth.user
+            .professionalId
+            ? String(
+                auth.user
+                  .professionalId
+              )
+            : null,
+
+        professionalName,
+
+        commissionPercent,
       },
 
       appointments:
         appointments.map(
-          (appointment) => ({
-            _id:
-              appointment._id.toString(),
-
-            clientName:
-              appointment.clientName ||
-              appointment.customerName ||
-              "Cliente",
-
-            serviceName:
-              appointment.serviceName ||
-              appointment.serviceSnapshot?.name ||
-              "Serviço",
-
-            professionalName:
-              appointment.professionalName ||
-              appointment.professionalSnapshot?.name ||
-              "Profissional",
-
-            date:
-              appointment.date || "",
-
-            time:
-              appointment.time ||
-              appointment.startTime ||
-              "",
-
-            price:
+          (
+            appointment
+          ) => {
+            const price =
               Number(
                 appointment.price ??
                   appointment.servicePrice ??
-                  appointment.serviceSnapshot?.price ??
+                  appointment
+                    .serviceSnapshot
+                    ?.price ??
                   0
-              ),
+              );
 
-            status:
-              normalizeStatus(
-                appointment.status
-              ),
-          })
+            const commissionValue =
+              auth.user.role ===
+              "employee"
+                ? price *
+                  (commissionPercent /
+                    100)
+                : 0;
+
+            return {
+              _id:
+                appointment._id.toString(),
+
+              clientName:
+                appointment.clientName ||
+                appointment.customerName ||
+                "Cliente",
+
+              serviceName:
+                appointment.serviceName ||
+                appointment
+                  .serviceSnapshot
+                  ?.name ||
+                "Serviço",
+
+              professionalName:
+                appointment.professionalName ||
+                appointment
+                  .professionalSnapshot
+                  ?.name ||
+                "Profissional",
+
+              date:
+                appointment.date ||
+                "",
+
+              time:
+                appointment.time ||
+                appointment.startTime ||
+                "",
+
+              price,
+
+              commissionPercent,
+
+              commissionValue,
+
+              status:
+                normalizeStatus(
+                  appointment.status
+                ),
+            };
+          }
         ),
     });
   } catch (error) {
@@ -298,39 +297,50 @@ function normalizeStatus(
       .toLowerCase();
 
   if (
-    status === "completed" ||
-    status === "concluído"
+    status ===
+      "completed" ||
+    status ===
+      "concluído"
   ) {
     return "concluido";
   }
 
   if (
-    status === "cancelled" ||
-    status === "canceled"
+    status ===
+      "cancelled" ||
+    status ===
+      "canceled"
   ) {
     return "cancelado";
   }
 
   if (
-    status === "no_show" ||
-    status === "no-show"
+    status ===
+      "no_show" ||
+    status ===
+      "no-show"
   ) {
     return "faltou";
   }
 
   if (
-    status === "confirmed"
+    status ===
+    "confirmed"
   ) {
     return "confirmado";
   }
 
   if (
-    status === "pending"
+    status ===
+    "pending"
   ) {
     return "pendente";
   }
 
-  return status || "pendente";
+  return (
+    status ||
+    "pendente"
+  );
 }
 
 function getTodaySaoPaulo() {
@@ -340,9 +350,15 @@ function getTodaySaoPaulo() {
       {
         timeZone:
           "America/Sao_Paulo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
+
+        year:
+          "numeric",
+
+        month:
+          "2-digit",
+
+        day:
+          "2-digit",
       }
     );
 
@@ -354,19 +370,22 @@ function getTodaySaoPaulo() {
   const year =
     parts.find(
       (part) =>
-        part.type === "year"
+        part.type ===
+        "year"
     )?.value;
 
   const month =
     parts.find(
       (part) =>
-        part.type === "month"
+        part.type ===
+        "month"
     )?.value;
 
   const day =
     parts.find(
       (part) =>
-        part.type === "day"
+        part.type ===
+        "day"
     )?.value;
 
   return `${year}-${month}-${day}`;
@@ -400,8 +419,15 @@ function subtractDays(
   );
 
   return `${date.getUTCFullYear()}-${String(
-    date.getUTCMonth() + 1
-  ).padStart(2, "0")}-${String(
+    date.getUTCMonth() +
+      1
+  ).padStart(
+    2,
+    "0"
+  )}-${String(
     date.getUTCDate()
-  ).padStart(2, "0")}`;
+  ).padStart(
+    2,
+    "0"
+  )}`;
 }
