@@ -419,14 +419,14 @@ export default function HorariosPage() {
   return (
     <main className="min-h-screen">
       {/* CABEÇALHO */}
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-6 py-5 backdrop-blur-xl lg:px-8">
+      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-2xl font-bold">
+            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
               Horários
             </h1>
 
@@ -455,9 +455,9 @@ export default function HorariosPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1500px] px-6 py-8 lg:px-8">
+      <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         {/* PROFISSIONAL */}
-        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
           <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-end">
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
@@ -578,8 +578,8 @@ export default function HorariosPage() {
         ) : null}
 
         {/* SEMANA */}
-        <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
-          <div className="border-b border-white/10 p-5">
+        <section className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] sm:mt-6">
+          <div className="border-b border-white/10 p-4 sm:p-5">
             <h2 className="font-bold">
               Semana de trabalho
             </h2>
@@ -786,7 +786,7 @@ export default function HorariosPage() {
 
         {/* BLOQUEIOS */}
         <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025]">
-          <div className="border-b border-white/10 p-5">
+          <div className="border-b border-white/10 p-4 sm:p-5">
             <h2 className="font-bold">
               Bloqueios e folgas extras
             </h2>
@@ -823,7 +823,7 @@ export default function HorariosPage() {
                       })
                     )
                   }
-                  className="w-full rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                  className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-base outline-none focus:border-emerald-500 sm:text-sm"
                 />
               </div>
 
@@ -920,7 +920,7 @@ export default function HorariosPage() {
                     )
                   }
                   placeholder="Ex.: consulta, viagem, férias..."
-                  className="w-full rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                  className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-base outline-none focus:border-emerald-500 sm:text-sm"
                 />
               </div>
 
@@ -1098,7 +1098,7 @@ function StatCard({
   detail?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
       <p className="text-sm text-zinc-400">
         {label}
       </p>

@@ -103,14 +103,14 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen">
       {/* TOPO */}
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-6 py-5 backdrop-blur-xl lg:px-8">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between">
+      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
           <div>
             <p className="text-sm text-zinc-500">
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-2xl font-bold">
+            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
               Visão geral
             </h1>
           </div>
@@ -130,9 +130,9 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1500px] px-6 py-8 lg:px-8">
+      <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <div>
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-xl font-bold sm:text-2xl">
             Bem-vindo de volta!
           </h2>
 
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* CARDS */}
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid gap-3 sm:mt-7 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
           <MetricCard
             title="Agendamentos hoje"
             value={String(
@@ -176,10 +176,10 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_320px]">
+        <div className="mt-5 grid gap-4 sm:mt-6 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           {/* PRÓXIMOS AGENDAMENTOS */}
           <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
-            <div className="flex items-center justify-between border-b border-white/10 p-5">
+            <div className="flex items-center justify-between gap-4 border-b border-white/10 p-4 sm:p-5">
               <div>
                 <h2 className="font-bold">
                   Próximos agendamentos
@@ -199,7 +199,7 @@ export default async function DashboardPage() {
             </div>
 
             {appointments.length === 0 ? (
-              <div className="p-10 text-center">
+              <div className="p-6 text-center sm:p-10">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-xl">
                   ◷
                 </div>
@@ -220,7 +220,7 @@ export default async function DashboardPage() {
                       key={
                         appointment._id.toString()
                       }
-                      className="grid gap-3 p-5 sm:grid-cols-[70px_1fr_1fr_auto] sm:items-center"
+                      className="grid gap-3 p-4 sm:grid-cols-[70px_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:p-5"
                     >
                       <div className="font-bold">
                         {appointment.startTime ||
@@ -266,7 +266,7 @@ export default async function DashboardPage() {
           </section>
 
           {/* ATALHOS */}
-          <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
             <h2 className="font-bold">
               Atalhos rápidos
             </h2>
@@ -311,7 +311,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* CARD PÁGINA PÚBLICA */}
-        <section className="mt-6 rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 to-transparent p-6">
+        <section className="mt-5 rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 to-transparent p-4 sm:mt-6 sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">
@@ -328,10 +328,10 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap">
               <Link
                 href="/dashboard/minha-pagina"
-                className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950"
+                className="flex min-h-[46px] items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-center text-sm font-bold text-zinc-950 sm:px-5"
               >
                 Personalizar
               </Link>
@@ -341,7 +341,7 @@ export default async function DashboardPage() {
                   href={`/${business.slug}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-xl border border-white/10 px-5 py-3 text-sm"
+                  className="flex min-h-[46px] items-center justify-center rounded-xl border border-white/10 px-4 py-3 text-center text-sm sm:px-5"
                 >
                   Visualizar
                 </a>
@@ -364,12 +364,12 @@ function MetricCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
       <p className="text-sm text-zinc-400">
         {title}
       </p>
 
-      <p className="mt-3 text-3xl font-bold tracking-tight">
+      <p className="mt-2 break-words text-2xl font-bold tracking-tight sm:mt-3 sm:text-3xl">
         {value}
       </p>
 
@@ -394,7 +394,7 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+      className={`flex min-h-[46px] items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
         primary
           ? "bg-emerald-500 text-zinc-950 hover:bg-emerald-400"
           : "border border-white/10 bg-white/[0.025] text-zinc-300 hover:bg-white/5"

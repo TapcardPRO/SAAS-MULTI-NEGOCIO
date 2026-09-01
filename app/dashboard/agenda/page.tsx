@@ -913,13 +913,13 @@ export default function AgendaPage() {
   if (!mounted) {
     return (
       <main className="min-h-screen">
-        <div className="border-b border-white/10 bg-[#09131d]/70 px-6 py-5 lg:px-8">
+        <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
           <div className="mx-auto max-w-[1500px]">
             <p className="text-sm text-zinc-500">
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-2xl font-bold">
+            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
               Agenda
             </h1>
 
@@ -934,14 +934,14 @@ export default function AgendaPage() {
 
   return (
     <main className="min-h-screen">
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-6 py-5 backdrop-blur-xl lg:px-8">
-        <div className="mx-auto flex max-w-[1500px] flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-2xl font-bold">
+            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
               Agenda
             </h1>
 
@@ -950,13 +950,13 @@ export default function AgendaPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <button
               type="button"
               onClick={
                 openNewAppointment
               }
-              className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400"
+              className="col-span-4 flex min-h-[48px] items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 sm:col-auto sm:px-5"
             >
               + Novo agendamento
             </button>
@@ -966,7 +966,7 @@ export default function AgendaPage() {
               onClick={
                 previousDay
               }
-              className="rounded-xl border border-white/10 px-4 py-3 transition hover:bg-white/5"
+              className="flex min-h-[46px] items-center justify-center rounded-xl border border-white/10 px-3 py-3 transition hover:bg-white/5 sm:px-4"
             >
               ←
             </button>
@@ -976,7 +976,7 @@ export default function AgendaPage() {
               onClick={
                 goToday
               }
-              className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold transition hover:bg-white/5"
+              className="flex min-h-[46px] items-center justify-center rounded-xl border border-white/10 px-3 py-3 text-sm font-semibold transition hover:bg-white/5 sm:px-4"
             >
               Hoje
             </button>
@@ -1001,14 +1001,14 @@ export default function AgendaPage() {
                   event.target.value
                 )
               }
-              className="rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+              className="col-span-4 min-h-[46px] w-full rounded-xl border border-white/10 bg-[#071018] px-3 py-3 text-sm outline-none focus:border-emerald-500 sm:col-auto sm:w-auto sm:px-4"
             />
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1500px] px-6 py-8 lg:px-8">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
           <StatCard
             label="Total"
             value={
@@ -1045,7 +1045,7 @@ export default function AgendaPage() {
           />
         </div>
 
-        <section className="mt-6 grid gap-4 rounded-2xl border border-white/10 bg-white/[0.025] p-5 lg:grid-cols-[1fr_240px]">
+        <section className="mt-5 grid gap-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:mt-6 sm:p-5 lg:grid-cols-[1fr_240px]">
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
               Buscar
@@ -1061,7 +1061,7 @@ export default function AgendaPage() {
                 )
               }
               placeholder="Cliente, serviço ou profissional..."
-              className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+              className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-base outline-none focus:border-emerald-500 sm:text-sm"
             />
           </div>
 
@@ -1122,8 +1122,8 @@ export default function AgendaPage() {
           </div>
         ) : null}
 
-        <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 p-5">
+        <section className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] sm:mt-6">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4 sm:gap-4 sm:p-5">
             <div>
               <h2 className="font-bold">
                 Atendimentos
@@ -1157,7 +1157,7 @@ export default function AgendaPage() {
               description="Não existem atendimentos para esta data."
             />
           ) : (
-            <div className="space-y-4 p-5">
+            <div className="space-y-3 p-3 sm:space-y-4 sm:p-5">
               {filtered.map(
                 (
                   appointment
@@ -1185,9 +1185,9 @@ export default function AgendaPage() {
       </div>
 
       {showNewAppointment ? (
-        <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
-          <div className="mx-auto my-6 w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#0a141d] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 p-6">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:p-4">
+          <div className="mx-auto min-h-screen w-full max-w-5xl overflow-hidden bg-[#0a141d] shadow-2xl sm:my-6 sm:min-h-0 sm:rounded-3xl sm:border sm:border-white/10">
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4 sm:items-center sm:p-6">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">
                   Agenda
@@ -1207,13 +1207,13 @@ export default function AgendaPage() {
                 onClick={
                   closeNewAppointment
                 }
-                className="rounded-xl border border-white/10 px-4 py-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 p-0 text-zinc-400 transition hover:bg-white/5 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid gap-6 p-6 lg:grid-cols-[340px_1fr]">
+            <div className="grid gap-5 p-4 sm:gap-6 sm:p-6 lg:grid-cols-[340px_minmax(0,1fr)]">
               <div className="space-y-5">
                 <SelectField
                   label="Cliente"

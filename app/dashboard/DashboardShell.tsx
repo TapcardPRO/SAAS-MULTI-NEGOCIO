@@ -106,14 +106,14 @@ export default function DashboardShell({
   }
 
   return (
-    <div className="min-h-screen bg-[#071018] text-white">
+    <div className="min-h-screen overflow-x-hidden bg-[#071018] text-white">
       {/* TOPO MOBILE */}
-      <header className="flex h-16 items-center justify-between border-b border-white/10 bg-[#09131d] px-4 lg:hidden">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-white/10 bg-[#09131d]/95 px-3 backdrop-blur sm:px-4 lg:hidden">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <Logo business={business} />
 
           <div className="min-w-0">
-            <p className="max-w-[180px] truncate text-sm font-semibold">
+            <p className="max-w-[150px] truncate text-sm font-semibold sm:max-w-[260px]">
               {business.name}
             </p>
 
@@ -130,7 +130,7 @@ export default function DashboardShell({
               (current) => !current
             )
           }
-          className="rounded-xl border border-white/10 px-4 py-2"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-lg transition hover:bg-white/[0.06]"
         >
           ☰
         </button>
@@ -140,10 +140,10 @@ export default function DashboardShell({
         {/* SIDEBAR */}
         <aside
           className={`
-            fixed inset-y-0 left-0 z-50 w-72
+            fixed inset-y-0 left-0 z-50 w-[min(18rem,88vw)]
             border-r border-white/10
             bg-[#09131d]
-            transition-transform
+            shadow-2xl transition-transform duration-200 ease-out
             lg:sticky lg:top-0 lg:block lg:h-screen lg:translate-x-0
             ${
               mobileMenu
@@ -152,12 +152,12 @@ export default function DashboardShell({
             }
           `}
         >
-          <div className="flex h-full flex-col">
+          <div className="flex h-full min-h-0 flex-col">
             {/* MARCA */}
-            <div className="border-b border-white/10 p-6">
+            <div className="border-b border-white/10 p-4 sm:p-6">
               <Link
                 href="/dashboard"
-                className="flex items-center gap-3"
+                className="flex min-w-0 items-center gap-3"
                 onClick={() =>
                   setMobileMenu(false)
                 }
@@ -167,7 +167,7 @@ export default function DashboardShell({
                 </div>
 
                 <div>
-                  <h1 className="text-xl font-black">
+                  <h1 className="text-lg font-black sm:text-xl">
                     Nexora
                   </h1>
 
@@ -179,7 +179,7 @@ export default function DashboardShell({
             </div>
 
             {/* EMPRESA */}
-            <div className="p-4">
+            <div className="px-3 py-3 sm:p-4">
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
                 <Logo
                   business={business}
@@ -198,7 +198,7 @@ export default function DashboardShell({
             </div>
 
             {/* MENU */}
-            <nav className="flex-1 space-y-1 overflow-y-auto px-4 pb-5">
+            <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pb-5 sm:px-4">
               {menu.map((item) => {
                 const active =
                   isActive(item.href);
@@ -210,7 +210,7 @@ export default function DashboardShell({
                     onClick={() =>
                       setMobileMenu(false)
                     }
-                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition ${
+                    className={`flex min-h-[46px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition sm:px-4 sm:py-3 ${
                       active
                         ? "bg-emerald-500/15 font-semibold text-emerald-400"
                         : "text-zinc-400 hover:bg-white/5 hover:text-white"
@@ -228,7 +228,7 @@ export default function DashboardShell({
 
             {/* ACESSO À PÁGINA PÚBLICA */}
             {business.slug ? (
-              <div className="px-4 pb-4">
+              <div className="px-3 pb-3 sm:px-4 sm:pb-4">
                 <a
                   href={`/${business.slug}`}
                   target="_blank"
@@ -241,7 +241,7 @@ export default function DashboardShell({
             ) : null}
 
             {/* USUÁRIO */}
-            <div className="border-t border-white/10 p-4">
+            <div className="border-t border-white/10 p-3 sm:p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-bold">
                   {user.name
@@ -249,7 +249,7 @@ export default function DashboardShell({
                     .toUpperCase()}
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 max-w-full flex-1 overflow-x-hidden">
                   <p className="truncate text-sm font-semibold">
                     {user.name}
                   </p>
@@ -280,7 +280,7 @@ export default function DashboardShell({
             onClick={() =>
               setMobileMenu(false)
             }
-            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-[1px] lg:hidden"
           />
         ) : null}
 

@@ -142,14 +142,14 @@ export default function FinanceiroPage() {
   return (
     <main className="min-h-screen">
       {/* CABEÇALHO */}
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-6 py-5 backdrop-blur-xl lg:px-8">
+      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-2xl font-bold">
+            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
               Financeiro
             </h1>
 
@@ -184,7 +184,7 @@ export default function FinanceiroPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1500px] px-6 py-8 lg:px-8">
+      <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         {/* MÉTRICAS */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard
@@ -227,7 +227,7 @@ export default function FinanceiroPage() {
         <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
           {/* HISTÓRICO */}
           <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
-            <div className="border-b border-white/10 p-5">
+            <div className="border-b border-white/10 p-4 sm:p-5">
               <h2 className="font-bold">
                 Receitas recentes
               </h2>
@@ -292,7 +292,7 @@ export default function FinanceiroPage() {
 
           {/* PROFISSIONAIS */}
           <section className="rounded-2xl border border-white/10 bg-white/[0.025]">
-            <div className="border-b border-white/10 p-5">
+            <div className="border-b border-white/10 p-4 sm:p-5">
               <h2 className="font-bold">
                 Desempenho por profissional
               </h2>
@@ -374,7 +374,7 @@ function StatCard({
   detail?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
       <p className="text-sm text-zinc-400">
         {label}
       </p>

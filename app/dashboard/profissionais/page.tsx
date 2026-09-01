@@ -80,14 +80,14 @@ export default function ProfissionaisPage() {
 
   return (
     <main className="min-h-screen">
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-6 py-5 backdrop-blur-xl lg:px-8">
+      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-2xl font-bold">
+            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
               Profissionais
             </h1>
 
@@ -98,14 +98,14 @@ export default function ProfissionaisPage() {
 
           <a
             href="/dashboard/minha-pagina"
-            className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400"
+            className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 sm:w-auto sm:px-5"
           >
             + Novo profissional
           </a>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1500px] px-6 py-8 lg:px-8">
+      <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             label="Total"
@@ -126,7 +126,7 @@ export default function ProfissionaisPage() {
           />
         </div>
 
-        <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+        <section className="mt-5 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:mt-6 sm:p-5">
           <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Buscar profissional
           </label>
@@ -138,7 +138,7 @@ export default function ProfissionaisPage() {
               setSearch(event.target.value)
             }
             placeholder="Nome, cargo ou descrição..."
-            className="w-full rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+            className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-base outline-none focus:border-emerald-500 sm:text-sm"
           />
         </section>
 
@@ -148,8 +148,8 @@ export default function ProfissionaisPage() {
           </div>
         ) : null}
 
-        <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
-          <div className="flex items-center justify-between border-b border-white/10 p-5">
+        <section className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] sm:mt-6">
+          <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4 sm:items-center sm:p-5">
             <div>
               <h2 className="font-bold">
                 Equipe
@@ -270,7 +270,7 @@ function StatCard({
   detail?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
       <p className="text-sm text-zinc-400">
         {label}
       </p>
