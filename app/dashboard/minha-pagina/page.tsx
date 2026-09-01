@@ -2522,9 +2522,9 @@ export default function MinhaPagina() {
             </div>
           </div>
 
-          <div className="flex flex-1 justify-center overflow-auto bg-zinc-900 p-3 sm:p-6">
+          <div className="flex min-h-0 flex-1 justify-center overflow-y-auto bg-zinc-900 p-3 sm:p-6">
             <div
-              className={`min-h-full overflow-hidden bg-white shadow-2xl transition-all duration-300 ${
+              className={`h-max min-h-full overflow-hidden bg-white shadow-2xl transition-all duration-300 ${
                 previewDevice ===
                 "mobile"
                   ? "w-[390px] max-w-full rounded-[32px]"
