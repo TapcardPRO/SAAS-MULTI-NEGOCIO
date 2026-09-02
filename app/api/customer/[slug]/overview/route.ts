@@ -291,6 +291,24 @@ export async function GET(
                 "#10b981"
             ),
 
+          secondaryColor:
+            String(
+              business.secondaryColor ||
+                "#0d1822"
+            ),
+
+          backgroundColor:
+            String(
+              business.backgroundColor ||
+                "#071018"
+            ),
+
+          textColor:
+            String(
+              business.textColor ||
+                "#ffffff"
+            ),
+
           address:
             String(
               business.address ||

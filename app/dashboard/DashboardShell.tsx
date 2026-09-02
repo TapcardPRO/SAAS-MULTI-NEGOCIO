@@ -96,6 +96,11 @@ const menu = [
     icon: "✓",
   },
   {
+    label: "Assinatura Vellto",
+    href: "/dashboard/assinatura",
+    icon: "◆",
+  },
+  {
     label: "Meu perfil",
     href: "/dashboard/perfil",
     icon: "☺",

@@ -115,6 +115,50 @@ async function createIndexes(
       .createIndex({
         lockedUntil: 1,
       }),
+
+    db
+      .collection(
+        "saas_subscriptions"
+      )
+      .createIndex(
+        {
+          businessId: 1,
+        },
+        {
+          unique: true,
+        }
+      ),
+
+    db
+      .collection(
+        "saas_subscriptions"
+      )
+      .createIndex({
+        mercadoPagoSubscriptionId: 1,
+      }),
+
+    db
+      .collection(
+        "saas_billing_payments"
+      )
+      .createIndex(
+        {
+          externalId: 1,
+        },
+        {
+          unique: true,
+          sparse: true,
+        }
+      ),
+
+    db
+      .collection(
+        "saas_billing_payments"
+      )
+      .createIndex({
+        businessId: 1,
+        createdAt: -1,
+      }),
   ]);
 
   console.log(

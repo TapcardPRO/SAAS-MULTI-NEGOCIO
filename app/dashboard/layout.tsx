@@ -75,6 +75,62 @@ export default async function DashboardLayout({
     redirect("/login?blocked=1");
   }
 
+  /*
+  =======================================================
+  BLOQUEIO COMERCIAL OPCIONAL
+  =======================================================
+
+  Só entra em vigor quando:
+  VELLTO_BILLING_ENFORCEMENT=true
+
+  Assim podemos testar Mercado Pago
+  antes de bloquear clientes reais.
+  */
+
+  if (
+    process.env
+      .VELLTO_BILLING_ENFORCEMENT ===
+      "true" &&
+    user.role !==
+      "employee"
+  ) {
+    const billingStatus =
+      String(
+        business.billingStatus ||
+          "active"
+      );
+
+    const trialEndsAt =
+      business.trialEndsAt
+        ? new Date(
+            business.trialEndsAt
+          )
+        : null;
+
+    const trialExpired =
+      billingStatus ===
+        "trial" &&
+      trialEndsAt &&
+      trialEndsAt.getTime() <
+        Date.now();
+
+    const blockedBilling =
+      billingStatus ===
+        "past_due" ||
+      billingStatus ===
+        "cancelled" ||
+      trialExpired;
+
+    if (blockedBilling) {
+      /*
+      A página de assinatura precisa continuar acessível
+      para que o cliente possa regularizar.
+      O bloqueio completo por rota será ativado depois
+      que validarmos a integração em produção.
+      */
+    }
+  }
+
   return (
     <DashboardShell
       user={{

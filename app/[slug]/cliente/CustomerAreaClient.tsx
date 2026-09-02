@@ -54,7 +54,12 @@ type Overview = {
     name: string;
     slug: string;
     logoUrl: string;
+
     primaryColor: string;
+    secondaryColor: string;
+    backgroundColor: string;
+    textColor: string;
+
     address: string;
   };
 
@@ -527,6 +532,21 @@ export default function CustomerAreaClient({
   const business =
     data.business;
 
+  const customerTheme =
+    createCustomerTheme({
+      primary:
+        business.primaryColor,
+
+      secondary:
+        business.secondaryColor,
+
+      background:
+        business.backgroundColor,
+
+      text:
+        business.textColor,
+    });
+
   const customer =
     data.customer;
 
@@ -545,7 +565,166 @@ export default function CustomerAreaClient({
     "Cliente";
 
   return (
-    <main className="min-h-screen bg-zinc-950 pb-28 text-white">
+    <main
+      className="vellto-customer-theme min-h-screen pb-28"
+      style={
+        {
+          "--customer-primary":
+            customerTheme.primary,
+
+          "--customer-primary-hover":
+            customerTheme.primaryHover,
+
+          "--customer-primary-soft":
+            customerTheme.primarySoft,
+
+          "--customer-on-primary":
+            customerTheme.onPrimary,
+
+          "--customer-background":
+            customerTheme.background,
+
+          "--customer-surface":
+            customerTheme.surface,
+
+          "--customer-surface-2":
+            customerTheme.surface2,
+
+          "--customer-surface-3":
+            customerTheme.surface3,
+
+          "--customer-text":
+            customerTheme.text,
+
+          "--customer-text-secondary":
+            customerTheme.textSecondary,
+
+          "--customer-text-muted":
+            customerTheme.textMuted,
+
+          "--customer-border":
+            customerTheme.border,
+
+          "--customer-border-strong":
+            customerTheme.borderStrong,
+        } as React.CSSProperties
+      }
+    >
+      <style>{`
+        .vellto-customer-theme {
+          background:
+            var(--customer-background);
+          color:
+            var(--customer-text);
+        }
+
+        .vellto-customer-theme .bg-zinc-950 {
+          background-color:
+            var(--customer-background) !important;
+        }
+
+        .vellto-customer-theme .bg-zinc-900 {
+          background-color:
+            var(--customer-surface) !important;
+        }
+
+        .vellto-customer-theme .bg-zinc-800 {
+          background-color:
+            var(--customer-surface-2) !important;
+        }
+
+        .vellto-customer-theme .bg-black\/25,
+        .vellto-customer-theme .bg-black\/20 {
+          background-color:
+            var(--customer-surface-2) !important;
+        }
+
+        .vellto-customer-theme .bg-zinc-950\/50,
+        .vellto-customer-theme .bg-zinc-950\/90,
+        .vellto-customer-theme .bg-zinc-950\/95 {
+          background-color:
+            var(--customer-surface) !important;
+        }
+
+        .vellto-customer-theme .text-white {
+          color:
+            var(--customer-text) !important;
+        }
+
+        .vellto-customer-theme .text-zinc-300,
+        .vellto-customer-theme .text-zinc-400 {
+          color:
+            var(--customer-text-secondary) !important;
+        }
+
+        .vellto-customer-theme .text-zinc-500,
+        .vellto-customer-theme .text-zinc-600 {
+          color:
+            var(--customer-text-muted) !important;
+        }
+
+        .vellto-customer-theme .border-white\/5,
+        .vellto-customer-theme .border-white\/10 {
+          border-color:
+            var(--customer-border) !important;
+        }
+
+        .vellto-customer-theme .bg-emerald-500,
+        .vellto-customer-theme .bg-emerald-400 {
+          background-color:
+            var(--customer-primary) !important;
+        }
+
+        .vellto-customer-theme .text-emerald-300,
+        .vellto-customer-theme .text-emerald-400 {
+          color:
+            var(--customer-primary) !important;
+        }
+
+        .vellto-customer-theme .border-emerald-500\/20,
+        .vellto-customer-theme .border-emerald-500\/50 {
+          border-color:
+            var(--customer-border-strong) !important;
+        }
+
+        .vellto-customer-theme .bg-emerald-500\/10 {
+          background-color:
+            var(--customer-primary-soft) !important;
+        }
+
+        .vellto-customer-theme a.bg-emerald-500,
+        .vellto-customer-theme button.bg-emerald-500 {
+          color:
+            var(--customer-on-primary) !important;
+        }
+
+        .vellto-customer-theme .customer-tab-active {
+          background:
+            var(--customer-primary) !important;
+
+          color:
+            var(--customer-on-primary) !important;
+        }
+
+        .vellto-customer-theme input,
+        .vellto-customer-theme textarea,
+        .vellto-customer-theme select {
+          background:
+            var(--customer-surface-2) !important;
+
+          color:
+            var(--customer-text) !important;
+
+          border-color:
+            var(--customer-border) !important;
+        }
+
+        .vellto-customer-theme input::placeholder,
+        .vellto-customer-theme textarea::placeholder {
+          color:
+            var(--customer-text-muted) !important;
+        }
+      `}</style>
       <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-950/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-3 sm:gap-4 sm:px-6 sm:py-4">
           <Link
@@ -1482,7 +1661,7 @@ function TabButton({
       onClick={onClick}
       className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition ${
         active
-          ? "bg-white text-black"
+          ? "customer-tab-active"
           : "border border-white/10 bg-zinc-900 text-zinc-400"
       }`}
     >
@@ -1965,4 +2144,346 @@ function paymentMethodLabel(
     method ||
     "—"
   );
+}
+
+
+function createCustomerTheme({
+  primary,
+  secondary,
+  background,
+  text,
+}: {
+  primary: string;
+  secondary: string;
+  background: string;
+  text: string;
+}) {
+  const safePrimary =
+    normalizeHex(
+      primary,
+      "#10b981"
+    );
+
+  const safeSecondary =
+    normalizeHex(
+      secondary,
+      "#0d1822"
+    );
+
+  const safeBackground =
+    normalizeHex(
+      background,
+      "#071018"
+    );
+
+  const safeText =
+    normalizeHex(
+      text,
+      contrastText(
+        safeBackground
+      )
+    );
+
+  const backgroundLight =
+    luminance(
+      safeBackground
+    ) > 0.55;
+
+  return {
+    primary:
+      safePrimary,
+
+    primaryHover:
+      mix(
+        safePrimary,
+        backgroundLight
+          ? "#000000"
+          : "#ffffff",
+        0.12
+      ),
+
+    primarySoft:
+      alphaColor(
+        safePrimary,
+        backgroundLight
+          ? 0.10
+          : 0.14
+      ),
+
+    onPrimary:
+      contrastText(
+        safePrimary
+      ),
+
+    background:
+      safeBackground,
+
+    surface:
+      mix(
+        safeBackground,
+        safeSecondary,
+        backgroundLight
+          ? 0.08
+          : 0.30
+      ),
+
+    surface2:
+      mix(
+        safeBackground,
+        backgroundLight
+          ? "#000000"
+          : "#ffffff",
+        backgroundLight
+          ? 0.045
+          : 0.055
+      ),
+
+    surface3:
+      mix(
+        safeBackground,
+        backgroundLight
+          ? "#000000"
+          : "#ffffff",
+        backgroundLight
+          ? 0.08
+          : 0.09
+      ),
+
+    text:
+      safeText,
+
+    textSecondary:
+      mix(
+        safeText,
+        safeBackground,
+        0.30
+      ),
+
+    textMuted:
+      mix(
+        safeText,
+        safeBackground,
+        0.48
+      ),
+
+    border:
+      alphaColor(
+        safeText,
+        backgroundLight
+          ? 0.12
+          : 0.11
+      ),
+
+    borderStrong:
+      alphaColor(
+        safePrimary,
+        0.40
+      ),
+  };
+}
+
+function normalizeHex(
+  value: string,
+  fallback: string
+) {
+  const clean =
+    String(
+      value ||
+        ""
+    ).trim();
+
+  if (
+    /^#[0-9a-f]{6}$/i.test(
+      clean
+    )
+  ) {
+    return clean;
+  }
+
+  if (
+    /^#[0-9a-f]{3}$/i.test(
+      clean
+    )
+  ) {
+    return (
+      "#" +
+      clean
+        .slice(1)
+        .split("")
+        .map(
+          (char) =>
+            char + char
+        )
+        .join("")
+    );
+  }
+
+  return fallback;
+}
+
+function hexToRgb(
+  value: string
+) {
+  const hex =
+    normalizeHex(
+      value,
+      "#000000"
+    ).slice(1);
+
+  return {
+    r:
+      parseInt(
+        hex.slice(0, 2),
+        16
+      ),
+
+    g:
+      parseInt(
+        hex.slice(2, 4),
+        16
+      ),
+
+    b:
+      parseInt(
+        hex.slice(4, 6),
+        16
+      ),
+  };
+}
+
+function rgbToHex(
+  r: number,
+  g: number,
+  b: number
+) {
+  const part =
+    (value: number) =>
+      Math.max(
+        0,
+        Math.min(
+          255,
+          Math.round(
+            value
+          )
+        )
+      )
+        .toString(16)
+        .padStart(
+          2,
+          "0"
+        );
+
+  return `#${part(
+    r
+  )}${part(
+    g
+  )}${part(
+    b
+  )}`;
+}
+
+function mix(
+  first: string,
+  second: string,
+  amount: number
+) {
+  const a =
+    hexToRgb(
+      first
+    );
+
+  const b =
+    hexToRgb(
+      second
+    );
+
+  return rgbToHex(
+    a.r +
+      (
+        b.r -
+        a.r
+      ) *
+        amount,
+
+    a.g +
+      (
+        b.g -
+        a.g
+      ) *
+        amount,
+
+    a.b +
+      (
+        b.b -
+        a.b
+      ) *
+        amount
+  );
+}
+
+function alphaColor(
+  value: string,
+  alpha: number
+) {
+  const rgb =
+    hexToRgb(
+      value
+    );
+
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+function luminance(
+  value: string
+) {
+  const rgb =
+    hexToRgb(
+      value
+    );
+
+  const transform =
+    (channel: number) => {
+      const c =
+        channel /
+        255;
+
+      return c <=
+        0.03928
+        ? c /
+            12.92
+        : Math.pow(
+            (
+              c +
+              0.055
+            ) /
+              1.055,
+            2.4
+          );
+    };
+
+  return (
+    transform(
+      rgb.r
+    ) *
+      0.2126 +
+    transform(
+      rgb.g
+    ) *
+      0.7152 +
+    transform(
+      rgb.b
+    ) *
+      0.0722
+  );
+}
+
+function contrastText(
+  value: string
+) {
+  return luminance(
+    value
+  ) >
+    0.47
+    ? "#111111"
+    : "#ffffff";
 }
