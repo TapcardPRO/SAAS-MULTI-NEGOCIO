@@ -8,6 +8,7 @@ import {
 
 import {
   hasMercadoPagoConfig,
+  mercadoPagoRequest,
 } from "@/lib/mercado-pago";
 
 export const dynamic =
@@ -47,6 +48,139 @@ export async function GET() {
                 "basico"
             ),
         });
+
+    const mercadoPagoSubscriptionId =
+      String(
+        auth.business
+          .mercadoPagoSubscriptionId ||
+          ""
+      );
+
+    /*
+    Sincronização de segurança:
+    além do webhook, buscamos diretamente
+    as faturas da assinatura no Mercado Pago.
+    */
+    if (
+      mercadoPagoSubscriptionId &&
+      hasMercadoPagoConfig()
+    ) {
+      try {
+        const invoices =
+          await mercadoPagoRequest(
+            `/authorized_payments/search?preapproval_id=${encodeURIComponent(
+              mercadoPagoSubscriptionId
+            )}`
+          );
+
+        const results =
+          Array.isArray(
+            invoices?.results
+          )
+            ? invoices.results
+            : [];
+
+        for (
+          const invoice of results
+        ) {
+          const paymentStatus =
+            String(
+              invoice.payment?.status ||
+              invoice.status ||
+              ""
+            );
+
+          const paymentId =
+            String(
+              invoice.payment?.id ||
+              invoice.id ||
+              ""
+            );
+
+          if (!paymentId) {
+            continue;
+          }
+
+          const approved =
+            paymentStatus ===
+              "approved" ||
+            paymentStatus ===
+              "authorized";
+
+          const createdAt =
+            invoice.date_created
+              ? new Date(
+                  invoice.date_created
+                )
+              : new Date();
+
+          await auth.db
+            .collection(
+              "saas_billing_payments"
+            )
+            .updateOne(
+              {
+                externalId:
+                  paymentId,
+              },
+              {
+                $set: {
+                  businessId:
+                    auth.businessId,
+
+                  subscriptionId:
+                    mercadoPagoSubscriptionId,
+
+                  externalId:
+                    paymentId,
+
+                  invoiceId:
+                    String(
+                      invoice.id ||
+                        ""
+                    ),
+
+                  status:
+                    paymentStatus,
+
+                  amount:
+                    Number(
+                      invoice.transaction_amount ||
+                        0
+                    ),
+
+                  paidAt:
+                    approved
+                      ? (
+                          invoice.last_modified
+                            ? new Date(
+                                invoice.last_modified
+                              )
+                            : createdAt
+                        )
+                      : null,
+
+                  rawUpdatedAt:
+                    new Date(),
+                },
+
+                $setOnInsert: {
+                  createdAt,
+                },
+              },
+              {
+                upsert:
+                  true,
+              }
+            );
+        }
+      } catch (syncError) {
+        console.error(
+          "MERCADO PAGO BILLING SYNC ERROR:",
+          syncError
+        );
+      }
+    }
 
     const payments =
       await auth.db

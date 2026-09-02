@@ -247,8 +247,9 @@ export async function POST(
 
       const status =
         String(
+          payment.payment?.status ||
           payment.status ||
-            ""
+          ""
         );
 
       const approved =
@@ -279,6 +280,7 @@ export async function POST(
 
               externalId:
                 String(
+                  payment.payment?.id ||
                   payment.id
                 ),
 
