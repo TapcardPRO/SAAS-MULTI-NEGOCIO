@@ -48,12 +48,11 @@ export async function PUT(
 
     const {
       id,
-    } = await params;
+    } =
+      await params;
 
     if (
-      !ObjectId.isValid(
-        id
-      )
+      !ObjectId.isValid(id)
     ) {
       return NextResponse.json(
         {
@@ -68,9 +67,7 @@ export async function PUT(
     }
 
     const appointmentId =
-      new ObjectId(
-        id
-      );
+      new ObjectId(id);
 
     const businessFilters =
       makeBusinessFilters(
@@ -110,7 +107,7 @@ export async function PUT(
 
     /*
     =====================================================
-    FUNCIONÁRIO SÓ ALTERA O PRÓPRIO AGENDAMENTO
+    FUNCIONÁRIO
     =====================================================
     */
 
@@ -131,8 +128,7 @@ export async function PUT(
         String(
           existing.professionalId ||
             ""
-        ) !==
-          linkedId
+        ) !== linkedId
       ) {
         return NextResponse.json(
           {
@@ -150,12 +146,91 @@ export async function PUT(
     const body =
       await request.json();
 
-    const serviceId =
-      String(
-        body.serviceId ||
-          existing.serviceId ||
-          ""
-      ).trim();
+    /*
+    =====================================================
+    SERVIÇOS
+    =====================================================
+    */
+
+    const rawServiceIds =
+      Array.isArray(
+        body.serviceIds
+      )
+        ? body.serviceIds
+        : body.serviceId
+          ? [
+              body.serviceId,
+            ]
+          : Array.isArray(
+              existing.serviceIds
+            ) &&
+            existing.serviceIds.length >
+              0
+            ? existing.serviceIds
+            : existing.serviceId
+              ? [
+                  existing.serviceId,
+                ]
+              : [];
+
+    const serviceIds =
+      rawServiceIds
+        .map(
+          (
+            value: unknown
+          ) =>
+            String(
+              value ||
+                ""
+            ).trim()
+        )
+        .filter(Boolean);
+
+    if (
+      serviceIds.length ===
+        0 ||
+      serviceIds.some(
+        (serviceId) =>
+          !ObjectId.isValid(
+            serviceId
+          )
+      )
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Selecione pelo menos um serviço válido.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (
+      new Set(
+        serviceIds
+      ).size !==
+      serviceIds.length
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Existem serviços duplicados.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /*
+    =====================================================
+    PROFISSIONAL / DATA / HORÁRIO
+    =====================================================
+    */
 
     let professionalId =
       String(
@@ -179,12 +254,6 @@ export async function PUT(
           existing.time ||
           ""
       ).trim();
-
-    /*
-    =====================================================
-    FUNCIONÁRIO SEMPRE É FORÇADO AO PRÓPRIO PROFISSIONAL
-    =====================================================
-    */
 
     if (
       auth.user.role ===
@@ -215,23 +284,6 @@ export async function PUT(
 
       professionalId =
         linkedId;
-    }
-
-    if (
-      !ObjectId.isValid(
-        serviceId
-      )
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "Serviço inválido.",
-        },
-        {
-          status: 400,
-        }
-      );
     }
 
     if (
@@ -289,51 +341,57 @@ export async function PUT(
       );
     }
 
-    const serviceObjectId =
-      new ObjectId(
-        serviceId
-      );
-
-    const professionalObjectId =
-      new ObjectId(
-        professionalId
-      );
-
     /*
     =====================================================
-    SERVIÇO
+    BUSCAR TODOS OS SERVIÇOS
     =====================================================
     */
 
-    const service =
+    const serviceObjectIds =
+      serviceIds.map(
+        (serviceId) =>
+          new ObjectId(
+            serviceId
+          )
+      );
+
+    const foundServices =
       await auth.db
         .collection(
           "services"
         )
-        .findOne({
+        .find({
           $and: [
             {
-              _id:
-                serviceObjectId,
+              _id: {
+                $in:
+                  serviceObjectIds,
+              },
             },
+
             {
               $or:
                 businessFilters,
             },
+
             {
               active: {
                 $ne: false,
               },
             },
           ],
-        } as any);
+        } as any)
+        .toArray();
 
-    if (!service) {
+    if (
+      foundServices.length !==
+      serviceIds.length
+    ) {
       return NextResponse.json(
         {
           ok: false,
           message:
-            "Serviço não encontrado ou inativo.",
+            "Um dos serviços selecionados não existe ou está inativo.",
         },
         {
           status: 404,
@@ -342,10 +400,126 @@ export async function PUT(
     }
 
     /*
+    Mantém a ordem escolhida.
+    */
+
+    const services =
+      serviceIds
+        .map(
+          (serviceId) =>
+            foundServices.find(
+              (service) =>
+                String(
+                  service._id
+                ) ===
+                serviceId
+            )
+        )
+        .filter(
+          Boolean
+        ) as any[];
+
+    const totalDuration =
+      services.reduce(
+        (
+          total,
+          service
+        ) => {
+          const duration =
+            Number(
+              service.duration ||
+                30
+            );
+
+          return (
+            total +
+            (
+              Number.isFinite(
+                duration
+              ) &&
+              duration > 0
+                ? duration
+                : 30
+            )
+          );
+        },
+        0
+      );
+
+    const totalPrice =
+      services.reduce(
+        (
+          total,
+          service
+        ) => {
+          const price =
+            Number(
+              service.price ||
+                0
+            );
+
+          return (
+            total +
+            (
+              Number.isFinite(
+                price
+              )
+                ? price
+                : 0
+            )
+          );
+        },
+        0
+      );
+
+    const serviceName =
+      services
+        .map(
+          (service) =>
+            String(
+              service.name ||
+                "Serviço"
+            )
+        )
+        .join(
+          " + "
+        );
+
+    const endMinutes =
+      startMinutes +
+      totalDuration;
+
+    if (
+      endMinutes >
+      24 * 60
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "O horário final do atendimento é inválido.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const endTime =
+      minutesToTime(
+        endMinutes
+      );
+
+    /*
     =====================================================
     PROFISSIONAL
     =====================================================
     */
+
+    const professionalObjectId =
+      new ObjectId(
+        professionalId
+      );
 
     const professional =
       await auth.db
@@ -358,10 +532,12 @@ export async function PUT(
               _id:
                 professionalObjectId,
             },
+
             {
               $or:
                 businessFilters,
             },
+
             {
               active: {
                 $ne: false,
@@ -383,43 +559,54 @@ export async function PUT(
       );
     }
 
-    const duration =
-      Number(
-        service.duration ||
-          30
-      );
+    /*
+    Se o profissional possui serviços específicos,
+    precisa realizar TODOS os selecionados.
+    */
 
     if (
-      !Number.isFinite(
-        duration
-      ) ||
-      duration <= 0
+      Array.isArray(
+        professional.serviceIds
+      ) &&
+      professional.serviceIds.length >
+        0
     ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "Duração do serviço inválida.",
-        },
-        {
-          status: 400,
-        }
-      );
+      const allowed =
+        new Set(
+          professional.serviceIds.map(
+            (
+              value: unknown
+            ) =>
+              String(value)
+          )
+        );
+
+      const canPerformAll =
+        serviceIds.every(
+          (serviceId) =>
+            allowed.has(
+              serviceId
+            )
+        );
+
+      if (!canPerformAll) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Este profissional não realiza todos os serviços selecionados.",
+          },
+          {
+            status: 409,
+          }
+        );
+      }
     }
-
-    const endMinutes =
-      startMinutes +
-      duration;
-
-    const endTime =
-      minutesToTime(
-        endMinutes
-      );
 
     /*
     =====================================================
     CONFLITO
-    Ignora o próprio agendamento
+    Ignora o próprio agendamento.
     =====================================================
     */
 
@@ -436,10 +623,12 @@ export async function PUT(
                   appointmentId,
               },
             },
+
             {
               $or:
                 businessFilters,
             },
+
             {
               professionalId: {
                 $in: [
@@ -448,9 +637,11 @@ export async function PUT(
                 ],
               },
             },
+
             {
               date,
             },
+
             {
               status: {
                 $nin: [
@@ -470,12 +661,8 @@ export async function PUT(
           appointment
         ) => {
           const otherStart =
-            timeToMinutes(
-              String(
-                appointment.startTime ||
-                  appointment.time ||
-                  ""
-              )
+            getAppointmentStart(
+              appointment
             );
 
           if (
@@ -485,26 +672,11 @@ export async function PUT(
             return false;
           }
 
-          let otherEnd =
-            timeToMinutes(
-              String(
-                appointment.endTime ||
-                  ""
-              )
+          const otherEnd =
+            getAppointmentEnd(
+              appointment,
+              otherStart
             );
-
-          if (
-            otherEnd ===
-            null
-          ) {
-            otherEnd =
-              otherStart +
-              Number(
-                appointment.duration ||
-                  appointment.serviceDuration ||
-                  30
-              );
-          }
 
           return overlaps(
             startMinutes,
@@ -522,13 +694,19 @@ export async function PUT(
         {
           ok: false,
           message:
-            "Esse horário já está ocupado para este profissional.",
+            "Esse período já está ocupado para este profissional.",
         },
         {
           status: 409,
         }
       );
     }
+
+    /*
+    =====================================================
+    FECHAMENTO MENSAL
+    =====================================================
+    */
 
     const originalMonthClosed =
       await isMonthClosed(
@@ -585,14 +763,47 @@ export async function PUT(
         },
         {
           $set: {
-            serviceId:
-              serviceObjectId,
+            /*
+            Compatibilidade com partes antigas:
+            primeiro serviço continua em serviceId.
+            */
 
-            serviceName:
-              String(
-                service.name ||
-                  ""
+            serviceId:
+              services[0]._id,
+
+            serviceIds:
+              services.map(
+                (service) =>
+                  service._id
               ),
+
+            services:
+              services.map(
+                (service) => ({
+                  serviceId:
+                    service._id,
+
+                  name:
+                    String(
+                      service.name ||
+                        "Serviço"
+                    ),
+
+                  duration:
+                    Number(
+                      service.duration ||
+                        30
+                    ),
+
+                  price:
+                    Number(
+                      service.price ||
+                        0
+                    ),
+                })
+              ),
+
+            serviceName,
 
             professionalId:
               professionalObjectId,
@@ -612,16 +823,18 @@ export async function PUT(
 
             endTime,
 
-            duration,
+            startMinutes,
+
+            endMinutes,
+
+            duration:
+              totalDuration,
 
             serviceDuration:
-              duration,
+              totalDuration,
 
             price:
-              Number(
-                service.price ||
-                  0
-              ),
+              totalPrice,
 
             updatedAt:
               now,
@@ -669,6 +882,12 @@ export async function PUT(
   }
 }
 
+/*
+=========================================================
+HELPERS
+=========================================================
+*/
+
 function makeBusinessFilters(
   businessId: unknown
 ): any[] {
@@ -707,8 +926,40 @@ function makeBusinessFilters(
 function isValidDate(
   value: string
 ) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(
+      value
+    )
+  ) {
+    return false;
+  }
+
+  const [
+    year,
+    month,
+    day,
+  ] =
     value
+      .split("-")
+      .map(Number);
+
+  const parsed =
+    new Date(
+      Date.UTC(
+        year,
+        month - 1,
+        day,
+        12
+      )
+    );
+
+  return (
+    parsed.getUTCFullYear() ===
+      year &&
+    parsed.getUTCMonth() ===
+      month - 1 &&
+    parsed.getUTCDate() ===
+      day
   );
 }
 
@@ -753,7 +1004,8 @@ function timeToMinutes(
   }
 
   return (
-    hours * 60 +
+    hours *
+      60 +
     minutes
   );
 }
@@ -763,11 +1015,13 @@ function minutesToTime(
 ) {
   const hours =
     Math.floor(
-      value / 60
+      value /
+        60
     );
 
   const minutes =
-    value % 60;
+    value %
+    60;
 
   return `${String(
     hours
@@ -782,6 +1036,79 @@ function minutesToTime(
   )}`;
 }
 
+function getAppointmentStart(
+  appointment: any
+): number | null {
+  if (
+    Number.isFinite(
+      Number(
+        appointment.startMinutes
+      )
+    )
+  ) {
+    return Number(
+      appointment.startMinutes
+    );
+  }
+
+  return timeToMinutes(
+    String(
+      appointment.startTime ||
+        appointment.time ||
+        ""
+    )
+  );
+}
+
+function getAppointmentEnd(
+  appointment: any,
+  start: number
+) {
+  if (
+    Number.isFinite(
+      Number(
+        appointment.endMinutes
+      )
+    )
+  ) {
+    return Number(
+      appointment.endMinutes
+    );
+  }
+
+  const end =
+    timeToMinutes(
+      String(
+        appointment.endTime ||
+          ""
+      )
+    );
+
+  if (
+    end !== null
+  ) {
+    return end;
+  }
+
+  const duration =
+    Number(
+      appointment.duration ||
+        appointment.serviceDuration ||
+        30
+    );
+
+  return (
+    start +
+    (
+      Number.isFinite(
+        duration
+      )
+        ? duration
+        : 30
+    )
+  );
+}
+
 function overlaps(
   startA: number,
   endA: number,
@@ -789,8 +1116,10 @@ function overlaps(
   endB: number
 ) {
   return (
-    startA < endB &&
-    endA > startB
+    startA <
+      endB &&
+    endA >
+      startB
   );
 }
 
@@ -831,6 +1160,35 @@ function serializeAppointment(
             appointment.serviceId
           )
         : undefined,
+
+    serviceIds:
+      Array.isArray(
+        appointment.serviceIds
+      )
+        ? appointment.serviceIds.map(
+            String
+          )
+        : [],
+
+    services:
+      Array.isArray(
+        appointment.services
+      )
+        ? appointment.services.map(
+            (
+              service: any
+            ) => ({
+              ...service,
+
+              serviceId:
+                service.serviceId
+                  ? String(
+                      service.serviceId
+                    )
+                  : undefined,
+            })
+          )
+        : [],
 
     professionalId:
       appointment.professionalId

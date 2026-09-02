@@ -12,6 +12,15 @@ type Appointment = {
   clientName?: string;
   clientPhone?: string;
   serviceId?: string;
+  serviceIds?: string[];
+
+  services?: {
+    serviceId?: string;
+    name?: string;
+    duration?: number;
+    price?: number;
+  }[];
+
   serviceName?: string;
   professionalId?: string;
   professionalName?: string;
@@ -135,9 +144,9 @@ export default function AgendaPage() {
   );
 
   const [
-    editServiceId,
-    setEditServiceId,
-  ] = useState("");
+    editServiceIds,
+    setEditServiceIds,
+  ] = useState<string[]>([]);
 
   const [
     editProfessionalId,
@@ -319,17 +328,18 @@ export default function AgendaPage() {
   useEffect(() => {
     if (
       !editingAppointment ||
-      !editServiceId ||
+      editServiceIds.length === 0 ||
       !editProfessionalId ||
       !editDate
     ) {
+      setEditSlots([]);
       return;
     }
 
     loadEditAvailability();
   }, [
     editingAppointment,
-    editServiceId,
+    editServiceIds,
     editProfessionalId,
     editDate,
   ]);
@@ -1590,11 +1600,38 @@ export default function AgendaPage() {
         );
       }
 
-      setEditServiceId(
-        String(
-          appointment.serviceId ||
-            ""
-        )
+      const appointmentServiceIds =
+        Array.isArray(
+          appointment.serviceIds
+        ) &&
+        appointment.serviceIds.length > 0
+          ? appointment.serviceIds.map(
+              (value) =>
+                String(value)
+            )
+          : Array.isArray(
+              appointment.services
+            ) &&
+            appointment.services.length > 0
+            ? appointment.services
+                .map(
+                  (item) =>
+                    String(
+                      item.serviceId ||
+                        ""
+                    )
+                )
+                .filter(Boolean)
+            : appointment.serviceId
+              ? [
+                  String(
+                    appointment.serviceId
+                  ),
+                ]
+              : [];
+
+      setEditServiceIds(
+        appointmentServiceIds
       );
 
       setEditProfessionalId(
@@ -1647,7 +1684,7 @@ export default function AgendaPage() {
   async function loadEditAvailability() {
     if (
       !editingAppointment ||
-      !editServiceId ||
+      editServiceIds.length === 0 ||
       !editProfessionalId ||
       !editDate
     ) {
@@ -1665,8 +1702,14 @@ export default function AgendaPage() {
 
       const params =
         new URLSearchParams({
+          serviceIds:
+            editServiceIds.join(
+              ","
+            ),
+
           serviceId:
-            editServiceId,
+            editServiceIds[0] ||
+            "",
 
           professionalId:
             editProfessionalId,
@@ -1725,12 +1768,47 @@ export default function AgendaPage() {
             ""
         );
 
+      const originalServiceIds =
+        Array.isArray(
+          editingAppointment.serviceIds
+        ) &&
+        editingAppointment.serviceIds.length > 0
+          ? editingAppointment.serviceIds.map(
+              String
+            )
+          : Array.isArray(
+              editingAppointment.services
+            ) &&
+            editingAppointment.services.length > 0
+            ? editingAppointment.services
+                .map(
+                  (item) =>
+                    String(
+                      item.serviceId ||
+                        ""
+                    )
+                )
+                .filter(Boolean)
+            : editingAppointment.serviceId
+              ? [
+                  String(
+                    editingAppointment.serviceId
+                  ),
+                ]
+              : [];
+
+      const sameServices =
+        originalServiceIds.length ===
+          editServiceIds.length &&
+        originalServiceIds.every(
+          (id) =>
+            editServiceIds.includes(
+              id
+            )
+        );
+
       const sameContext =
-        editServiceId ===
-          String(
-            editingAppointment.serviceId ||
-              ""
-          ) &&
+        sameServices &&
         editProfessionalId ===
           String(
             editingAppointment.professionalId ||
@@ -1803,13 +1881,13 @@ export default function AgendaPage() {
     }
 
     if (
-      !editServiceId ||
+      editServiceIds.length === 0 ||
       !editProfessionalId ||
       !editDate ||
       !editTime
     ) {
       setMessage(
-        "Preencha serviço, profissional, data e horário."
+        "Selecione pelo menos um serviço, profissional, data e horário."
       );
 
       return;
@@ -1837,8 +1915,11 @@ export default function AgendaPage() {
 
             body:
               JSON.stringify({
+                serviceIds:
+                  editServiceIds,
+
                 serviceId:
-                  editServiceId,
+                  editServiceIds[0],
 
                 professionalId:
                   editProfessionalId,
@@ -3089,7 +3170,7 @@ export default function AgendaPage() {
                     disabled={
                       saving ||
                       !clientId ||
-                      !serviceId ||
+                      serviceIds.length === 0 ||
                       !professionalId ||
                       !appointmentDate ||
                       !appointmentTime
@@ -3143,35 +3224,170 @@ export default function AgendaPage() {
             </div>
 
             <div className="space-y-5 p-5 sm:p-6">
-              <SelectField
-                label="Serviço"
-                value={
-                  editServiceId
-                }
-                onChange={(
-                  value
-                ) => {
-                  setEditServiceId(
-                    value
-                  );
+              <div>
+                <div className="flex items-center justify-between gap-4">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    Serviços
+                  </label>
 
-                  setEditTime(
-                    ""
-                  );
-                }}
-                options={services.map(
-                  (service) => ({
-                    value:
-                      service._id,
+                  {editServiceIds.length > 0 ? (
+                    <span className="text-xs font-semibold text-emerald-400">
+                      {editServiceIds.length} selecionado
+                      {editServiceIds.length !== 1
+                        ? "s"
+                        : ""}
+                    </span>
+                  ) : null}
+                </div>
 
-                    label:
-                      `${service.name} - ${formatPrice(
-                        service.price
-                      )}`,
-                  })
-                )}
-                placeholder="Selecione um serviço"
-              />
+                <p className="mt-1 text-xs text-zinc-600">
+                  Você pode selecionar mais de um serviço.
+                </p>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {services.map(
+                    (service) => {
+                      const selected =
+                        editServiceIds.includes(
+                          service._id
+                        );
+
+                      return (
+                        <button
+                          key={
+                            service._id
+                          }
+                          type="button"
+                          onClick={() => {
+                            setEditServiceIds(
+                              (current) =>
+                                current.includes(
+                                  service._id
+                                )
+                                  ? current.filter(
+                                      (id) =>
+                                        id !==
+                                        service._id
+                                    )
+                                  : [
+                                      ...current,
+                                      service._id,
+                                    ]
+                            );
+
+                            setEditTime(
+                              ""
+                            );
+
+                            setEditSlots(
+                              []
+                            );
+                          }}
+                          className={`rounded-xl border p-4 text-left transition ${
+                            selected
+                              ? "border-emerald-500 bg-emerald-500/[0.08]"
+                              : "border-white/10 bg-[#071018] hover:border-white/20"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-bold">
+                                {service.name}
+                              </p>
+
+                              <p className="mt-1 text-xs text-zinc-500">
+                                {service.duration} min
+                              </p>
+                            </div>
+
+                            <div className="text-right">
+                              <p className="font-black text-emerald-400">
+                                {formatPrice(
+                                  service.price
+                                )}
+                              </p>
+
+                              <span
+                                className={`mt-2 inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs font-black ${
+                                  selected
+                                    ? "border-emerald-500 bg-emerald-500 text-zinc-950"
+                                    : "border-white/15 text-zinc-600"
+                                }`}
+                              >
+                                {selected
+                                  ? "✓"
+                                  : ""}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+
+                {editServiceIds.length > 0 ? (
+                  <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3">
+                    <div>
+                      <p className="text-xs text-zinc-500">
+                        Duração total
+                      </p>
+
+                      <p className="mt-0.5 font-bold">
+                        {services
+                          .filter(
+                            (service) =>
+                              editServiceIds.includes(
+                                service._id
+                              )
+                          )
+                          .reduce(
+                            (
+                              total,
+                              service
+                            ) =>
+                              total +
+                              Number(
+                                service.duration ||
+                                  0
+                              ),
+                            0
+                          )} min
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-xs text-zinc-500">
+                        Valor total
+                      </p>
+
+                      <p className="mt-0.5 font-black text-emerald-400">
+                        {formatPrice(
+                          services
+                            .filter(
+                              (service) =>
+                                editServiceIds.includes(
+                                  service._id
+                                )
+                            )
+                            .reduce(
+                              (
+                                total,
+                                service
+                              ) =>
+                                total +
+                                Number(
+                                  service.price ||
+                                    0
+                                ),
+                              0
+                            )
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
 
               <SelectField
                 label="Profissional"
@@ -3244,11 +3460,11 @@ export default function AgendaPage() {
                   ) : null}
                 </div>
 
-                {!editServiceId ||
+                {editServiceIds.length === 0 ||
                 !editProfessionalId ||
                 !editDate ? (
                   <div className="mt-3 rounded-xl border border-dashed border-white/10 p-5 text-center text-sm text-zinc-500">
-                    Selecione serviço, profissional e data.
+                    Selecione pelo menos um serviço, profissional e data.
                   </div>
                 ) : editSlots.length ===
                   0 ? (
@@ -3311,7 +3527,7 @@ export default function AgendaPage() {
                   type="button"
                   disabled={
                     editSaving ||
-                    !editServiceId ||
+                    editServiceIds.length === 0 ||
                     !editProfessionalId ||
                     !editDate ||
                     !editTime
