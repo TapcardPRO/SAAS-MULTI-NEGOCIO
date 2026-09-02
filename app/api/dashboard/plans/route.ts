@@ -1,214 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { ObjectId } from "mongodb";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
 
-import { getDb } from "@/lib/db";
-import { verifySessionToken } from "@/lib/auth";
+import {
+  ObjectId,
+} from "mongodb";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import {
+  requireOwnerSession,
+} from "@/lib/tenant-auth";
 
-/*
-=========================================================
-AUTENTICAÇÃO
-=========================================================
-*/
+export const dynamic =
+  "force-dynamic";
 
-async function getAuthenticatedBusiness() {
-  const cookieStore = await cookies();
-
-  const token =
-    cookieStore.get("saas_session")?.value;
-
-  if (!token) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário não autenticado",
-        },
-        {
-          status: 401,
-        }
-      ),
-    };
-  }
-
-  const session =
-    await verifySessionToken(token);
-
-  if (
-    !session?.userId ||
-    !ObjectId.isValid(String(session.userId))
-  ) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Sessão inválida",
-        },
-        {
-          status: 401,
-        }
-      ),
-    };
-  }
-
-  const db = await getDb();
-
-  const user =
-    await db.collection("users").findOne({
-      _id: new ObjectId(
-        String(session.userId)
-      ),
-    });
-
-  if (!user) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário não encontrado",
-        },
-        {
-          status: 404,
-        }
-      ),
-    };
-  }
-
-  if (user.active === false) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário bloqueado",
-        },
-        {
-          status: 403,
-        }
-      ),
-    };
-  }
-
-  if (!user.businessId) {
-    return {
-      error: NextResponse.json(
-        {
-          message:
-            "Usuário sem empresa vinculada",
-        },
-        {
-          status: 400,
-        }
-      ),
-    };
-  }
-
-  const businessIdString =
-    String(user.businessId);
-
-  if (
-    !ObjectId.isValid(
-      businessIdString
-    )
-  ) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa inválida",
-        },
-        {
-          status: 400,
-        }
-      ),
-    };
-  }
-
-  const businessId =
-    new ObjectId(
-      businessIdString
-    );
-
-  const business =
-    await db
-      .collection("businesses")
-      .findOne({
-        _id: businessId,
-      });
-
-  if (!business) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa não encontrada",
-        },
-        {
-          status: 404,
-        }
-      ),
-    };
-  }
-
-  if (business.active === false) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa bloqueada",
-        },
-        {
-          status: 403,
-        }
-      ),
-    };
-  }
-
-  return {
-    db,
-    businessId,
-    business,
-  };
-}
-
-/*
-=========================================================
-GET - LISTAR PLANOS
-=========================================================
-*/
+export const revalidate =
+  0;
 
 export async function GET() {
   try {
     const auth =
-      await getAuthenticatedBusiness();
+      await requireOwnerSession();
 
-    if ("error" in auth) {
-      return auth.error;
+    if (!auth.ok) {
+      return NextResponse.json(
+        {
+          message:
+            auth.message,
+        },
+        {
+          status:
+            auth.status,
+        }
+      );
     }
 
-    const {
-      db,
-      businessId,
-      business,
-    } = auth;
-
-    const filters: any[] = [
-      {
-        businessId,
-      },
-      {
-        businessId:
-          businessId.toString(),
-      },
-    ];
-
-    if (business.slug) {
-      filters.push({
-        businessSlug:
-          business.slug,
-      });
-    }
+    const filters =
+      tenantFilters(
+        auth.businessId,
+        auth.business.slug
+      );
 
     const plans =
-      await db
-        .collection("plans")
+      await auth.db
+        .collection(
+          "plans"
+        )
         .find({
-          $or: filters,
+          $or:
+            filters,
         })
         .sort({
           createdAt: -1,
@@ -216,42 +56,13 @@ export async function GET() {
         .toArray();
 
     return NextResponse.json({
-      plans: plans.map(
-        (plan) => ({
-          _id:
-            plan._id.toString(),
-
-          name:
-            plan.name || "",
-
-          description:
-            plan.description || "",
-
-          price:
-            Number(
-              plan.price || 0
-            ),
-
-          totalUses:
-            Number(
-              plan.totalUses || 0
-            ),
-
-          validityDays:
-            Number(
-              plan.validityDays || 30
-            ),
-
-          active:
-            plan.active !== false,
-
-          createdAt:
-            plan.createdAt || null,
-
-          updatedAt:
-            plan.updatedAt || null,
-        })
-      ),
+      plans:
+        plans.map(
+          (plan) =>
+            serializePlan(
+              plan
+            )
+        ),
     });
   } catch (error) {
     console.error(
@@ -271,39 +82,44 @@ export async function GET() {
   }
 }
 
-/*
-=========================================================
-POST - CRIAR PLANO
-=========================================================
-*/
-
 export async function POST(
   request: NextRequest
 ) {
   try {
     const auth =
-      await getAuthenticatedBusiness();
+      await requireOwnerSession();
 
-    if ("error" in auth) {
-      return auth.error;
-    }
-
-    const {
-      db,
-      businessId,
-      business,
-    } = auth;
-
-    let body: any = {};
-
-    try {
-      body =
-        await request.json();
-    } catch {
+    if (!auth.ok) {
       return NextResponse.json(
         {
           message:
-            "Não foi possível ler os dados enviados",
+            auth.message,
+        },
+        {
+          status:
+            auth.status,
+        }
+      );
+    }
+
+    const body =
+      await request.json();
+
+    const parsed =
+      parsePlanBody(
+        body
+      );
+
+    const validation =
+      validatePlan(
+        parsed
+      );
+
+    if (validation) {
+      return NextResponse.json(
+        {
+          message:
+            validation,
         },
         {
           status: 400,
@@ -311,206 +127,26 @@ export async function POST(
       );
     }
 
-    /*
-      IMPORTANTE:
-      ISSO VAI APARECER NO TERMINAL
-      QUANDO VOCÊ TENTAR CADASTRAR.
-    */
-
-    console.log(
-      "================================="
-    );
-
-    console.log(
-      "BODY PLANO RECEBIDO:"
-    );
-
-    console.log(body);
-
-    console.log(
-      "CAMPOS RECEBIDOS:"
-    );
-
-    console.log(
-      Object.keys(body)
-    );
-
-    console.log(
-      "================================="
-    );
-
-    /*
-      ACEITA VÁRIOS NOMES POSSÍVEIS
-    */
-
-    const name =
-      firstText([
-        body.name,
-        body.planName,
-        body.nome,
-        body.nomePlano,
-        body.title,
-        body.titulo,
-      ]);
-
-    const description =
-      firstText([
-        body.description,
-        body.descricao,
-        body.planDescription,
-      ]);
-
-    const rawPrice =
-      firstDefined([
-        body.price,
-        body.valor,
-        body.value,
-        body.preco,
-        body.monthlyPrice,
-      ]);
-
-    const rawTotalUses =
-      firstDefined([
-        body.totalUses,
-        body.uses,
-        body.usages,
-        body.quantity,
-        body.quantidade,
-        body.quantidadeUsos,
-        body.cuts,
-        body.totalCuts,
-      ]);
-
-    const rawValidityDays =
-      firstDefined([
-        body.validityDays,
-        body.validity,
-        body.days,
-        body.validade,
-        body.diasValidade,
-      ]);
-
-    const price =
-      parseMoney(
-        rawPrice
+    const serviceIds =
+      normalizeServiceIds(
+        body.serviceIds
       );
 
-    const totalUses =
-      parseInteger(
-        rawTotalUses
+    const serviceValidation =
+      await validateServices(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        serviceIds
       );
-
-    const validityDays =
-      rawValidityDays ===
-      undefined
-        ? 30
-        : parseInteger(
-            rawValidityDays
-          );
-
-    const active =
-      body.active === undefined
-        ? true
-        : parseBoolean(
-            body.active
-          );
-
-    /*
-      LOG DO QUE A API ENTENDEU
-    */
-
-    console.log(
-      "PLANO INTERPRETADO:",
-      {
-        name,
-        description,
-        price,
-        totalUses,
-        validityDays,
-        active,
-      }
-    );
-
-    /*
-      VALIDAÇÃO
-    */
-
-    if (!name) {
-      return NextResponse.json(
-        {
-          message:
-            "Informe o nome do plano",
-
-          debug: {
-            receivedFields:
-              Object.keys(body),
-
-            body,
-          },
-        },
-        {
-          status: 400,
-        }
-      );
-    }
 
     if (
-      !Number.isFinite(price) ||
-      price < 0
+      !serviceValidation.ok
     ) {
       return NextResponse.json(
         {
           message:
-            "Informe um preço válido",
-
-          debug: {
-            receivedPrice:
-              rawPrice,
-          },
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      !Number.isInteger(
-        totalUses
-      ) ||
-      totalUses <= 0
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "Informe uma quantidade de usos válida",
-
-          debug: {
-            receivedTotalUses:
-              rawTotalUses,
-          },
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      !Number.isInteger(
-        validityDays
-      ) ||
-      validityDays <= 0
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "Informe uma validade válida",
-
-          debug: {
-            receivedValidityDays:
-              rawValidityDays,
-          },
+            serviceValidation.message,
         },
         {
           status: 400,
@@ -522,54 +158,69 @@ export async function POST(
       new Date();
 
     const plan = {
-      businessId,
+      businessId:
+        auth.businessId,
 
       businessSlug:
-        business.slug || "",
+        auth.business.slug ||
+        "",
 
-      name,
+      name:
+        parsed.name,
 
-      description,
+      description:
+        parsed.description,
 
-      price,
+      price:
+        parsed.price,
 
-      totalUses,
+      totalUses:
+        parsed.totalUses,
 
-      validityDays,
+      validityDays:
+        parsed.validityDays,
 
-      active,
+      /*
+      [] significa plano compatível
+      com qualquer serviço.
 
-      createdAt: now,
+      Lista preenchida significa
+      que o plano cobre somente
+      aqueles serviços.
+      */
+      serviceIds:
+        serviceValidation.objectIds,
 
-      updatedAt: now,
+      active:
+        parsed.active,
+
+      createdAt:
+        now,
+
+      updatedAt:
+        now,
     };
 
     const result =
-      await db
-        .collection("plans")
-        .insertOne(plan);
+      await auth.db
+        .collection(
+          "plans"
+        )
+        .insertOne(
+          plan
+        );
 
     return NextResponse.json(
       {
         message:
           "Plano cadastrado com sucesso",
 
-        plan: {
-          _id:
-            result.insertedId.toString(),
-
-          name,
-
-          description,
-
-          price,
-
-          totalUses,
-
-          validityDays,
-
-          active,
-        },
+        plan:
+          serializePlan({
+            ...plan,
+            _id:
+              result.insertedId,
+          }),
       },
       {
         status: 201,
@@ -593,56 +244,41 @@ export async function POST(
   }
 }
 
-/*
-=========================================================
-PUT - EDITAR PLANO
-=========================================================
-*/
-
 export async function PUT(
   request: NextRequest
 ) {
   try {
     const auth =
-      await getAuthenticatedBusiness();
+      await requireOwnerSession();
 
-    if ("error" in auth) {
-      return auth.error;
-    }
-
-    const {
-      db,
-      businessId,
-      business,
-    } = auth;
-
-    let body: any = {};
-
-    try {
-      body =
-        await request.json();
-    } catch {
+    if (!auth.ok) {
       return NextResponse.json(
         {
           message:
-            "Dados inválidos",
+            auth.message,
         },
         {
-          status: 400,
+          status:
+            auth.status,
         }
       );
     }
 
+    const body =
+      await request.json();
+
     const id =
-      firstText([
-        body.id,
-        body._id,
-        body.planId,
-      ]);
+      String(
+        body.id ||
+          body._id ||
+          body.planId ||
+          ""
+      ).trim();
 
     if (
-      !id ||
-      !ObjectId.isValid(id)
+      !ObjectId.isValid(
+        id
+      )
     ) {
       return NextResponse.json(
         {
@@ -655,32 +291,25 @@ export async function PUT(
       );
     }
 
-    const planObjectId =
-      new ObjectId(id);
+    const objectId =
+      new ObjectId(
+        id
+      );
 
-    const filters: any[] = [
-      {
-        businessId,
-      },
-      {
-        businessId:
-          businessId.toString(),
-      },
-    ];
-
-    if (business.slug) {
-      filters.push({
-        businessSlug:
-          business.slug,
-      });
-    }
+    const filters =
+      tenantFilters(
+        auth.businessId,
+        auth.business.slug
+      );
 
     const existing =
-      await db
-        .collection("plans")
+      await auth.db
+        .collection(
+          "plans"
+        )
         .findOne({
           _id:
-            planObjectId,
+            objectId,
 
           $or:
             filters,
@@ -703,28 +332,16 @@ export async function PUT(
         new Date(),
     };
 
-    /*
-      NOME
-    */
-
-    const name =
-      firstText([
-        body.name,
-        body.planName,
-        body.nome,
-        body.nomePlano,
-        body.title,
-        body.titulo,
-      ]);
-
     if (
-      body.name !== undefined ||
-      body.planName !== undefined ||
-      body.nome !== undefined ||
-      body.nomePlano !== undefined ||
-      body.title !== undefined ||
-      body.titulo !== undefined
+      body.name !==
+      undefined
     ) {
+      const name =
+        String(
+          body.name ||
+            ""
+        ).trim();
+
       if (!name) {
         return NextResponse.json(
           {
@@ -741,46 +358,24 @@ export async function PUT(
         name;
     }
 
-    /*
-      DESCRIÇÃO
-    */
-
     if (
       body.description !==
-        undefined ||
-      body.descricao !==
-        undefined ||
-      body.planDescription !==
-        undefined
+      undefined
     ) {
       update.description =
-        firstText([
-          body.description,
-          body.descricao,
-          body.planDescription,
-        ]);
+        String(
+          body.description ||
+            ""
+        ).trim();
     }
 
-    /*
-      PREÇO
-    */
-
     if (
-      body.price !== undefined ||
-      body.valor !== undefined ||
-      body.value !== undefined ||
-      body.preco !== undefined ||
-      body.monthlyPrice !== undefined
+      body.price !==
+      undefined
     ) {
       const price =
         parseMoney(
-          firstDefined([
-            body.price,
-            body.valor,
-            body.value,
-            body.preco,
-            body.monthlyPrice,
-          ])
+          body.price
         );
 
       if (
@@ -804,40 +399,13 @@ export async function PUT(
         price;
     }
 
-    /*
-      USOS
-    */
-
     if (
       body.totalUses !==
-        undefined ||
-      body.uses !==
-        undefined ||
-      body.usages !==
-        undefined ||
-      body.quantity !==
-        undefined ||
-      body.quantidade !==
-        undefined ||
-      body.quantidadeUsos !==
-        undefined ||
-      body.cuts !==
-        undefined ||
-      body.totalCuts !==
-        undefined
+      undefined
     ) {
       const totalUses =
-        parseInteger(
-          firstDefined([
-            body.totalUses,
-            body.uses,
-            body.usages,
-            body.quantity,
-            body.quantidade,
-            body.quantidadeUsos,
-            body.cuts,
-            body.totalCuts,
-          ])
+        Number(
+          body.totalUses
         );
 
       if (
@@ -861,31 +429,13 @@ export async function PUT(
         totalUses;
     }
 
-    /*
-      VALIDADE
-    */
-
     if (
       body.validityDays !==
-        undefined ||
-      body.validity !==
-        undefined ||
-      body.days !==
-        undefined ||
-      body.validade !==
-        undefined ||
-      body.diasValidade !==
-        undefined
+      undefined
     ) {
       const validityDays =
-        parseInteger(
-          firstDefined([
-            body.validityDays,
-            body.validity,
-            body.days,
-            body.validade,
-            body.diasValidade,
-          ])
+        Number(
+          body.validityDays
         );
 
       if (
@@ -909,26 +459,56 @@ export async function PUT(
         validityDays;
     }
 
-    /*
-      ATIVO
-    */
-
     if (
       body.active !==
       undefined
     ) {
       update.active =
-        parseBoolean(
-          body.active
-        );
+        body.active !==
+        false;
     }
 
-    await db
-      .collection("plans")
+    if (
+      body.serviceIds !==
+      undefined
+    ) {
+      const serviceIds =
+        normalizeServiceIds(
+          body.serviceIds
+        );
+
+      const validation =
+        await validateServices(
+          auth.db,
+          auth.businessId,
+          auth.business.slug,
+          serviceIds
+        );
+
+      if (!validation.ok) {
+        return NextResponse.json(
+          {
+            message:
+              validation.message,
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      update.serviceIds =
+        validation.objectIds;
+    }
+
+    await auth.db
+      .collection(
+        "plans"
+      )
       .updateOne(
         {
           _id:
-            planObjectId,
+            objectId,
         },
         {
           $set:
@@ -936,51 +516,24 @@ export async function PUT(
         }
       );
 
-    const updatedPlan =
-      await db
-        .collection("plans")
+    const updated =
+      await auth.db
+        .collection(
+          "plans"
+        )
         .findOne({
           _id:
-            planObjectId,
+            objectId,
         });
 
     return NextResponse.json({
       message:
         "Plano atualizado com sucesso",
 
-      plan: {
-        _id:
-          updatedPlan?._id.toString(),
-
-        name:
-          updatedPlan?.name || "",
-
-        description:
-          updatedPlan?.description ||
-          "",
-
-        price:
-          Number(
-            updatedPlan?.price ||
-              0
-          ),
-
-        totalUses:
-          Number(
-            updatedPlan?.totalUses ||
-              0
-          ),
-
-        validityDays:
-          Number(
-            updatedPlan?.validityDays ||
-              30
-          ),
-
-        active:
-          updatedPlan?.active !==
-          false,
-      },
+      plan:
+        serializePlan(
+          updated
+        ),
     });
   } catch (error) {
     console.error(
@@ -1000,58 +553,43 @@ export async function PUT(
   }
 }
 
-/*
-=========================================================
-DELETE - EXCLUIR PLANO
-=========================================================
-*/
-
 export async function DELETE(
   request: NextRequest
 ) {
   try {
     const auth =
-      await getAuthenticatedBusiness();
+      await requireOwnerSession();
 
-    if ("error" in auth) {
-      return auth.error;
+    if (!auth.ok) {
+      return NextResponse.json(
+        {
+          message:
+            auth.message,
+        },
+        {
+          status:
+            auth.status,
+        }
+      );
     }
-
-    const {
-      db,
-      businessId,
-      business,
-    } = auth;
 
     const url =
       new URL(
         request.url
       );
 
-    let id =
-      url.searchParams.get(
-        "id"
-      ) || "";
-
-    if (!id) {
-      try {
-        const body =
-          await request.json();
-
-        id =
-          firstText([
-            body.id,
-            body._id,
-            body.planId,
-          ]);
-      } catch {
-        // sem body
-      }
-    }
+    const id =
+      String(
+        url.searchParams.get(
+          "id"
+        ) ||
+          ""
+      );
 
     if (
-      !id ||
-      !ObjectId.isValid(id)
+      !ObjectId.isValid(
+        id
+      )
     ) {
       return NextResponse.json(
         {
@@ -1064,38 +602,31 @@ export async function DELETE(
       );
     }
 
-    const filters: any[] = [
-      {
-        businessId,
-      },
-      {
-        businessId:
-          businessId.toString(),
-      },
-    ];
+    const objectId =
+      new ObjectId(
+        id
+      );
 
-    if (business.slug) {
-      filters.push({
-        businessSlug:
-          business.slug,
-      });
-    }
+    const filters =
+      tenantFilters(
+        auth.businessId,
+        auth.business.slug
+      );
 
-    const result =
-      await db
-        .collection("plans")
-        .deleteOne({
+    const existing =
+      await auth.db
+        .collection(
+          "plans"
+        )
+        .findOne({
           _id:
-            new ObjectId(id),
+            objectId,
 
           $or:
             filters,
         });
 
-    if (
-      result.deletedCount ===
-      0
-    ) {
+    if (!existing) {
       return NextResponse.json(
         {
           message:
@@ -1106,6 +637,44 @@ export async function DELETE(
         }
       );
     }
+
+    const membership =
+      await auth.db
+        .collection(
+          "memberships"
+        )
+        .findOne({
+          planId:
+            objectId,
+
+          active: {
+            $ne: false,
+          },
+
+          $or:
+            filters,
+        } as any);
+
+    if (membership) {
+      return NextResponse.json(
+        {
+          message:
+            "Este plano possui mensalistas ativos. Desative o plano em vez de excluir.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
+    await auth.db
+      .collection(
+        "plans"
+      )
+      .deleteOne({
+        _id:
+          objectId,
+      });
 
     return NextResponse.json({
       message:
@@ -1129,74 +698,292 @@ export async function DELETE(
   }
 }
 
-/*
-=========================================================
-OPTIONS
-=========================================================
-*/
+function parsePlanBody(
+  body: any
+) {
+  return {
+    name:
+      String(
+        body.name ||
+          ""
+      ).trim(),
 
-export async function OPTIONS() {
-  return new NextResponse(
-    null,
-    {
-      status: 204,
+    description:
+      String(
+        body.description ||
+          ""
+      ).trim(),
 
-      headers: {
-        Allow:
-          "GET, POST, PUT, DELETE, OPTIONS",
-      },
-    }
-  );
+    price:
+      parseMoney(
+        body.price
+      ),
+
+    totalUses:
+      Number(
+        body.totalUses
+      ),
+
+    validityDays:
+      body.validityDays ===
+      undefined
+        ? 30
+        : Number(
+            body.validityDays
+          ),
+
+    active:
+      body.active ===
+      undefined
+        ? true
+        : body.active !==
+          false,
+  };
 }
 
-/*
-=========================================================
-FUNÇÕES AUXILIARES
-=========================================================
-*/
-
-function firstText(
-  values: unknown[]
+function validatePlan(
+  plan: ReturnType<
+    typeof parsePlanBody
+  >
 ) {
-  for (
-    const value
-    of values
+  if (!plan.name) {
+    return "Informe o nome do plano";
+  }
+
+  if (
+    !Number.isFinite(
+      plan.price
+    ) ||
+    plan.price < 0
   ) {
-    if (
-      value === undefined ||
-      value === null
-    ) {
-      continue;
-    }
+    return "Informe um preço válido";
+  }
 
-    const text =
-      String(value).trim();
+  if (
+    !Number.isInteger(
+      plan.totalUses
+    ) ||
+    plan.totalUses <= 0
+  ) {
+    return "Informe uma quantidade de usos válida";
+  }
 
-    if (text) {
-      return text;
-    }
+  if (
+    !Number.isInteger(
+      plan.validityDays
+    ) ||
+    plan.validityDays <= 0
+  ) {
+    return "Informe uma validade válida";
   }
 
   return "";
 }
 
-function firstDefined(
-  values: unknown[]
+function normalizeServiceIds(
+  value: unknown
 ) {
-  for (
-    const value
-    of values
+  const items =
+    Array.isArray(
+      value
+    )
+      ? value
+      : [];
+
+  return Array.from(
+    new Set(
+      items
+        .map(
+          (item) =>
+            String(
+              item ||
+                ""
+            ).trim()
+        )
+        .filter(
+          Boolean
+        )
+    )
+  );
+}
+
+async function validateServices(
+  db: any,
+  businessId: any,
+  slug: string,
+  serviceIds: string[]
+) {
+  if (
+    serviceIds.some(
+      (id) =>
+        !ObjectId.isValid(
+          id
+        )
+    )
   ) {
-    if (
-      value !== undefined &&
-      value !== null &&
-      value !== ""
-    ) {
-      return value;
-    }
+    return {
+      ok: false,
+      message:
+        "Um dos serviços selecionados é inválido.",
+      objectIds:
+        [],
+    };
   }
 
-  return undefined;
+  if (
+    serviceIds.length ===
+    0
+  ) {
+    return {
+      ok: true,
+      message: "",
+      objectIds:
+        [],
+    };
+  }
+
+  const objectIds =
+    serviceIds.map(
+      (id) =>
+        new ObjectId(
+          id
+        )
+    );
+
+  const services =
+    await db
+      .collection(
+        "services"
+      )
+      .find({
+        _id: {
+          $in:
+            objectIds,
+        },
+
+        active: {
+          $ne: false,
+        },
+
+        $or:
+          tenantFilters(
+            businessId,
+            slug
+          ),
+      } as any)
+      .toArray();
+
+  if (
+    services.length !==
+    serviceIds.length
+  ) {
+    return {
+      ok: false,
+      message:
+        "Um dos serviços selecionados não pertence à empresa ou está inativo.",
+      objectIds:
+        [],
+    };
+  }
+
+  return {
+    ok: true,
+    message: "",
+    objectIds,
+  };
+}
+
+function tenantFilters(
+  businessId: any,
+  slug?: string
+) {
+  return [
+    {
+      businessId,
+    },
+
+    {
+      businessId:
+        String(
+          businessId
+        ),
+    },
+
+    ...(slug
+      ? [
+          {
+            businessSlug:
+              slug,
+          },
+        ]
+      : []),
+  ];
+}
+
+function serializePlan(
+  plan: any
+) {
+  if (!plan) {
+    return null;
+  }
+
+  return {
+    _id:
+      String(
+        plan._id
+      ),
+
+    name:
+      String(
+        plan.name ||
+          ""
+      ),
+
+    description:
+      String(
+        plan.description ||
+          ""
+      ),
+
+    price:
+      Number(
+        plan.price ||
+          0
+      ),
+
+    totalUses:
+      Number(
+        plan.totalUses ||
+          0
+      ),
+
+    validityDays:
+      Number(
+        plan.validityDays ||
+          30
+      ),
+
+    serviceIds:
+      Array.isArray(
+        plan.serviceIds
+      )
+        ? plan.serviceIds.map(
+            String
+          )
+        : [],
+
+    active:
+      plan.active !==
+      false,
+
+    createdAt:
+      plan.createdAt ||
+      null,
+
+    updatedAt:
+      plan.updatedAt ||
+      null,
+  };
 }
 
 function parseMoney(
@@ -1209,9 +996,10 @@ function parseMoney(
     return value;
   }
 
-  let text =
+  const text =
     String(
-      value ?? ""
+      value ??
+        ""
     )
       .trim()
       .replace(
@@ -1223,34 +1011,12 @@ function parseMoney(
         ""
       );
 
-  /*
-    120,00
-  */
-
   if (
-    text.includes(",") &&
-    !text.includes(".")
+    text.includes(
+      ","
+    )
   ) {
-    text =
-      text.replace(
-        ",",
-        "."
-      );
-
     return Number(
-      text
-    );
-  }
-
-  /*
-    1.200,00
-  */
-
-  if (
-    text.includes(".") &&
-    text.includes(",")
-  ) {
-    text =
       text
         .replace(
           /\./g,
@@ -1259,51 +1025,11 @@ function parseMoney(
         .replace(
           ",",
           "."
-        );
-
-    return Number(
-      text
+        )
     );
   }
 
   return Number(
     text
   );
-}
-
-function parseInteger(
-  value: unknown
-) {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ""
-  ) {
-    return NaN;
-  }
-
-  return Number(
-    value
-  );
-}
-
-function parseBoolean(
-  value: unknown
-) {
-  if (
-    typeof value ===
-    "boolean"
-  ) {
-    return value;
-  }
-
-  if (
-    value === 0 ||
-    value === "0" ||
-    value === "false"
-  ) {
-    return false;
-  }
-
-  return true;
 }

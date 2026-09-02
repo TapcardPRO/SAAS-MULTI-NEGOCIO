@@ -778,23 +778,46 @@ export async function POST(
       memberships.find(
         (item) => {
           if (
-            !item.expiresAt
+            item.expiresAt
+          ) {
+            const expiration =
+              parseExpirationDate(
+                item.expiresAt
+              );
+
+            if (
+              expiration &&
+              expiration <
+                now
+            ) {
+              return false;
+            }
+          }
+
+          const allowed =
+            Array.isArray(
+              item.serviceIds
+            )
+              ? item.serviceIds.map(
+                  (
+                    value: unknown
+                  ) =>
+                    String(value)
+                )
+              : [];
+
+          if (
+            allowed.length ===
+            0
           ) {
             return true;
           }
 
-          const expiration =
-            parseExpirationDate(
-              item.expiresAt
-            );
-
-          if (!expiration) {
-            return true;
-          }
-
-          return (
-            expiration >=
-            now
+          return serviceIds.some(
+            (serviceId: string) =>
+              allowed.includes(
+                serviceId
+              )
           );
         }
       );

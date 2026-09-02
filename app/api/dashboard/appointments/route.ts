@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireBusinessSession } from "@/lib/tenant-auth";
 
+import {
+  isMonthClosed,
+} from "@/lib/monthly-closing";
+
+import {
+  acquireBookingLock,
+  getPublicBookingAvailability,
+  releaseBookingLock,
+} from "@/lib/public-booking-availability";
+
+import {
+  ensureVelltoIndexes,
+} from "@/lib/vellto-indexes";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -119,27 +133,44 @@ POST - CRIAR AGENDAMENTO
 =========================================================
 */
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest
+) {
   try {
-    const auth = await requireBusinessSession();
+    const auth =
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
         {
           ok: false,
-          message: auth.message,
+          message:
+            auth.message,
         },
         {
-          status: auth.status,
+          status:
+            auth.status,
         }
       );
     }
 
-    const body = await request.json();
+    /*
+    Índices são idempotentes.
+    Não bloqueamos o agendamento
+    caso a criação de algum índice falhe.
+    */
+    void ensureVelltoIndexes(
+      auth.db
+    );
 
-    const clientId = String(
-      body.clientId || ""
-    ).trim();
+    const body =
+      await request.json();
+
+    const clientId =
+      String(
+        body.clientId ||
+          ""
+      ).trim();
 
     const serviceIds =
       (
@@ -152,36 +183,48 @@ export async function POST(request: NextRequest) {
             ]
       )
         .map(
-          (value: unknown) =>
+          (
+            value: unknown
+          ) =>
             String(
-              value || ""
+              value ||
+                ""
             ).trim()
         )
-        .filter(Boolean);
+        .filter(
+          Boolean
+        );
 
-    const serviceId =
-      serviceIds[0] ||
-      "";
+    let professionalId =
+      String(
+        body.professionalId ||
+          ""
+      ).trim();
 
-    let professionalId = String(
-      body.professionalId || ""
-    ).trim();
+    const date =
+      String(
+        body.date ||
+          ""
+      ).trim();
 
-    const date = String(
-      body.date || ""
-    ).trim();
+    const time =
+      String(
+        body.time ||
+          body.startTime ||
+          ""
+      ).trim();
 
-    const time = String(
-      body.time ||
-        body.startTime ||
-        ""
-    ).trim();
+    /*
+    =====================================================
+    FUNCIONÁRIO
+    =====================================================
+    */
 
     if (
       auth.user.role ===
       "employee"
     ) {
-      const linkedProfessionalId =
+      const linked =
         String(
           auth.user.professionalId ||
             ""
@@ -189,7 +232,7 @@ export async function POST(request: NextRequest) {
 
       if (
         !ObjectId.isValid(
-          linkedProfessionalId
+          linked
         )
       ) {
         return NextResponse.json(
@@ -205,14 +248,25 @@ export async function POST(request: NextRequest) {
       }
 
       professionalId =
-        linkedProfessionalId;
+        linked;
     }
 
-    if (!ObjectId.isValid(clientId)) {
+    /*
+    =====================================================
+    VALIDAÇÕES
+    =====================================================
+    */
+
+    if (
+      !ObjectId.isValid(
+        clientId
+      )
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Cliente inválido",
+          message:
+            "Cliente inválido.",
         },
         {
           status: 400,
@@ -221,9 +275,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (
-      serviceIds.length === 0 ||
+      serviceIds.length ===
+        0 ||
       serviceIds.some(
-        (id: string) =>
+        (
+          id: string
+        ) =>
           !ObjectId.isValid(
             id
           )
@@ -232,7 +289,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Serviço inválido",
+          message:
+            "Selecione pelo menos um serviço válido.",
         },
         {
           status: 400,
@@ -240,11 +298,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ObjectId.isValid(professionalId)) {
+    if (
+      new Set(
+        serviceIds
+      ).size !==
+      serviceIds.length
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Profissional inválido",
+          message:
+            "Existem serviços duplicados.",
         },
         {
           status: 400,
@@ -252,11 +316,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!isValidDate(date)) {
+    if (
+      !ObjectId.isValid(
+        professionalId
+      )
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Data inválida",
+          message:
+            "Profissional inválido.",
         },
         {
           status: 400,
@@ -264,13 +333,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const startMinutes = timeToMinutes(time);
-
-    if (startMinutes === null) {
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(
+        date
+      )
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Horário inválido",
+          message:
+            "Data inválida.",
         },
         {
           status: 400,
@@ -278,14 +350,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const clientObjectId = new ObjectId(clientId);
-    const serviceObjectId = new ObjectId(serviceId);
-    const professionalObjectId =
-      new ObjectId(professionalId);
+    if (
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(
+        time
+      )
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Horário inválido.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
-    const businessFilters = makeBusinessFilters(
-      auth.businessId
-    );
+    /*
+    =====================================================
+    FECHAMENTO MENSAL
+    =====================================================
+    */
+
+    const closed =
+      await isMonthClosed(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        date
+      );
+
+    if (closed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Este mês está fechado. Reabra o fechamento antes de criar um agendamento.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
+    const businessFilters =
+      makeBusinessFilters(
+        auth.businessId
+      );
 
     /*
     =====================================================
@@ -293,24 +405,35 @@ export async function POST(request: NextRequest) {
     =====================================================
     */
 
-    const client = await auth.db
-      .collection("clients")
-      .findOne({
-        $and: [
-          {
-            _id: clientObjectId,
-          },
-          {
-            $or: businessFilters,
-          },
-        ],
-      } as any);
+    const clientObjectId =
+      new ObjectId(
+        clientId
+      );
+
+    const client =
+      await auth.db
+        .collection(
+          "clients"
+        )
+        .findOne({
+          $and: [
+            {
+              _id:
+                clientObjectId,
+            },
+            {
+              $or:
+                businessFilters,
+            },
+          ],
+        } as any);
 
     if (!client) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Cliente não encontrado",
+          message:
+            "Cliente não encontrado.",
         },
         {
           status: 404,
@@ -320,163 +443,122 @@ export async function POST(request: NextRequest) {
 
     /*
     =====================================================
-    SERVIÇO
+    DISPONIBILIDADE AUTORITATIVA
     =====================================================
     */
 
-    const service = await auth.db
-      .collection("services")
-      .findOne({
-        $and: [
-          {
-            _id: serviceObjectId,
-          },
-          {
-            $or: businessFilters,
-          },
-          {
-            active: {
-              $ne: false,
-            },
-          },
-        ],
-      } as any);
+    const availability =
+      await getPublicBookingAvailability(
+        auth.db,
+        {
+          slug:
+            String(
+              auth.business.slug ||
+                ""
+            ),
 
-    if (!service) {
+          serviceIds,
+
+          professionalId,
+
+          date,
+        }
+      );
+
+    if (
+      !availability.ok
+    ) {
       return NextResponse.json(
         {
           ok: false,
+
           message:
-            "Serviço não encontrado ou inativo",
+            availability.message ||
+            "Não foi possível validar o horário.",
         },
         {
-          status: 404,
+          status:
+            availability.status,
         }
       );
     }
 
-    const allServices =
-      serviceIds.length === 1
-        ? [
-            service,
-          ]
-        : await auth.db
-            .collection(
-              "services"
-            )
-            .find({
-              _id: {
-                $in:
-                  serviceIds.map(
-                    (id: string) =>
-                      new ObjectId(
-                        id
-                      )
-                  ),
-              },
-
-              $or:
-                businessFilters,
-
-              active: {
-                $ne: false,
-              },
-            } as any)
-            .toArray();
+    const slotAvailable =
+      (
+        availability.slots ||
+        []
+      ).some(
+        (slot) =>
+          slot.time ===
+          time
+      );
 
     if (
-      allServices.length !==
-      serviceIds.length
+      !slotAvailable
     ) {
       return NextResponse.json(
         {
           ok: false,
           message:
-            "Um dos serviços selecionados não foi encontrado.",
+            availability.message ||
+            "Esse horário não está disponível.",
         },
         {
-          status: 404,
+          status: 409,
         }
       );
     }
 
     const orderedServices =
-      serviceIds.map(
-        (id: string) =>
-          allServices.find(
-            (item) =>
-              String(
-                item._id
-              ) === id
-          )
-      ).filter(Boolean) as any[];
+      availability.services ||
+      [];
 
-    /*
-    =====================================================
-    PROFISSIONAL
-    =====================================================
-    */
-
-    const professional = await auth.db
-      .collection("professionals")
-      .findOne({
-        $and: [
-          {
-            _id: professionalObjectId,
-          },
-          {
-            $or: businessFilters,
-          },
-          {
-            active: {
-              $ne: false,
-            },
-          },
-        ],
-      } as any);
-
-    if (!professional) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "Profissional não encontrado ou inativo",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    /*
-    =====================================================
-    DURAÇÃO
-    =====================================================
-    */
-
-    const duration =
-      orderedServices.reduce(
-        (
-          total,
-          item
-        ) =>
-          total +
-          Number(
-            item.duration ||
-              30
-          ),
-        0
-      );
+    const professional =
+      availability.professional;
 
     if (
-      !Number.isFinite(duration) ||
-      duration <= 0
+      !professional ||
+      orderedServices.length !==
+        serviceIds.length
     ) {
       return NextResponse.json(
         {
           ok: false,
           message:
-            "Duração do serviço inválida",
+            "Não foi possível validar serviços e profissional.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
+    const totalDuration =
+      Number(
+        availability.totalDuration ||
+          0
+      );
+
+    const totalPrice =
+      Number(
+        availability.totalPrice ||
+          0
+      );
+
+    const startMinutes =
+      timeToMinutes(
+        time
+      );
+
+    if (
+      startMinutes ===
+      null
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Horário inválido.",
         },
         {
           status: 400,
@@ -485,102 +567,17 @@ export async function POST(request: NextRequest) {
     }
 
     const endMinutes =
-      startMinutes + duration;
+      startMinutes +
+      totalDuration;
 
     const endTime =
-      minutesToTime(endMinutes);
+      minutesToTime(
+        endMinutes
+      );
 
     /*
     =====================================================
-    VERIFICAR CONFLITO
-    =====================================================
-    */
-
-    const existingAppointments = await auth.db
-      .collection("appointments")
-      .find({
-        $and: [
-          {
-            $or: businessFilters,
-          },
-          {
-            professionalId:
-              professionalObjectId,
-          },
-          {
-            date,
-          },
-          {
-            status: {
-              $nin: [
-                "cancelado",
-                "cancelled",
-                "faltou",
-              ],
-            },
-          },
-        ],
-      } as any)
-      .toArray();
-
-    const hasConflict =
-      existingAppointments.some(
-        (appointment) => {
-          const existingStart =
-            timeToMinutes(
-              String(
-                appointment.startTime ||
-                  appointment.time ||
-                  ""
-              )
-            );
-
-          if (existingStart === null) {
-            return false;
-          }
-
-          let existingEnd =
-            timeToMinutes(
-              String(
-                appointment.endTime || ""
-              )
-            );
-
-          if (existingEnd === null) {
-            existingEnd =
-              existingStart +
-              Number(
-                appointment.duration ||
-                  appointment.serviceDuration ||
-                  30
-              );
-          }
-
-          return overlaps(
-            startMinutes,
-            endMinutes,
-            existingStart,
-            existingEnd
-          );
-        }
-      );
-
-    if (hasConflict) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "Esse horário já está ocupado.",
-        },
-        {
-          status: 409,
-        }
-      );
-    }
-
-    /*
-    =====================================================
-    VERIFICAR MENSALIDADE PAGA
+    MENSALIDADE / COBERTURA
     =====================================================
     */
 
@@ -590,226 +587,479 @@ export async function POST(request: NextRequest) {
         clientId
       );
 
-    const memberships = await auth.db
-      .collection("memberships")
-      .find({
-        $and: [
-          {
-            $or: businessFilters,
-          },
-          {
-            $or: membershipClientFilters,
-          },
-          {
-            active: {
-              $ne: false,
+    const memberships =
+      await auth.db
+        .collection(
+          "memberships"
+        )
+        .find({
+          $and: [
+            {
+              $or:
+                businessFilters,
             },
-          },
-          {
-            paymentStatus: "paid",
-          },
-          {
-            remainingUses: {
-              $gt: 0,
+
+            {
+              $or:
+                membershipClientFilters,
             },
-          },
-        ],
-      } as any)
-      .sort({
-        createdAt: -1,
-      })
-      .toArray();
 
-    const now = new Date();
+            {
+              active: {
+                $ne: false,
+              },
+            },
 
-    const membership = memberships.find(
-      (item) => {
-        if (!item.expiresAt) {
-          return true;
-        }
+            {
+              paymentStatus:
+                "paid",
+            },
 
-        const expiration =
-          parseExpirationDate(
+            {
+              remainingUses: {
+                $gt: 0,
+              },
+            },
+          ],
+        } as any)
+        .sort({
+          createdAt: -1,
+        })
+        .toArray();
+
+    const now =
+      new Date();
+
+    const membership =
+      memberships.find(
+        (item) => {
+          if (
             item.expiresAt
+          ) {
+            const expiration =
+              parseExpirationDate(
+                item.expiresAt
+              );
+
+            if (
+              expiration &&
+              expiration <
+                now
+            ) {
+              return false;
+            }
+          }
+
+          /*
+          Planos antigos não possuem serviceIds:
+          continuam cobrindo qualquer serviço.
+
+          Planos novos:
+          precisam cobrir pelo menos um serviço.
+          */
+          const allowed =
+            Array.isArray(
+              item.serviceIds
+            )
+              ? item.serviceIds
+                  .map(
+                    (
+                      value: unknown
+                    ) =>
+                      String(
+                        value
+                      )
+                  )
+              : [];
+
+          if (
+            allowed.length ===
+            0
+          ) {
+            return true;
+          }
+
+          return serviceIds.some(
+            (serviceId: string) =>
+              allowed.includes(
+                serviceId
+              )
           );
-
-        if (!expiration) {
-          return true;
         }
+      );
 
-        return expiration >= now;
+    let coveredServiceIds:
+      string[] = [];
+
+    let membershipExtraAmount =
+      0;
+
+    if (membership) {
+      const allowed =
+        Array.isArray(
+          membership.serviceIds
+        )
+          ? membership.serviceIds.map(
+              (
+                value: unknown
+              ) =>
+                String(value)
+            )
+          : [];
+
+      if (
+        allowed.length ===
+        0
+      ) {
+        coveredServiceIds =
+          [...serviceIds];
+      } else {
+        coveredServiceIds =
+          serviceIds.filter(
+            (serviceId: string) =>
+              allowed.includes(
+                serviceId
+              )
+          );
       }
-    );
+
+      membershipExtraAmount =
+        orderedServices
+          .filter(
+            (service) =>
+              !coveredServiceIds.includes(
+                String(
+                  service._id
+                )
+              )
+          )
+          .reduce(
+            (
+              total,
+              service
+            ) =>
+              total +
+              Number(
+                service.price ||
+                  0
+              ),
+            0
+          );
+    }
 
     /*
     =====================================================
-    CRIAR AGENDAMENTO
+    LOCK DE CONCORRÊNCIA
     =====================================================
     */
 
-    const appointment = {
-      businessId: auth.businessId,
-
-      clientId: clientObjectId,
-      clientName: String(
-        client.name || ""
-      ),
-      clientPhone: String(
-        client.phone || ""
-      ),
-
-      serviceId:
-        serviceObjectId,
-
-      serviceIds:
-        orderedServices.map(
-          (item) =>
-            item._id
-        ),
-
-      services:
-        orderedServices.map(
-          (item) => ({
-            serviceId:
-              item._id,
-
-            name:
-              String(
-                item.name ||
-                  ""
-              ),
-
-            duration:
-              Number(
-                item.duration ||
-                  30
-              ),
-
-            price:
-              Number(
-                item.price ||
-                  0
-              ),
-          })
-        ),
-
-      serviceName:
-        orderedServices
-          .map(
-            (item) =>
-              String(
-                item.name ||
-                  ""
-              )
-          )
-          .join(" + "),
-
-      professionalId:
-        professionalObjectId,
-      professionalName: String(
-        professional.name || ""
-      ),
-
-      date,
-
-      time,
-      startTime: time,
-      endTime,
-
-      duration,
-      serviceDuration: duration,
-
-      price:
-        orderedServices.reduce(
-          (
-            total,
-            item
-          ) =>
-            total +
-            Number(
-              item.price ||
-                0
-            ),
-          0
-        ),
-
-      status: "pendente",
-
-      hasActiveMembership:
-        Boolean(membership),
-
-      membershipId:
-        membership?._id || null,
-
-      membershipPlanName:
-        membership
-          ? String(
-              membership.planName ||
-                membership.name ||
-                "Plano mensal"
+    const lockBusinessId =
+      auth.businessId
+        instanceof ObjectId
+        ? auth.businessId
+        : new ObjectId(
+            String(
+              auth.businessId
             )
-          : "",
+          );
 
-      membershipRemainingBefore:
-        membership
-          ? Number(
-              membership.remainingUses || 0
-            )
-          : null,
+    const professionalObjectId =
+      new ObjectId(
+        professionalId
+      );
 
-      membershipUsageConsumed: false,
+    const lock =
+      await acquireBookingLock(
+        auth.db,
+        {
+          businessId:
+            lockBusinessId,
 
-      countedInClient: false,
+          professionalId:
+            professionalObjectId,
 
-      createdAt: now,
-      updatedAt: now,
-    };
+          date,
+        }
+      );
 
-    const result = await auth.db
-      .collection("appointments")
-      .insertOne(appointment);
-
-    if (membership) {
-      await auth.db
-        .collection("memberships")
-        .updateOne(
-          {
-            _id: membership._id,
-          },
-          {
-            $addToSet: {
-              professionalIds:
-                professionalObjectId,
-            },
-            $set: {
-              updatedAt: now,
-            },
-          }
-        );
+    if (!lock) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "A agenda está sendo atualizada. Tente novamente.",
+        },
+        {
+          status: 409,
+        }
+      );
     }
 
-    return NextResponse.json(
-      {
-        ok: true,
+    try {
+      /*
+      Recalcula depois do lock.
+      */
 
-        message: membership
-          ? `Agendamento criado. Cliente possui ${Number(
-              membership.remainingUses || 0
-            )} corte(s) no plano.`
-          : "Agendamento criado com sucesso.",
+      const finalAvailability =
+        await getPublicBookingAvailability(
+          auth.db,
+          {
+            slug:
+              String(
+                auth.business.slug ||
+                  ""
+              ),
 
-        appointment: {
-          ...serializeAppointment(
-            appointment
-          ),
-          _id:
-            result.insertedId.toString(),
-        },
-      },
-      {
-        status: 201,
+            serviceIds,
+
+            professionalId,
+
+            date,
+          }
+        );
+
+      const stillAvailable =
+        finalAvailability.ok &&
+        (
+          finalAvailability.slots ||
+          []
+        ).some(
+          (slot) =>
+            slot.time ===
+            time
+        );
+
+      if (
+        !stillAvailable
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Esse horário acabou de ser reservado. Escolha outro.",
+          },
+          {
+            status: 409,
+          }
+        );
       }
-    );
+
+      const appointment = {
+        businessId:
+          auth.businessId,
+
+        clientId:
+          clientObjectId,
+
+        clientName:
+          String(
+            client.name ||
+              ""
+          ),
+
+        clientPhone:
+          String(
+            client.phone ||
+              ""
+          ),
+
+        serviceId:
+          orderedServices[0]._id,
+
+        serviceIds:
+          orderedServices.map(
+            (service) =>
+              service._id
+          ),
+
+        services:
+          orderedServices.map(
+            (service) => ({
+              serviceId:
+                service._id,
+
+              name:
+                String(
+                  service.name ||
+                    "Serviço"
+                ),
+
+              duration:
+                Number(
+                  service.duration ||
+                    30
+                ),
+
+              price:
+                Number(
+                  service.price ||
+                    0
+                ),
+            })
+          ),
+
+        serviceName:
+          orderedServices
+            .map(
+              (service) =>
+                String(
+                  service.name ||
+                    "Serviço"
+                )
+            )
+            .join(
+              " + "
+            ),
+
+        professionalId:
+          professionalObjectId,
+
+        professionalName:
+          String(
+            professional.name ||
+              ""
+          ),
+
+        date,
+
+        time,
+
+        startTime:
+          time,
+
+        endTime,
+
+        startMinutes,
+
+        endMinutes,
+
+        duration:
+          totalDuration,
+
+        serviceDuration:
+          totalDuration,
+
+        price:
+          totalPrice,
+
+        status:
+          "pendente",
+
+        source:
+          "dashboard",
+
+        hasActiveMembership:
+          Boolean(
+            membership
+          ),
+
+        membershipId:
+          membership?._id ||
+          null,
+
+        membershipPlanName:
+          membership
+            ? String(
+                membership.planName ||
+                  "Plano mensal"
+              )
+            : "",
+
+        membershipRemainingBefore:
+          membership
+            ? Number(
+                membership.remainingUses ||
+                  0
+              )
+            : null,
+
+        membershipCoveredServiceIds:
+          coveredServiceIds,
+
+        membershipExtraAmount,
+
+        membershipUsageConsumed:
+          false,
+
+        countedInClient:
+          false,
+
+        createdAt:
+          now,
+
+        updatedAt:
+          now,
+      };
+
+      const result =
+        await auth.db
+          .collection(
+            "appointments"
+          )
+          .insertOne(
+            appointment
+          );
+
+      if (membership) {
+        await auth.db
+          .collection(
+            "memberships"
+          )
+          .updateOne(
+            {
+              _id:
+                membership._id,
+            },
+            {
+              $addToSet: {
+                professionalIds:
+                  professionalObjectId,
+              },
+
+              $set: {
+                updatedAt:
+                  now,
+              },
+            }
+          );
+      }
+
+      return NextResponse.json(
+        {
+          ok: true,
+
+          message:
+            membership
+              ? membershipExtraAmount >
+                0
+                ? `Agendamento criado. O plano cobre parte do atendimento e há ${formatMoney(
+                    membershipExtraAmount
+                  )} em serviços extras.`
+                : `Agendamento criado. Cliente possui ${Number(
+                    membership.remainingUses ||
+                      0
+                  )} uso(s) no plano.`
+              : "Agendamento criado com sucesso.",
+
+          appointment: {
+            ...serializeAppointment(
+              appointment
+            ),
+
+            _id:
+              result.insertedId.toString(),
+          },
+        },
+        {
+          status: 201,
+        }
+      );
+    } finally {
+      await releaseBookingLock(
+        auth.db,
+        lock
+      );
+    }
   } catch (error) {
     console.error(
       "POST APPOINTMENT ERROR:",
@@ -819,7 +1069,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        message: "Erro ao criar agendamento",
+        message:
+          "Erro ao criar agendamento",
       },
       {
         status: 500,
@@ -845,6 +1096,24 @@ export async function OPTIONS() {
 HELPERS
 =========================================================
 */
+
+function formatMoney(
+  value: number
+) {
+  return new Intl.NumberFormat(
+    "pt-BR",
+    {
+      style:
+        "currency",
+
+      currency:
+        "BRL",
+    }
+  ).format(
+    value ||
+      0
+  );
+}
 
 function makeBusinessFilters(
   businessId: unknown

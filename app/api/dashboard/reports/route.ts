@@ -7,6 +7,10 @@ import {
   requireOwnerSession,
 } from "@/lib/tenant-auth";
 
+import {
+  ensureVelltoIndexes,
+} from "@/lib/vellto-indexes";
+
 export const dynamic =
   "force-dynamic";
 
@@ -31,6 +35,10 @@ export async function GET(
       );
     }
 
+    void ensureVelltoIndexes(
+      auth.db
+    );
+
     const url =
       new URL(
         request.url
@@ -40,7 +48,8 @@ export async function GET(
       Number(
         url.searchParams.get(
           "days"
-        ) || 30
+        ) ||
+          30
       );
 
     const days =
@@ -69,49 +78,82 @@ export async function GET(
         auth.business.slug
       );
 
-    const appointments =
-      await auth.db
-        .collection(
-          "appointments"
+    const [
+      appointments,
+      expenses,
+      professionals,
+    ] =
+      await Promise.all([
+        auth.db
+          .collection(
+            "appointments"
+          )
+          .find({
+            $or:
+              tenantFilters,
+
+            date: {
+              $gte:
+                startDate,
+
+              $lte:
+                endDate,
+            },
+          })
+          .toArray(),
+
+        auth.db
+          .collection(
+            "expenses"
+          )
+          .find({
+            $or:
+              tenantFilters,
+
+            date: {
+              $gte:
+                startDate,
+
+              $lte:
+                endDate,
+            },
+          })
+          .toArray(),
+
+        auth.db
+          .collection(
+            "professionals"
+          )
+          .find({
+            $or:
+              tenantFilters,
+          })
+          .toArray(),
+      ]);
+
+    const commissionMap =
+      new Map<
+        string,
+        number
+      >();
+
+    for (
+      const professional of
+      professionals
+    ) {
+      commissionMap.set(
+        String(
+          professional._id
+        ),
+        normalizePercent(
+          professional.commission
         )
-        .find({
-          $or:
-            tenantFilters,
-
-          date: {
-            $gte:
-              startDate,
-
-            $lte:
-              endDate,
-          },
-        })
-        .toArray();
-
-    const expenses =
-      await auth.db
-        .collection(
-          "expenses"
-        )
-        .find({
-          $or:
-            tenantFilters,
-
-          date: {
-            $gte:
-              startDate,
-
-            $lte:
-              endDate,
-          },
-        })
-        .toArray();
+      );
+    }
 
     const completed =
       appointments.filter(
-        (
-          appointment
-        ) =>
+        (appointment) =>
           normalizeStatus(
             appointment.status
           ) ===
@@ -120,9 +162,7 @@ export async function GET(
 
     const cancelled =
       appointments.filter(
-        (
-          appointment
-        ) =>
+        (appointment) =>
           normalizeStatus(
             appointment.status
           ) ===
@@ -131,9 +171,7 @@ export async function GET(
 
     const noShow =
       appointments.filter(
-        (
-          appointment
-        ) =>
+        (appointment) =>
           normalizeStatus(
             appointment.status
           ) ===
@@ -193,67 +231,190 @@ export async function GET(
           0
         );
 
+    type RankingItem = {
+      name: string;
+      quantity: number;
+      revenue: number;
+    };
+
+    type ProfessionalRanking = {
+      id: string;
+      name: string;
+      quantity: number;
+      revenue: number;
+      commissionPercent: number;
+      commission: number;
+      netRevenue: number;
+    };
+
     const serviceMap =
       new Map<
         string,
-        {
-          name:
-            string;
-
-          quantity:
-            number;
-
-          revenue:
-            number;
-        }
+        RankingItem
       >();
 
     const professionalMap =
       new Map<
         string,
-        {
-          name:
-            string;
-
-          quantity:
-            number;
-
-          revenue:
-            number;
-        }
+        ProfessionalRanking
       >();
 
     const dailyMap =
       new Map<
         string,
         {
-          date:
-            string;
-
-          revenue:
-            number;
-
-          expenses:
-            number;
+          date: string;
+          revenue: number;
+          expenses: number;
+          commissions: number;
         }
       >();
+
+    let totalCommissions =
+      0;
+
+    let membershipExtraRevenue =
+      0;
 
     for (
       const appointment of
       completed
     ) {
-      const price =
+      const appointmentPrice =
         getPrice(
           appointment
         );
 
-      const serviceName =
+      membershipExtraRevenue +=
+        Number(
+          appointment.membershipExtraAmount ||
+            0
+        );
+
+      /*
+      ===================================================
+      SERVIÇOS INDIVIDUAIS
+      ===================================================
+
+      Se houver snapshot multi-serviço,
+      cada serviço é contado separadamente.
+
+      O faturamento é distribuído proporcionalmente
+      ao preço original de cada serviço.
+
+      Isso evita:
+      Corte + Barba virar uma terceira categoria.
+      */
+
+      const services =
+        getAppointmentServices(
+          appointment
+        );
+
+      if (
+        services.length > 0
+      ) {
+        const snapshotTotal =
+          services.reduce(
+            (total: number, service: any) =>
+              total +
+              Math.max(
+                0,
+                Number(
+                  service.price ||
+                    0
+                )
+              ),
+            0
+          );
+
+        for (
+          const service of
+          services
+        ) {
+          const name =
+            String(
+              service.name ||
+                "Serviço"
+            );
+
+          const servicePrice =
+            Number(
+              service.price ||
+                0
+            );
+
+          const allocatedRevenue =
+            snapshotTotal > 0
+              ? appointmentPrice *
+                (
+                  servicePrice /
+                  snapshotTotal
+                )
+              : appointmentPrice /
+                services.length;
+
+          const item =
+            serviceMap.get(
+              name
+            ) || {
+              name,
+              quantity: 0,
+              revenue: 0,
+            };
+
+          item.quantity +=
+            1;
+
+          item.revenue +=
+            allocatedRevenue;
+
+          serviceMap.set(
+            name,
+            item
+          );
+        }
+      } else {
+        const name =
+          String(
+            appointment.serviceName ||
+              appointment
+                .serviceSnapshot
+                ?.name ||
+              "Serviço"
+          );
+
+        const item =
+          serviceMap.get(
+            name
+          ) || {
+            name,
+            quantity: 0,
+            revenue: 0,
+          };
+
+        item.quantity +=
+          1;
+
+        item.revenue +=
+          appointmentPrice;
+
+        serviceMap.set(
+          name,
+          item
+        );
+      }
+
+      /*
+      ===================================================
+      PROFISSIONAL / COMISSÃO
+      ===================================================
+      */
+
+      const professionalId =
         String(
-          appointment.serviceName ||
-            appointment
-              .serviceSnapshot
-              ?.name ||
-            "Serviço"
+          appointment.professionalId ||
+            ""
         );
 
       const professionalName =
@@ -265,35 +426,28 @@ export async function GET(
             "Profissional"
         );
 
-      const service =
-        serviceMap.get(
-          serviceName
-        ) || {
-          name:
-            serviceName,
+      const commissionPercent =
+        commissionMap.get(
+          professionalId
+        ) ||
+        0;
 
-          quantity:
-            0,
+      const commission =
+        appointmentPrice *
+        commissionPercent /
+        100;
 
-          revenue:
-            0,
-        };
-
-      service.quantity +=
-        1;
-
-      service.revenue +=
-        price;
-
-      serviceMap.set(
-        serviceName,
-        service
-      );
+      totalCommissions +=
+        commission;
 
       const professional =
         professionalMap.get(
-          professionalName
+          professionalId ||
+            professionalName
         ) || {
+          id:
+            professionalId,
+
           name:
             professionalName,
 
@@ -302,18 +456,40 @@ export async function GET(
 
           revenue:
             0,
+
+          commissionPercent,
+
+          commission:
+            0,
+
+          netRevenue:
+            0,
         };
 
       professional.quantity +=
         1;
 
       professional.revenue +=
-        price;
+        appointmentPrice;
+
+      professional.commission +=
+        commission;
+
+      professional.netRevenue =
+        professional.revenue -
+        professional.commission;
 
       professionalMap.set(
-        professionalName,
+        professionalId ||
+          professionalName,
         professional
       );
+
+      /*
+      ===================================================
+      DIÁRIO
+      ===================================================
+      */
 
       const date =
         String(
@@ -327,14 +503,16 @@ export async function GET(
             date
           ) || {
             date,
-            revenue:
-              0,
-            expenses:
-              0,
+            revenue: 0,
+            expenses: 0,
+            commissions: 0,
           };
 
         daily.revenue +=
-          price;
+          appointmentPrice;
+
+        daily.commissions +=
+          commission;
 
         dailyMap.set(
           date,
@@ -369,10 +547,9 @@ export async function GET(
           date
         ) || {
           date,
-          revenue:
-            0,
-          expenses:
-            0,
+          revenue: 0,
+          expenses: 0,
+          commissions: 0,
         };
 
       daily.expenses +=
@@ -403,9 +580,17 @@ export async function GET(
 
         pendingExpenses,
 
-        profit:
+        commissions:
+          totalCommissions,
+
+        operatingProfit:
           revenue -
           paidExpenses,
+
+        profit:
+          revenue -
+          paidExpenses -
+          totalCommissions,
 
         completed:
           completed.length,
@@ -422,6 +607,8 @@ export async function GET(
             ? revenue /
               completed.length
             : 0,
+
+        membershipExtraRevenue,
       },
 
       services:
@@ -456,9 +643,14 @@ export async function GET(
             (item) => ({
               ...item,
 
-              profit:
+              operatingProfit:
                 item.revenue -
                 item.expenses,
+
+              profit:
+                item.revenue -
+                item.expenses -
+                item.commissions,
             })
           )
           .sort(
@@ -490,17 +682,88 @@ export async function GET(
   }
 }
 
+function getAppointmentServices(
+  appointment: any
+) {
+  if (
+    Array.isArray(
+      appointment.services
+    ) &&
+    appointment.services.length >
+      0
+  ) {
+    return appointment.services.map(
+      (
+        service: any
+      ) => ({
+        name:
+          String(
+            service.name ||
+              "Serviço"
+          ),
+
+        price:
+          Number(
+            service.price ||
+              0
+          ),
+
+        duration:
+          Number(
+            service.duration ||
+              0
+          ),
+      })
+    );
+  }
+
+  return [];
+}
+
+function normalizePercent(
+  value: unknown
+) {
+  const number =
+    Number(
+      value ||
+        0
+    );
+
+  if (
+    !Number.isFinite(
+      number
+    )
+  ) {
+    return 0;
+  }
+
+  return Math.min(
+    100,
+    Math.max(
+      0,
+      number
+    )
+  );
+}
+
 function getPrice(
   appointment: any
 ) {
-  return Number(
-    appointment.price ??
-      appointment.servicePrice ??
-      appointment
-        .serviceSnapshot
-        ?.price ??
-      0
-  );
+  const value =
+    Number(
+      appointment.price ??
+        appointment.servicePrice ??
+        appointment
+          .serviceSnapshot
+          ?.price ??
+        0
+    );
+
+  return Number.isFinite(
+    value
+  )
+    ? value
+    : 0;
 }
 
 function normalizeStatus(
@@ -627,9 +890,10 @@ function subtractDays(
     year,
     month,
     day,
-  ] = value
-    .split("-")
-    .map(Number);
+  ] =
+    value
+      .split("-")
+      .map(Number);
 
   const date =
     new Date(

@@ -413,6 +413,15 @@ export async function GET() {
               membership.validityDays || 0
             ),
 
+          serviceIds:
+            Array.isArray(
+              membership.serviceIds
+            )
+              ? membership.serviceIds.map(
+                  String
+                )
+              : [],
+
           startDate:
             membership.startDate || "",
 
@@ -948,6 +957,33 @@ export async function POST(
         totalUses,
 
       validityDays,
+
+      /*
+      SNAPSHOT DOS SERVIÇOS DO PLANO.
+
+      Alterar o plano futuramente não
+      muda retroativamente o contrato
+      já vendido ao mensalista.
+      */
+      serviceIds:
+        Array.isArray(
+          plan.serviceIds
+        )
+          ? plan.serviceIds
+              .map(
+                (
+                  value: unknown
+                ) =>
+                  ObjectId.isValid(
+                    String(value)
+                  )
+                    ? new ObjectId(
+                        String(value)
+                      )
+                    : null
+              )
+              .filter(Boolean)
+          : [],
 
       startDate,
 

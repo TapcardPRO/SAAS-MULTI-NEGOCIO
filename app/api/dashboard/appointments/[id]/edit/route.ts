@@ -190,7 +190,7 @@ export async function PUT(
       serviceIds.length ===
         0 ||
       serviceIds.some(
-        (serviceId) =>
+        (serviceId: string) =>
           !ObjectId.isValid(
             serviceId
           )
@@ -349,7 +349,7 @@ export async function PUT(
 
     const serviceObjectIds =
       serviceIds.map(
-        (serviceId) =>
+        (serviceId: string) =>
           new ObjectId(
             serviceId
           )
@@ -406,7 +406,7 @@ export async function PUT(
     const services =
       serviceIds
         .map(
-          (serviceId) =>
+          (serviceId: string) =>
             foundServices.find(
               (service) =>
                 String(
@@ -583,7 +583,7 @@ export async function PUT(
 
       const canPerformAll =
         serviceIds.every(
-          (serviceId) =>
+          (serviceId: string) =>
             allowed.has(
               serviceId
             )

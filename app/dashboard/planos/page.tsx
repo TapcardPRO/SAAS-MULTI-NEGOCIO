@@ -13,108 +13,239 @@ type Plan = {
   price: number;
   totalUses: number;
   validityDays: number;
+  serviceIds: string[];
   active: boolean;
 };
 
-export default function PlanosPage() {
-  const [plans, setPlans] =
-    useState<Plan[]>([]);
+type Service = {
+  _id: string;
+  name: string;
+  price: number;
+  duration: number;
+  active?: boolean;
+};
 
-  const [loading, setLoading] =
+export default function PlanosPage() {
+  const [
+    plans,
+    setPlans,
+  ] =
+    useState<Plan[]>(
+      []
+    );
+
+  const [
+    services,
+    setServices,
+  ] =
+    useState<Service[]>(
+      []
+    );
+
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
-  const [saving, setSaving] =
+  const [
+    saving,
+    setSaving,
+  ] =
     useState(false);
 
-  const [message, setMessage] =
+  const [
+    message,
+    setMessage,
+  ] =
     useState("");
 
-  const [success, setSuccess] =
+  const [
+    success,
+    setSuccess,
+  ] =
     useState("");
 
-  const [showForm, setShowForm] =
+  const [
+    showForm,
+    setShowForm,
+  ] =
     useState(false);
 
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
+  const [
+    editingId,
+    setEditingId,
+  ] =
+    useState<
+      string | null
+    >(null);
 
-  const [name, setName] =
+  const [
+    name,
+    setName,
+  ] =
     useState("");
 
-  const [description, setDescription] =
+  const [
+    description,
+    setDescription,
+  ] =
     useState("");
 
-  const [price, setPrice] =
+  const [
+    price,
+    setPrice,
+  ] =
     useState("");
 
-  const [totalUses, setTotalUses] =
+  const [
+    totalUses,
+    setTotalUses,
+  ] =
     useState("4");
 
-  const [validityDays, setValidityDays] =
+  const [
+    validityDays,
+    setValidityDays,
+  ] =
     useState("30");
 
-  const [active, setActive] =
+  const [
+    serviceIds,
+    setServiceIds,
+  ] =
+    useState<string[]>(
+      []
+    );
+
+  const [
+    active,
+    setActive,
+  ] =
     useState(true);
 
   useEffect(() => {
-    loadPlans();
+    loadAll();
   }, []);
 
-  async function loadPlans() {
+  async function loadAll() {
     try {
-      setLoading(true);
-      setMessage("");
-
-      const response = await fetch(
-        "/api/dashboard/plans",
-        {
-          cache: "no-store",
-        }
+      setLoading(
+        true
       );
 
-      const data =
-        await readJsonResponse(
-          response
-        );
+      setMessage("");
 
-      if (!response.ok) {
+      const [
+        plansResponse,
+        servicesResponse,
+      ] =
+        await Promise.all([
+          fetch(
+            "/api/dashboard/plans",
+            {
+              cache:
+                "no-store",
+            }
+          ),
+
+          fetch(
+            "/api/services",
+            {
+              cache:
+                "no-store",
+            }
+          ),
+        ]);
+
+      const plansData =
+        await plansResponse.json();
+
+      const servicesData =
+        await servicesResponse.json();
+
+      if (
+        !plansResponse.ok
+      ) {
         setMessage(
-          data.message ||
+          plansData.message ||
             "Erro ao carregar planos"
         );
         return;
       }
 
+      if (
+        !servicesResponse.ok
+      ) {
+        setMessage(
+          servicesData.message ||
+            "Erro ao carregar serviços"
+        );
+        return;
+      }
+
       setPlans(
-        data.plans || []
+        Array.isArray(
+          plansData.plans
+        )
+          ? plansData.plans
+          : []
+      );
+
+      setServices(
+        (
+          Array.isArray(
+            servicesData.services
+          )
+            ? servicesData.services
+            : []
+        ).filter(
+          (
+            service: Service
+          ) =>
+            service.active !==
+            false
+        )
       );
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Erro ao carregar planos"
+        "Erro ao carregar planos"
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
   function openNewPlan() {
-    setEditingId(null);
+    setEditingId(
+      null
+    );
 
     setName("");
     setDescription("");
     setPrice("");
     setTotalUses("4");
-    setValidityDays("30");
-    setActive(true);
+    setValidityDays(
+      "30"
+    );
 
+    /*
+    Vazio = qualquer serviço.
+    */
+    setServiceIds([]);
+
+    setActive(true);
     setMessage("");
     setSuccess("");
-
-    setShowForm(true);
+    setShowForm(
+      true
+    );
   }
 
   function openEditPlan(
@@ -129,7 +260,8 @@ export default function PlanosPage() {
     );
 
     setDescription(
-      plan.description || ""
+      plan.description ||
+        ""
     );
 
     setPrice(
@@ -150,37 +282,49 @@ export default function PlanosPage() {
       )
     );
 
+    setServiceIds(
+      Array.isArray(
+        plan.serviceIds
+      )
+        ? plan.serviceIds
+        : []
+    );
+
     setActive(
-      plan.active !== false
+      plan.active !==
+      false
     );
 
     setMessage("");
     setSuccess("");
-
-    setShowForm(true);
+    setShowForm(
+      true
+    );
   }
 
-  function closeForm() {
-    if (saving) {
-      return;
-    }
-
-    setShowForm(false);
+  function toggleService(
+    id: string
+  ) {
+    setServiceIds(
+      (current) =>
+        current.includes(
+          id
+        )
+          ? current.filter(
+              (item) =>
+                item !==
+                id
+            )
+          : [
+              ...current,
+              id,
+            ]
+    );
   }
 
   async function savePlan() {
-    setMessage("");
-    setSuccess("");
-
     const cleanName =
       name.trim();
-
-    if (!cleanName) {
-      setMessage(
-        "Informe o nome do plano."
-      );
-      return;
-    }
 
     const parsedPrice =
       Number(
@@ -189,6 +333,23 @@ export default function PlanosPage() {
           "."
         )
       );
+
+    const parsedUses =
+      Number(
+        totalUses
+      );
+
+    const parsedValidity =
+      Number(
+        validityDays
+      );
+
+    if (!cleanName) {
+      setMessage(
+        "Informe o nome do plano."
+      );
+      return;
+    }
 
     if (
       !Number.isFinite(
@@ -202,11 +363,6 @@ export default function PlanosPage() {
       return;
     }
 
-    const parsedUses =
-      Number(
-        totalUses
-      );
-
     if (
       !Number.isInteger(
         parsedUses
@@ -219,16 +375,12 @@ export default function PlanosPage() {
       return;
     }
 
-    const parsedValidity =
-      Number(
-        validityDays
-      );
-
     if (
       !Number.isInteger(
         parsedValidity
       ) ||
-      parsedValidity <= 0
+      parsedValidity <=
+        0
     ) {
       setMessage(
         "Informe uma validade válida."
@@ -238,48 +390,8 @@ export default function PlanosPage() {
 
     try {
       setSaving(true);
-
-      /*
-        IMPORTANTE:
-
-        Esta tela envia exatamente:
-
-        name
-        description
-        price
-        totalUses
-        validityDays
-        active
-
-        São os mesmos campos
-        esperados pela API.
-      */
-
-      const payload = {
-        ...(editingId
-          ? {
-              id:
-                editingId,
-            }
-          : {}),
-
-        name:
-          cleanName,
-
-        description:
-          description.trim(),
-
-        price:
-          parsedPrice,
-
-        totalUses:
-          parsedUses,
-
-        validityDays:
-          parsedValidity,
-
-        active,
-      };
+      setMessage("");
+      setSuccess("");
 
       const response =
         await fetch(
@@ -296,18 +408,42 @@ export default function PlanosPage() {
             },
 
             body:
-              JSON.stringify(
-                payload
-              ),
+              JSON.stringify({
+                ...(editingId
+                  ? {
+                      id:
+                        editingId,
+                    }
+                  : {}),
+
+                name:
+                  cleanName,
+
+                description:
+                  description.trim(),
+
+                price:
+                  parsedPrice,
+
+                totalUses:
+                  parsedUses,
+
+                validityDays:
+                  parsedValidity,
+
+                serviceIds,
+
+                active,
+              }),
           }
         );
 
       const data =
-        await readJsonResponse(
-          response
-        );
+        await response.json();
 
-      if (!response.ok) {
+      if (
+        !response.ok
+      ) {
         setMessage(
           data.message ||
             "Erro ao salvar plano"
@@ -315,7 +451,9 @@ export default function PlanosPage() {
         return;
       }
 
-      setShowForm(false);
+      setShowForm(
+        false
+      );
 
       setSuccess(
         editingId
@@ -323,14 +461,14 @@ export default function PlanosPage() {
           : "Plano cadastrado com sucesso."
       );
 
-      await loadPlans();
+      await loadAll();
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Erro ao salvar plano"
+        "Erro ao salvar plano"
       );
     } finally {
       setSaving(false);
@@ -340,117 +478,91 @@ export default function PlanosPage() {
   async function togglePlan(
     plan: Plan
   ) {
-    try {
-      setMessage("");
-      setSuccess("");
+    const response =
+      await fetch(
+        "/api/dashboard/plans",
+        {
+          method:
+            "PUT",
 
-      const response =
-        await fetch(
-          "/api/dashboard/plans",
-          {
-            method: "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+          body:
+            JSON.stringify({
+              id:
+                plan._id,
 
-            body:
-              JSON.stringify({
-                id:
-                  plan._id,
-
-                active:
-                  !plan.active,
-              }),
-          }
-        );
-
-      const data =
-        await readJsonResponse(
-          response
-        );
-
-      if (!response.ok) {
-        setMessage(
-          data.message ||
-            "Erro ao alterar plano"
-        );
-        return;
-      }
-
-      setSuccess(
-        plan.active
-          ? "Plano desativado."
-          : "Plano ativado."
+              active:
+                !plan.active,
+            }),
+        }
       );
 
-      await loadPlans();
-    } catch (error) {
-      console.error(error);
+    const data =
+      await response.json();
 
+    if (
+      !response.ok
+    ) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Erro ao alterar plano"
+        data.message ||
+          "Erro ao alterar plano"
       );
+      return;
     }
+
+    setSuccess(
+      plan.active
+        ? "Plano desativado."
+        : "Plano ativado."
+    );
+
+    await loadAll();
   }
 
   async function deletePlan(
     plan: Plan
   ) {
-    const confirmed =
-      window.confirm(
+    if (
+      !window.confirm(
         `Excluir o plano "${plan.name}"?`
-      );
-
-    if (!confirmed) {
+      )
+    ) {
       return;
     }
 
-    try {
-      setMessage("");
-      setSuccess("");
-
-      const response =
-        await fetch(
-          `/api/dashboard/plans?id=${encodeURIComponent(
-            plan._id
-          )}`,
-          {
-            method:
-              "DELETE",
-          }
-        );
-
-      const data =
-        await readJsonResponse(
-          response
-        );
-
-      if (!response.ok) {
-        setMessage(
-          data.message ||
-            "Erro ao excluir plano"
-        );
-        return;
-      }
-
-      setSuccess(
-        "Plano excluído com sucesso."
+    const response =
+      await fetch(
+        `/api/dashboard/plans?id=${encodeURIComponent(
+          plan._id
+        )}`,
+        {
+          method:
+            "DELETE",
+        }
       );
 
-      await loadPlans();
-    } catch (error) {
-      console.error(error);
+    const data =
+      await response.json();
 
+    if (
+      !response.ok
+    ) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Erro ao excluir plano"
+        data.message ||
+          "Erro ao excluir plano"
       );
+      return;
     }
+
+    setSuccess(
+      "Plano excluído com sucesso."
+    );
+
+    await loadAll();
   }
 
   const stats =
@@ -458,25 +570,9 @@ export default function PlanosPage() {
       const activePlans =
         plans.filter(
           (plan) =>
-            plan.active !== false
+            plan.active !==
+            false
         );
-
-      const average =
-        activePlans.length
-          ? activePlans.reduce(
-              (
-                total,
-                plan
-              ) =>
-                total +
-                Number(
-                  plan.price ||
-                    0
-                ),
-              0
-            ) /
-            activePlans.length
-          : 0;
 
       return {
         total:
@@ -485,31 +581,68 @@ export default function PlanosPage() {
         active:
           activePlans.length,
 
-        inactive:
-          plans.length -
-          activePlans.length,
-
-        average,
+        average:
+          activePlans.length
+            ? activePlans.reduce(
+                (
+                  total,
+                  plan
+                ) =>
+                  total +
+                  Number(
+                    plan.price ||
+                      0
+                  ),
+                0
+              ) /
+              activePlans.length
+            : 0,
       };
-    }, [plans]);
+    }, [
+      plans,
+    ]);
+
+  function serviceNames(
+    ids: string[]
+  ) {
+    if (
+      !ids ||
+      ids.length ===
+        0
+    ) {
+      return "Todos os serviços";
+    }
+
+    return ids
+      .map(
+        (id) =>
+          services.find(
+            (service) =>
+              service._id ===
+              id
+          )?.name
+      )
+      .filter(
+        Boolean
+      )
+      .join(", ");
+  }
 
   return (
     <main className="min-h-screen">
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
+      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-5 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
-              Painel da empresa
+              Mensalistas
             </p>
 
-            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
+            <h1 className="mt-1 text-2xl font-black">
               Planos
             </h1>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Configure os planos
-              disponíveis para seus
-              mensalistas.
+              Configure valor, usos, validade e quais serviços cada plano cobre.
             </p>
           </div>
 
@@ -518,210 +651,184 @@ export default function PlanosPage() {
             onClick={
               openNewPlan
             }
-            className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 sm:w-auto sm:px-5"
+            className="min-h-[48px] rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-zinc-950"
           >
             + Novo plano
           </button>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
+      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Stat
             label="Planos"
             value={
-              stats.total
+              String(
+                stats.total
+              )
             }
-            detail="Total cadastrado"
           />
 
-          <StatCard
+          <Stat
             label="Ativos"
             value={
-              stats.active
+              String(
+                stats.active
+              )
             }
-            detail="Disponíveis"
           />
 
-          <StatCard
-            label="Inativos"
-            value={
-              stats.inactive
-            }
-            detail="Indisponíveis"
-          />
-
-          <StatCard
+          <Stat
             label="Ticket médio"
-            value={money(
-              stats.average
-            )}
-            detail="Média dos ativos"
+            value={
+              money(
+                stats.average
+              )
+            }
           />
         </div>
 
         {message ? (
-          <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+          <div className="mt-5 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
             {message}
           </div>
         ) : null}
 
         {success ? (
-          <div className="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-300">
+          <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-300">
             {success}
           </div>
         ) : null}
 
-        <section className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] sm:mt-6">
-          <div className="border-b border-white/10 p-4 sm:p-5">
-            <h2 className="font-bold">
-              Planos cadastrados
-            </h2>
-
-            <p className="mt-1 text-xs text-zinc-500">
-              Alterações no preço
-              não modificam o valor
-              já contratado pelos
-              mensalistas existentes.
-            </p>
+        {loading ? (
+          <div className="mt-6 rounded-2xl border border-white/10 p-8 text-center text-zinc-500">
+            Carregando planos...
           </div>
+        ) : plans.length ===
+          0 ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-white/10 p-10 text-center text-zinc-500">
+            Nenhum plano cadastrado.
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            {plans.map(
+              (plan) => (
+                <article
+                  key={
+                    plan._id
+                  }
+                  className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-black">
+                        {plan.name}
+                      </h2>
 
-          {loading ? (
-            <EmptyState
-              title="Carregando planos..."
-              description="Aguarde."
-            />
-          ) : plans.length ===
-            0 ? (
-            <EmptyState
-              title="Nenhum plano cadastrado"
-              description="Clique em Novo plano para criar o primeiro."
-            />
-          ) : (
-            <div className="grid gap-4 p-5 lg:grid-cols-2 xl:grid-cols-3">
-              {plans.map(
-                (plan) => (
-                  <article
-                    key={
-                      plan._id
-                    }
-                    className="rounded-2xl border border-white/10 bg-black/10 p-5"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-bold">
-                            {
-                              plan.name
-                            }
-                          </h3>
-
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                              plan.active
-                                ? "bg-emerald-500/10 text-emerald-400"
-                                : "bg-zinc-500/10 text-zinc-400"
-                            }`}
-                          >
-                            {plan.active
-                              ? "Ativo"
-                              : "Inativo"}
-                          </span>
-                        </div>
-
-                        {plan.description ? (
-                          <p className="mt-2 text-sm leading-6 text-zinc-500">
-                            {
-                              plan.description
-                            }
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="mt-5">
-                      <p className="text-xs uppercase tracking-wider text-zinc-500">
-                        Valor atual
-                      </p>
-
-                      <p className="mt-1 text-3xl font-black text-emerald-400">
-                        {money(
-                          plan.price
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="mt-5 grid grid-cols-2 gap-3">
-                      <MiniInfo
-                        label="Usos"
-                        value={String(
-                          plan.totalUses
-                        )}
-                      />
-
-                      <MiniInfo
-                        label="Validade"
-                        value={`${plan.validityDays} dias`}
-                      />
-                    </div>
-
-                    <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openEditPlan(
-                            plan
-                          )
-                        }
-                        className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/5"
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          togglePlan(
-                            plan
-                          )
-                        }
-                        className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/5"
-                      >
+                      <p className="mt-1 text-xs text-zinc-500">
                         {plan.active
-                          ? "Desativar"
-                          : "Ativar"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          deletePlan(
-                            plan
-                          )
-                        }
-                        className="rounded-xl border border-red-500/20 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-500/5"
-                      >
-                        Excluir
-                      </button>
+                          ? "Ativo"
+                          : "Inativo"}
+                      </p>
                     </div>
-                  </article>
-                )
-              )}
-            </div>
-          )}
-        </section>
+
+                    <p className="text-xl font-black text-emerald-400">
+                      {money(
+                        plan.price
+                      )}
+                    </p>
+                  </div>
+
+                  {plan.description ? (
+                    <p className="mt-4 text-sm leading-6 text-zinc-500">
+                      {plan.description}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <Mini
+                      label="Usos"
+                      value={
+                        String(
+                          plan.totalUses
+                        )
+                      }
+                    />
+
+                    <Mini
+                      label="Validade"
+                      value={`${plan.validityDays} dias`}
+                    />
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                      Serviços incluídos
+                    </p>
+
+                    <p className="mt-2 text-sm font-semibold">
+                      {serviceNames(
+                        plan.serviceIds
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openEditPlan(
+                          plan
+                        )
+                      }
+                      className="rounded-xl border border-white/10 px-3 py-2.5 text-sm font-semibold"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        togglePlan(
+                          plan
+                        )
+                      }
+                      className="rounded-xl border border-white/10 px-3 py-2.5 text-sm font-semibold"
+                    >
+                      {plan.active
+                        ? "Desativar"
+                        : "Ativar"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        deletePlan(
+                          plan
+                        )
+                      }
+                      className="rounded-xl border border-red-500/20 px-3 py-2.5 text-sm font-semibold text-red-400"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </article>
+              )
+            )}
+          </div>
+        )}
       </div>
 
       {showForm ? (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a141d]">
-            <div className="flex items-start justify-between gap-3 border-b border-white/10 p-4 sm:items-center sm:p-5">
+        <div className="fixed inset-0 z-[200] overflow-y-auto bg-black/75 p-0 backdrop-blur-sm sm:p-5">
+          <div className="mx-auto min-h-screen w-full max-w-3xl bg-[#09131d] shadow-2xl sm:my-8 sm:min-h-0 sm:rounded-3xl sm:border sm:border-white/10">
+            <div className="flex items-center justify-between border-b border-white/10 p-5 sm:p-6">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">
-                  Planos
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                  Plano mensal
                 </p>
 
-                <h2 className="mt-1 text-xl font-bold">
+                <h2 className="mt-1 text-2xl font-black">
                   {editingId
                     ? "Editar plano"
                     : "Novo plano"}
@@ -730,21 +837,30 @@ export default function PlanosPage() {
 
               <button
                 type="button"
-                onClick={
-                  closeForm
+                disabled={
+                  saving
                 }
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 p-0 text-zinc-400"
+                onClick={() =>
+                  setShowForm(
+                    false
+                  )
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-5 p-5">
+            <div className="space-y-5 p-5 sm:p-6">
               <Field
-                label="Nome do plano"
-                value={name}
-                onChange={setName}
-                placeholder="Ex.: Plano Mensal"
+                label="Nome"
+                value={
+                  name
+                }
+                setValue={
+                  setName
+                }
+                placeholder="Ex.: Plano Corte Mensal"
               />
 
               <div>
@@ -756,88 +872,159 @@ export default function PlanosPage() {
                   value={
                     description
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setDescription(
                       event.target.value
                     )
                   }
                   rows={3}
-                  placeholder="Ex.: 4 cortes por mês"
-                  className="w-full resize-none rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 outline-none"
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <Field
-                  label="Preço"
-                  value={price}
-                  onChange={
+                  label="Valor"
+                  value={
+                    price
+                  }
+                  setValue={
                     setPrice
                   }
-                  placeholder="120,00"
-                  type="text"
+                  placeholder="99,90"
                 />
 
                 <Field
-                  label="Quantidade de usos"
+                  label="Usos"
                   value={
                     totalUses
                   }
-                  onChange={
+                  setValue={
                     setTotalUses
                   }
                   placeholder="4"
-                  type="number"
+                />
+
+                <Field
+                  label="Validade em dias"
+                  value={
+                    validityDays
+                  }
+                  setValue={
+                    setValidityDays
+                  }
+                  placeholder="30"
                 />
               </div>
 
-              <Field
-                label="Validade em dias"
-                value={
-                  validityDays
-                }
-                onChange={
-                  setValidityDays
-                }
-                placeholder="30"
-                type="number"
-              />
+              <div>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                      Serviços incluídos
+                    </label>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setActive(
-                    !active
-                  )
-                }
-                className={`flex w-full items-center justify-between rounded-xl border p-4 text-left transition ${
-                  active
-                    ? "border-emerald-500/30 bg-emerald-500/5"
-                    : "border-white/10 bg-white/[0.02]"
-                }`}
-              >
-                <div>
-                  <p className="font-semibold">
-                    Plano ativo
-                  </p>
+                    <p className="mt-1 text-xs text-zinc-600">
+                      Nenhum marcado = plano válido para todos os serviços.
+                    </p>
+                  </div>
 
-                  <p className="mt-1 text-xs text-zinc-500">
-                    Planos ativos
-                    aparecem no cadastro
-                    de mensalistas.
-                  </p>
+                  {serviceIds.length >
+                  0 ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setServiceIds(
+                          []
+                        )
+                      }
+                      className="text-xs font-semibold text-emerald-400"
+                    >
+                      Cobrir todos
+                    </button>
+                  ) : null}
                 </div>
 
-                <div
-                  className={`flex h-6 w-11 items-center rounded-full p-1 transition ${
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {services.map(
+                    (
+                      service
+                    ) => {
+                      const selected =
+                        serviceIds.includes(
+                          service._id
+                        );
+
+                      return (
+                        <button
+                          key={
+                            service._id
+                          }
+                          type="button"
+                          onClick={() =>
+                            toggleService(
+                              service._id
+                            )
+                          }
+                          className={`rounded-xl border p-4 text-left ${
+                            selected
+                              ? "border-emerald-500 bg-emerald-500/[0.08]"
+                              : "border-white/10 bg-[#071018]"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-bold">
+                                {service.name}
+                              </p>
+
+                              <p className="mt-1 text-xs text-zinc-500">
+                                {service.duration} min • {money(
+                                  service.price
+                                )}
+                              </p>
+                            </div>
+
+                            <span
+                              className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                                selected
+                                  ? "border-emerald-500 bg-emerald-500 text-zinc-950"
+                                  : "border-white/10"
+                              }`}
+                            >
+                              {selected
+                                ? "✓"
+                                : ""}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              </div>
+
+              <label className="flex items-center gap-3 rounded-xl border border-white/10 p-4">
+                <input
+                  type="checkbox"
+                  checked={
                     active
-                      ? "justify-end bg-emerald-500"
-                      : "justify-start bg-zinc-700"
-                  }`}
-                >
-                  <div className="h-4 w-4 rounded-full bg-white" />
-                </div>
-              </button>
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setActive(
+                      event.target.checked
+                    )
+                  }
+                />
+
+                <span>
+                  Plano ativo
+                </span>
+              </label>
 
               {message ? (
                 <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
@@ -848,11 +1035,13 @@ export default function PlanosPage() {
               <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={
-                    closeForm
-                  }
                   disabled={
                     saving
+                  }
+                  onClick={() =>
+                    setShowForm(
+                      false
+                    )
                   }
                   className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold"
                 >
@@ -861,19 +1050,17 @@ export default function PlanosPage() {
 
                 <button
                   type="button"
-                  onClick={
-                    savePlan
-                  }
                   disabled={
                     saving
                   }
-                  className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-center text-sm font-bold text-zinc-950 disabled:opacity-40 sm:w-auto sm:px-5"
+                  onClick={
+                    savePlan
+                  }
+                  className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 disabled:opacity-40"
                 >
                   {saving
                     ? "Salvando..."
-                    : editingId
-                      ? "Salvar alterações"
-                      : "Cadastrar plano"}
+                    : "Salvar plano"}
                 </button>
               </div>
             </div>
@@ -884,99 +1071,27 @@ export default function PlanosPage() {
   );
 }
 
-async function readJsonResponse(
-  response: Response
-) {
-  const text =
-    await response.text();
-
-  if (!text) {
-    throw new Error(
-      `A API respondeu sem conteúdo. Status ${response.status}.`
-    );
-  }
-
-  try {
-    return JSON.parse(
-      text
-    );
-  } catch {
-    console.error(
-      "Resposta recebida:",
-      text
-    );
-
-    throw new Error(
-      `A API não retornou JSON válido. Status ${response.status}.`
-    );
-  }
-}
-
-function Field({
+function Stat({
   label,
   value,
-  onChange,
-  placeholder,
-  type = "text",
 }: {
   label: string;
   value: string;
-  onChange: (
-    value: string
-  ) => void;
-  placeholder?: string;
-  type?: string;
 }) {
   return (
-    <div>
-      <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
-        {label}
-      </label>
-
-      <input
-        type={type}
-        value={value}
-        onChange={(event) =>
-          onChange(
-            event.target.value
-          )
-        }
-        placeholder={
-          placeholder
-        }
-        className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-base outline-none focus:border-emerald-500 sm:text-sm"
-      />
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
-      <p className="text-sm text-zinc-400">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+      <p className="text-xs uppercase tracking-wider text-zinc-500">
         {label}
       </p>
 
-      <p className="mt-2 break-words text-2xl font-bold sm:mt-3 sm:text-3xl">
+      <p className="mt-2 text-2xl font-black">
         {value}
       </p>
-
-      <p className="mt-3 text-xs text-emerald-400">
-        {detail}
-      </p>
     </div>
   );
 }
 
-function MiniInfo({
+function Mini({
   label,
   value,
 }: {
@@ -984,8 +1099,8 @@ function MiniInfo({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-black/10 p-3">
-      <p className="text-[10px] uppercase tracking-wider text-zinc-600">
+    <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+      <p className="text-[10px] uppercase tracking-wider text-zinc-500">
         {label}
       </p>
 
@@ -996,23 +1111,42 @@ function MiniInfo({
   );
 }
 
-function EmptyState({
-  title,
-  description,
+function Field({
+  label,
+  value,
+  setValue,
+  placeholder,
 }: {
-  title: string;
-  description: string;
+  label: string;
+  value: string;
+  setValue:
+    (value: string) =>
+      void;
+  placeholder?: string;
 }) {
   return (
-    <div className="p-12 text-center">
-      <h3 className="font-semibold">
-        {title}
-      </h3>
+    <label className="block">
+      <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        {label}
+      </span>
 
-      <p className="mt-2 text-sm text-zinc-500">
-        {description}
-      </p>
-    </div>
+      <input
+        value={
+          value
+        }
+        onChange={(
+          event
+        ) =>
+          setValue(
+            event.target.value
+          )
+        }
+        placeholder={
+          placeholder
+        }
+        className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 outline-none"
+      />
+    </label>
   );
 }
 
@@ -1022,10 +1156,16 @@ function money(
   return new Intl.NumberFormat(
     "pt-BR",
     {
-      style: "currency",
-      currency: "BRL",
+      style:
+        "currency",
+
+      currency:
+        "BRL",
     }
   ).format(
-    value || 0
+    Number(
+      value ||
+        0
+    )
   );
 }

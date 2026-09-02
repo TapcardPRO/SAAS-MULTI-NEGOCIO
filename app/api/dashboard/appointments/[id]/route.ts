@@ -294,29 +294,80 @@ export async function PUT(
       })
       .toArray();
 
-    const membership = memberships.find((item) => {
-      if (!item.expiresAt) {
-        return true;
-      }
-
-      const expiration = parseExpirationDate(
-        item.expiresAt
+    const appointmentServiceIds =
+      getAppointmentServiceIds(
+        appointment
       );
 
-      if (!expiration) {
-        return true;
-      }
+    const membership =
+      memberships.find(
+        (item) => {
+          if (
+            item.expiresAt
+          ) {
+            const expiration =
+              parseExpirationDate(
+                item.expiresAt
+              );
 
-      return expiration >= now;
-    });
+            if (
+              expiration &&
+              expiration <
+                now
+            ) {
+              return false;
+            }
+          }
+
+          const allowedServiceIds =
+            Array.isArray(
+              item.serviceIds
+            )
+              ? item.serviceIds.map(
+                  (
+                    value: unknown
+                  ) =>
+                    String(value)
+                )
+              : [];
+
+          /*
+          Plano antigo:
+          cobre qualquer serviço.
+
+          Plano novo:
+          deve cobrir pelo menos
+          um dos serviços do atendimento.
+          */
+          if (
+            allowedServiceIds.length ===
+            0
+          ) {
+            return true;
+          }
+
+          return appointmentServiceIds.some(
+            (serviceId: string) =>
+              allowedServiceIds.includes(
+                serviceId
+              )
+          );
+        }
+      );
 
     if (!membership) {
       return NextResponse.json({
         ok: true,
         message:
-          "Atendimento concluído. Cliente não possui plano pago com saldo disponível.",
+          "Atendimento concluído. Cliente não possui plano pago com saldo disponível para estes serviços.",
       });
     }
+
+    const coverage =
+      calculateMembershipCoverage(
+        appointment,
+        membership
+      );
 
     /*
     =============================================
@@ -440,6 +491,13 @@ export async function PUT(
               remainingAfter,
             membershipUsageConsumed: true,
             membershipConsumedAt: now,
+
+            membershipCoveredServiceIds:
+              coverage.coveredServiceIds,
+
+            membershipExtraAmount:
+              coverage.extraAmount,
+
             updatedAt: now,
           },
           $unset: {
@@ -489,9 +547,13 @@ export async function PUT(
     return NextResponse.json({
       ok: true,
       message:
-        remainingAfter === 0
-          ? "Atendimento concluído. 1 corte foi descontado. Saldo: 0."
-          : `Atendimento concluído. 1 corte foi descontado. Restam ${remainingAfter} corte(s).`,
+        coverage.extraAmount > 0
+          ? `Atendimento concluído. 1 uso do plano foi descontado. Serviços extras: ${formatCurrency(
+              coverage.extraAmount
+            )}. Saldo do plano: ${remainingAfter}.`
+          : remainingAfter === 0
+            ? "Atendimento concluído. 1 uso do plano foi descontado. Saldo: 0."
+            : `Atendimento concluído. 1 uso do plano foi descontado. Restam ${remainingAfter} uso(s).`,
       membership: {
         consumed: true,
         planName: String(
@@ -518,6 +580,158 @@ export async function PUT(
       }
     );
   }
+}
+
+function getAppointmentServiceIds(
+  appointment: any
+) {
+  if (
+    Array.isArray(
+      appointment.serviceIds
+    ) &&
+    appointment.serviceIds.length >
+      0
+  ) {
+    return appointment.serviceIds.map(
+      (
+        value: unknown
+      ) =>
+        String(value)
+    );
+  }
+
+  if (
+    Array.isArray(
+      appointment.services
+    )
+  ) {
+    const ids =
+      appointment.services
+        .map(
+          (
+            item: any
+          ) =>
+            item.serviceId
+              ? String(
+                  item.serviceId
+                )
+              : ""
+        )
+        .filter(
+          Boolean
+        );
+
+    if (
+      ids.length >
+      0
+    ) {
+      return ids;
+    }
+  }
+
+  return appointment.serviceId
+    ? [
+        String(
+          appointment.serviceId
+        ),
+      ]
+    : [];
+}
+
+function calculateMembershipCoverage(
+  appointment: any,
+  membership: any
+) {
+  const allowed =
+    Array.isArray(
+      membership.serviceIds
+    )
+      ? membership.serviceIds.map(
+          (
+            value: unknown
+          ) =>
+            String(value)
+        )
+      : [];
+
+  const appointmentServices =
+    Array.isArray(
+      appointment.services
+    ) &&
+    appointment.services.length >
+      0
+      ? appointment.services
+      : [
+          {
+            serviceId:
+              appointment.serviceId,
+
+            price:
+              appointment.price ||
+              0,
+          },
+        ];
+
+  const coveredServiceIds:
+    string[] = [];
+
+  let extraAmount =
+    0;
+
+  for (
+    const service of
+    appointmentServices
+  ) {
+    const id =
+      String(
+        service.serviceId ||
+          ""
+      );
+
+    const covered =
+      allowed.length ===
+        0 ||
+      allowed.includes(
+        id
+      );
+
+    if (covered) {
+      if (id) {
+        coveredServiceIds.push(
+          id
+        );
+      }
+    } else {
+      extraAmount +=
+        Number(
+          service.price ||
+            0
+        );
+    }
+  }
+
+  return {
+    coveredServiceIds,
+    extraAmount,
+  };
+}
+
+function formatCurrency(
+  value: number
+) {
+  return new Intl.NumberFormat(
+    "pt-BR",
+    {
+      style:
+        "currency",
+
+      currency:
+        "BRL",
+    }
+  ).format(
+    value ||
+      0
+  );
 }
 
 function parseExpirationDate(
