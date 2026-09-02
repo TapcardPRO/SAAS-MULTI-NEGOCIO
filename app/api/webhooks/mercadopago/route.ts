@@ -51,6 +51,33 @@ export async function POST(
       });
     }
 
+    /*
+    O simulador do Mercado Pago envia IDs fictícios
+    como "123456". Esses IDs não existem na API real.
+
+    Para o teste do painel, confirmamos o recebimento
+    sem tentar consultar uma assinatura inexistente.
+    */
+    const isMercadoPagoSimulator =
+      dataId === "123456" &&
+      String(body.application_id || "") !== "";
+
+    if (isMercadoPagoSimulator) {
+      console.log(
+        "MERCADO PAGO WEBHOOK TEST RECEIVED:",
+        {
+          type,
+          dataId,
+          action: body.action || "",
+        }
+      );
+
+      return NextResponse.json({
+        ok: true,
+        simulated: true,
+      });
+    }
+
     const db =
       await getDb();
 
