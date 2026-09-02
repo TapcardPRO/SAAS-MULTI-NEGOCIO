@@ -261,6 +261,16 @@ export default async function AgendarPage({
             professional.photoUrl ||
               ""
           ),
+
+          serviceIds:
+            Array.isArray(
+              professional.serviceIds
+            )
+              ? professional.serviceIds.map(
+                  (value: unknown) =>
+                    String(value)
+                )
+              : [],
         })
       )}
     />

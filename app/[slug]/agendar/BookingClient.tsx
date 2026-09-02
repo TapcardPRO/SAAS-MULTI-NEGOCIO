@@ -31,6 +31,7 @@ type Professional = {
   name: string;
   role: string;
   photoUrl: string;
+  serviceIds: string[];
 };
 
 type Customer = {
@@ -244,17 +245,76 @@ export default function BookingClient({
       ]
     );
 
+  const eligibleProfessionals =
+    useMemo(() => {
+      if (
+        serviceIds.length ===
+        0
+      ) {
+        return [];
+      }
+
+      return professionals.filter(
+        (item) => {
+          if (
+            !Array.isArray(
+              item.serviceIds
+            ) ||
+            item.serviceIds.length ===
+              0
+          ) {
+            return true;
+          }
+
+          return serviceIds.every(
+            (serviceId) =>
+              item.serviceIds.includes(
+                serviceId
+              )
+          );
+        }
+      );
+    }, [
+      professionals,
+      serviceIds,
+    ]);
+
   const professional =
     useMemo(() => {
-      return professionals.find(
+      return eligibleProfessionals.find(
         (item) =>
           item.id ===
           professionalId
       );
     }, [
-      professionals,
+      eligibleProfessionals,
       professionalId,
     ]);
+
+  useEffect(() => {
+    if (
+      !professionalId
+    ) {
+      return;
+    }
+
+    const stillEligible =
+      eligibleProfessionals.some(
+        (item) =>
+          item.id ===
+          professionalId
+      );
+
+    if (!stillEligible) {
+      setProfessionalId("");
+      setDate("");
+      setTime("");
+      setSlots([]);
+    }
+  }, [
+    eligibleProfessionals,
+    professionalId,
+  ]);
 
   const calendarDays =
     useMemo(() => {
@@ -1148,7 +1208,7 @@ export default function BookingClient({
               />
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {professionals.map(
+                {eligibleProfessionals.map(
                   (item) => {
                     const selected =
                       professionalId ===

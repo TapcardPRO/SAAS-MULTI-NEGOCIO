@@ -3,11 +3,16 @@ import { ObjectId } from "mongodb";
 
 import { getDb } from "@/lib/db";
 import {
-  computeAvailability,
   getEligibleProfessionals,
   normalizePhone,
   toMinutes,
 } from "@/lib/booking";
+
+import {
+  acquireBookingLock,
+  getPublicBookingAvailability,
+  releaseBookingLock,
+} from "@/lib/public-booking-availability";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -105,8 +110,9 @@ export async function POST(
     }
 
     if (
-      requestedProfessionalId !== "any" &&
-      !ObjectId.isValid(requestedProfessionalId)
+      !ObjectId.isValid(
+        requestedProfessionalId
+      )
     ) {
       return NextResponse.json(
         {
@@ -338,20 +344,16 @@ export async function POST(
     =====================================================
     */
 
-    let professional: any =
-      null;
+    const professionalObjectId =
+      new ObjectId(
+        requestedProfessionalId
+      );
 
-    if (
-      requestedProfessionalId !==
-      "any"
-    ) {
-      const professionalObjectId =
-        new ObjectId(
-          requestedProfessionalId
-        );
-
-      professional = await db
-        .collection("professionals")
+    const professional =
+      await db
+        .collection(
+          "professionals"
+        )
         .findOne({
           _id:
             professionalObjectId,
@@ -364,47 +366,102 @@ export async function POST(
             tenantFilters,
         } as any);
 
-      if (!professional) {
-        return NextResponse.json(
-          {
-            ok: false,
-            message:
-              "Profissional não encontrado",
-          },
-          {
-            status: 404,
-          }
-        );
-      }
+    if (!professional) {
+      return NextResponse.json(
+        {
+          ok:
+            false,
 
-      /*
-      A validação definitiva do intervalo completo acontece
-      mais abaixo usando totalDuration.
-      */
-    } else {
-      const professionals =
-        await getEligibleProfessionals(
-          db,
-          businessId,
-          service._id
-        );
+          message:
+            "Profissional não encontrado",
+        },
+        {
+          status:
+            404,
+        }
+      );
+    }
 
-      professional =
-        professionals[0] ||
-        null;
+    /*
+    =====================================================
+    VALIDAÇÃO AUTORITATIVA DO HORÁRIO
+    =====================================================
 
-      if (!professional) {
-        return NextResponse.json(
-          {
-            ok: false,
-            message:
-              "Nenhum profissional disponível",
-          },
-          {
-            status: 409,
-          }
-        );
-      }
+    Não confiamos no horário vindo do navegador.
+
+    A API recalcula:
+    - serviços
+    - duração total
+    - profissional
+    - serviços permitidos pelo profissional
+    - expediente
+    - intervalo
+    - bloqueios
+    - agenda
+    - horário passado
+    */
+
+    const initialAvailability =
+      await getPublicBookingAvailability(
+        db,
+        {
+          slug,
+
+          serviceIds,
+
+          professionalId:
+            requestedProfessionalId,
+
+          date,
+        }
+      );
+
+    if (
+      !initialAvailability.ok
+    ) {
+      return NextResponse.json(
+        {
+          ok:
+            false,
+
+          message:
+            initialAvailability.message ||
+            "Não foi possível validar o horário.",
+        },
+        {
+          status:
+            initialAvailability.status,
+        }
+      );
+    }
+
+    const initialSlotAvailable =
+      (
+        initialAvailability.slots ||
+        []
+      ).some(
+        (slot) =>
+          slot.time ===
+          time
+      );
+
+    if (
+      !initialSlotAvailable
+    ) {
+      return NextResponse.json(
+        {
+          ok:
+            false,
+
+          message:
+            initialAvailability.message ||
+            "Esse horário não está disponível. Escolha outro.",
+        },
+        {
+          status:
+            409,
+        }
+      );
     }
 
     /*
@@ -873,49 +930,166 @@ export async function POST(
         now,
     };
 
-    const inserted = await db
-      .collection(
-        "appointments"
-      )
-      .insertOne(
-        appointment
-      );
+    /*
+    =====================================================
+    CONFIRMAÇÃO ATÔMICA / CONCORRÊNCIA
+    =====================================================
 
-    return NextResponse.json(
-      {
-        ok: true,
+    O lock impede que duas confirmações do mesmo profissional
+    e data atravessem a checagem ao mesmo tempo.
+    */
 
-        message:
-          "Agendamento realizado com sucesso",
-
-        appointment: {
-          id:
-            inserted.insertedId.toString(),
-
-          ...appointment,
-
-          businessId:
-            businessId.toString(),
-
-          clientId:
-            client._id.toString(),
-
-          serviceId:
-            service._id.toString(),
+    const bookingLock =
+      await acquireBookingLock(
+        db,
+        {
+          businessId,
 
           professionalId:
-            professional._id.toString(),
+            professional._id,
 
-          membershipId:
-            membership?._id
-              ? membership._id.toString()
-              : null,
+          date,
+        }
+      );
+
+    if (!bookingLock) {
+      return NextResponse.json(
+        {
+          ok:
+            false,
+
+          message:
+            "A agenda está sendo atualizada. Tente confirmar novamente.",
         },
-      },
-      {
-        status: 201,
+        {
+          status:
+            409,
+        }
+      );
+    }
+
+    try {
+      /*
+      Recalculamos DEPOIS de adquirir o lock.
+
+      Se outro cliente reservou o período milissegundos antes,
+      o horário terá desaparecido daqui.
+      */
+
+      const finalAvailability =
+        await getPublicBookingAvailability(
+          db,
+          {
+            slug,
+
+            serviceIds,
+
+            professionalId:
+              requestedProfessionalId,
+
+            date,
+          }
+        );
+
+      if (
+        !finalAvailability.ok
+      ) {
+        return NextResponse.json(
+          {
+            ok:
+              false,
+
+            message:
+              finalAvailability.message ||
+              "Não foi possível validar o horário.",
+          },
+          {
+            status:
+              finalAvailability.status,
+          }
+        );
       }
-    );
+
+      const finalSlotAvailable =
+        (
+          finalAvailability.slots ||
+          []
+        ).some(
+          (slot) =>
+            slot.time ===
+            time
+        );
+
+      if (
+        !finalSlotAvailable
+      ) {
+        return NextResponse.json(
+          {
+            ok:
+              false,
+
+            message:
+              "Esse horário acabou de ser reservado. Escolha outro.",
+          },
+          {
+            status:
+              409,
+          }
+        );
+      }
+
+      const inserted =
+        await db
+          .collection(
+            "appointments"
+          )
+          .insertOne(
+            appointment
+          );
+
+      return NextResponse.json(
+        {
+          ok:
+            true,
+
+          message:
+            "Agendamento realizado com sucesso",
+
+          appointment: {
+            id:
+              inserted.insertedId.toString(),
+
+            ...appointment,
+
+            businessId:
+              businessId.toString(),
+
+            clientId:
+              client._id.toString(),
+
+            serviceId:
+              service._id.toString(),
+
+            professionalId:
+              professional._id.toString(),
+
+            membershipId:
+              membership?._id
+                ? membership._id.toString()
+                : null,
+          },
+        },
+        {
+          status:
+            201,
+        }
+      );
+    } finally {
+      await releaseBookingLock(
+        db,
+        bookingLock
+      );
+    }
   } catch (error) {
     console.error(
       "POST PUBLIC APPOINTMENT ERROR:",
