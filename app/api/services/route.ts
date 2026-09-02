@@ -329,6 +329,21 @@ export async function POST(
       return auth.error;
     }
 
+    if (
+      auth.user.role ===
+      "employee"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Acesso exclusivo do proprietário",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
     const {
       db,
       business,
@@ -559,6 +574,21 @@ export async function PUT(
 
     if ("error" in auth) {
       return auth.error;
+    }
+
+    if (
+      auth.user.role ===
+      "employee"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Acesso exclusivo do proprietário",
+        },
+        {
+          status: 403,
+        }
+      );
     }
 
     const {
@@ -850,6 +880,21 @@ export async function DELETE(
 
     if ("error" in auth) {
       return auth.error;
+    }
+
+    if (
+      auth.user.role ===
+      "employee"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Acesso exclusivo do proprietário",
+        },
+        {
+          status: 403,
+        }
+      );
     }
 
     const {

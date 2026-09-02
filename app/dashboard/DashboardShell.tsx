@@ -72,6 +72,11 @@ const menu = [
     icon: "◉",
   },
   {
+    label: "Meu perfil",
+    href: "/dashboard/perfil",
+    icon: "☺",
+  },
+  {
     label: "Configurações",
     href: "/dashboard/configuracoes",
     icon: "⚙",
@@ -99,7 +104,11 @@ export default function DashboardShell({
             item.href ===
               "/dashboard/agenda" ||
             item.href ===
-              "/dashboard/financeiro"
+              "/dashboard/mensalistas" ||
+            item.href ===
+              "/dashboard/financeiro" ||
+            item.href ===
+              "/dashboard/perfil"
         )
       : menu;
 
@@ -113,7 +122,13 @@ export default function DashboardShell({
         "/dashboard/agenda"
       ) ||
       pathname.startsWith(
+        "/dashboard/mensalistas"
+      ) ||
+      pathname.startsWith(
         "/dashboard/financeiro"
+      ) ||
+      pathname.startsWith(
+        "/dashboard/perfil"
       );
 
     if (!allowed) {

@@ -272,7 +272,7 @@ export default function AgendaPage() {
         professionalsResponse,
       ] = await Promise.all([
         fetch(
-          "/api/dashboard/clients",
+          "/api/dashboard/booking-clients",
           {
             cache:
               "no-store",
@@ -288,7 +288,7 @@ export default function AgendaPage() {
         ),
 
         fetch(
-          "/api/dashboard/professionals",
+          "/api/dashboard/booking-professionals",
           {
             cache:
               "no-store",
@@ -362,7 +362,7 @@ export default function AgendaPage() {
         )
       );
 
-      setProfessionals(
+      const availableProfessionals =
         (
           Array.isArray(
             professionalsData.professionals
@@ -375,7 +375,10 @@ export default function AgendaPage() {
           ) =>
             professional.active !==
             false
-        )
+        );
+
+      setProfessionals(
+        availableProfessionals
       );
 
       const current =
@@ -383,7 +386,12 @@ export default function AgendaPage() {
 
       setClientId("");
       setServiceId("");
-      setProfessionalId("");
+      setProfessionalId(
+        availableProfessionals.length ===
+          1
+          ? availableProfessionals[0]._id
+          : ""
+      );
       setAppointmentTime("");
       setSlots([]);
       setAvailabilityMessage("");

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireOwnerSession } from "@/lib/tenant-auth";
+import { requireBusinessSession } from "@/lib/tenant-auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -47,7 +47,7 @@ export async function GET(
 ) {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -69,7 +69,7 @@ export async function GET(
         url.searchParams.get("serviceId") || ""
       ).trim();
 
-    const professionalId =
+    let professionalId =
       String(
         url.searchParams.get("professionalId") || ""
       ).trim();
@@ -78,6 +78,37 @@ export async function GET(
       String(
         url.searchParams.get("date") || ""
       ).trim();
+
+    if (
+      auth.user.role ===
+      "employee"
+    ) {
+      const linkedProfessionalId =
+        String(
+          auth.user.professionalId ||
+            ""
+        );
+
+      if (
+        !ObjectId.isValid(
+          linkedProfessionalId
+        )
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Profissional não vinculado ao usuário",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+
+      professionalId =
+        linkedProfessionalId;
+    }
 
     if (
       !serviceId ||

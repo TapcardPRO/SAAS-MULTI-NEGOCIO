@@ -148,6 +148,7 @@ async function getAuthenticatedBusiness() {
 
   return {
     db,
+    user,
     business,
     businessId,
   };
@@ -170,6 +171,7 @@ export async function GET() {
 
     const {
       db,
+      user,
       business,
       businessId,
     } = auth;
@@ -191,17 +193,170 @@ export async function GET() {
       });
     }
 
+    let membershipFilter: any = {
+      $or: tenantFilters,
+    };
+
+    if (
+      user.role ===
+      "employee"
+    ) {
+      const professionalId =
+        String(
+          user.professionalId ||
+            ""
+        );
+
+      if (
+        !ObjectId.isValid(
+          professionalId
+        )
+      ) {
+        return NextResponse.json(
+          {
+            message:
+              "Profissional não vinculado ao usuário",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+
+      const professionalVariants: any[] =
+        [
+          professionalId,
+          new ObjectId(
+            professionalId
+          ),
+        ];
+
+      const [
+        appointmentClients,
+        usageClients,
+      ] = await Promise.all([
+        db
+          .collection(
+            "appointments"
+          )
+          .find({
+            $and: [
+              {
+                $or:
+                  tenantFilters,
+              },
+              {
+                professionalId: {
+                  $in:
+                    professionalVariants,
+                },
+              },
+            ],
+          } as any)
+          .project({
+            clientId: 1,
+          })
+          .toArray(),
+
+        db
+          .collection(
+            "membership_usages"
+          )
+          .find({
+            $and: [
+              {
+                $or:
+                  tenantFilters,
+              },
+              {
+                professionalId: {
+                  $in:
+                    professionalVariants,
+                },
+              },
+            ],
+          } as any)
+          .project({
+            clientId: 1,
+          })
+          .toArray(),
+      ]);
+
+      const clientIdStrings =
+        new Set<string>();
+
+      for (
+        const item of [
+          ...appointmentClients,
+          ...usageClients,
+        ]
+      ) {
+        if (item.clientId) {
+          clientIdStrings.add(
+            String(
+              item.clientId
+            )
+          );
+        }
+      }
+
+      const clientVariants: any[] =
+        [];
+
+      for (
+        const clientId of
+        clientIdStrings
+      ) {
+        clientVariants.push(
+          clientId
+        );
+
+        if (
+          ObjectId.isValid(
+            clientId
+          )
+        ) {
+          clientVariants.push(
+            new ObjectId(
+              clientId
+            )
+          );
+        }
+      }
+
+      membershipFilter = {
+        $and: [
+          {
+            $or:
+              tenantFilters,
+          },
+          {
+            clientId: {
+              $in:
+                clientVariants,
+            },
+          },
+        ],
+      };
+    }
+
     const memberships = await db
       .collection("memberships")
-      .find({
-        $or: tenantFilters,
-      })
+      .find(
+        membershipFilter
+      )
       .sort({
         createdAt: -1,
       })
       .toArray();
 
     return NextResponse.json({
+      viewer: {
+        role:
+          user.role ||
+          "owner",
+      },
+
       memberships: memberships.map(
         (membership) => ({
           _id:
@@ -346,9 +501,25 @@ export async function POST(
 
     const {
       db,
+      user,
       business,
       businessId,
     } = auth;
+
+    if (
+      user.role ===
+      "employee"
+    ) {
+      return NextResponse.json(
+        {
+          message:
+            "Somente o proprietário pode cadastrar mensalistas.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
 
     let body: any = {};
 

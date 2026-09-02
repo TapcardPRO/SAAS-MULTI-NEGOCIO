@@ -86,6 +86,13 @@ export default function MensalistasPage() {
   const [showForm, setShowForm] =
     useState(false);
 
+  const [
+    viewerRole,
+    setViewerRole,
+  ] = useState<string | null>(
+    null
+  );
+
   const [clientId, setClientId] =
     useState("");
 
@@ -133,6 +140,11 @@ export default function MensalistasPage() {
 
       setMemberships(
         data.memberships || []
+      );
+
+      setViewerRole(
+        data.viewer?.role ||
+          "owner"
       );
     } catch (error) {
       console.error(error);
@@ -438,28 +450,37 @@ export default function MensalistasPage() {
             </p>
 
             <h1 className="mt-1 text-xl font-bold sm:text-2xl">
-              Mensalistas
+              {viewerRole ===
+              "employee"
+                ? "Meus mensalistas"
+                : "Mensalistas"}
             </h1>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Planos, usos e pagamentos dos clientes.
+              {viewerRole ===
+              "employee"
+                ? "Clientes mensalistas que já possuem ou possuíram agendamentos com você."
+                : "Planos, usos e pagamentos dos clientes."}
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={
-              openNewMembership
-            }
-            disabled={
-              openingForm
-            }
-            className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-50"
-          >
-            {openingForm
-              ? "Carregando..."
-              : "+ Novo mensalista"}
-          </button>
+          {viewerRole ===
+          "owner" ? (
+            <button
+              type="button"
+              onClick={
+                openNewMembership
+              }
+              disabled={
+                openingForm
+              }
+              className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-50"
+            >
+              {openingForm
+                ? "Carregando..."
+                : "+ Novo mensalista"}
+            </button>
+          ) : null}
         </div>
       </div>
 

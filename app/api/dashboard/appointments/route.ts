@@ -135,19 +135,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (auth.user.role === "employee") {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "O profissional não possui permissão para criar agendamentos pelo painel.",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
     const body = await request.json();
 
     const clientId = String(
@@ -158,7 +145,7 @@ export async function POST(request: NextRequest) {
       body.serviceId || ""
     ).trim();
 
-    const professionalId = String(
+    let professionalId = String(
       body.professionalId || ""
     ).trim();
 
@@ -171,6 +158,37 @@ export async function POST(request: NextRequest) {
         body.startTime ||
         ""
     ).trim();
+
+    if (
+      auth.user.role ===
+      "employee"
+    ) {
+      const linkedProfessionalId =
+        String(
+          auth.user.professionalId ||
+            ""
+        );
+
+      if (
+        !ObjectId.isValid(
+          linkedProfessionalId
+        )
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Seu usuário não está vinculado a um profissional.",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+
+      professionalId =
+        linkedProfessionalId;
+    }
 
     if (!ObjectId.isValid(clientId)) {
       return NextResponse.json(
@@ -607,6 +625,25 @@ export async function POST(request: NextRequest) {
     const result = await auth.db
       .collection("appointments")
       .insertOne(appointment);
+
+    if (membership) {
+      await auth.db
+        .collection("memberships")
+        .updateOne(
+          {
+            _id: membership._id,
+          },
+          {
+            $addToSet: {
+              professionalIds:
+                professionalObjectId,
+            },
+            $set: {
+              updatedAt: now,
+            },
+          }
+        );
+    }
 
     return NextResponse.json(
       {
