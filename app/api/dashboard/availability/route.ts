@@ -64,6 +64,13 @@ export async function GET(
     const url =
       new URL(request.url);
 
+    const appointmentId =
+      String(
+        url.searchParams.get(
+          "appointmentId"
+        ) || ""
+      ).trim();
+
     const serviceId =
       String(
         url.searchParams.get("serviceId") || ""

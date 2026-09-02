@@ -115,6 +115,53 @@ export default function AgendaPage() {
     null
   );
 
+  const [
+    editingAppointment,
+    setEditingAppointment,
+  ] = useState<Appointment | null>(
+    null
+  );
+
+  const [
+    editServiceId,
+    setEditServiceId,
+  ] = useState("");
+
+  const [
+    editProfessionalId,
+    setEditProfessionalId,
+  ] = useState("");
+
+  const [
+    editDate,
+    setEditDate,
+  ] = useState("");
+
+  const [
+    editTime,
+    setEditTime,
+  ] = useState("");
+
+  const [
+    editSlots,
+    setEditSlots,
+  ] = useState<Slot[]>([]);
+
+  const [
+    editLoadingAvailability,
+    setEditLoadingAvailability,
+  ] = useState(false);
+
+  const [
+    editAvailabilityMessage,
+    setEditAvailabilityMessage,
+  ] = useState("");
+
+  const [
+    editSaving,
+    setEditSaving,
+  ] = useState(false);
+
   const [search, setSearch] =
     useState("");
 
@@ -250,6 +297,24 @@ export default function AgendaPage() {
     serviceId,
     professionalId,
     appointmentDate,
+  ]);
+
+  useEffect(() => {
+    if (
+      !editingAppointment ||
+      !editServiceId ||
+      !editProfessionalId ||
+      !editDate
+    ) {
+      return;
+    }
+
+    loadEditAvailability();
+  }, [
+    editingAppointment,
+    editServiceId,
+    editProfessionalId,
+    editDate,
   ]);
 
   async function loadAppointments() {
@@ -1259,6 +1324,416 @@ export default function AgendaPage() {
     setSelectedAppointmentAction(
       null
     );
+  }
+
+  async function openEditAppointment(
+    appointment: Appointment
+  ) {
+    try {
+      setMessage("");
+      setSuccess("");
+
+      /*
+      Caso as listas ainda não estejam carregadas,
+      carrega agora.
+      */
+      if (
+        services.length === 0 ||
+        professionals.length === 0
+      ) {
+        const [
+          servicesResponse,
+          professionalsResponse,
+        ] = await Promise.all([
+          fetch(
+            "/api/services",
+            {
+              cache:
+                "no-store",
+            }
+          ),
+
+          fetch(
+            "/api/dashboard/booking-professionals",
+            {
+              cache:
+                "no-store",
+            }
+          ),
+        ]);
+
+        const servicesData =
+          await readJsonResponse(
+            servicesResponse
+          );
+
+        const professionalsData =
+          await readJsonResponse(
+            professionalsResponse
+          );
+
+        if (
+          !servicesResponse.ok
+        ) {
+          setMessage(
+            servicesData.message ||
+              "Erro ao carregar serviços."
+          );
+
+          return;
+        }
+
+        if (
+          !professionalsResponse.ok
+        ) {
+          setMessage(
+            professionalsData.message ||
+              "Erro ao carregar profissionais."
+          );
+
+          return;
+        }
+
+        setServices(
+          (
+            Array.isArray(
+              servicesData.services
+            )
+              ? servicesData.services
+              : []
+          ).filter(
+            (
+              service: Service
+            ) =>
+              service.active !==
+              false
+          )
+        );
+
+        setProfessionals(
+          (
+            Array.isArray(
+              professionalsData.professionals
+            )
+              ? professionalsData.professionals
+              : []
+          ).filter(
+            (
+              professional: Professional
+            ) =>
+              professional.active !==
+              false
+          )
+        );
+      }
+
+      setEditServiceId(
+        String(
+          appointment.serviceId ||
+            ""
+        )
+      );
+
+      setEditProfessionalId(
+        String(
+          appointment.professionalId ||
+            ""
+        )
+      );
+
+      setEditDate(
+        String(
+          appointment.date ||
+            todaySaoPaulo()
+        )
+      );
+
+      setEditTime(
+        String(
+          appointment.time ||
+            appointment.startTime ||
+            ""
+        )
+      );
+
+      setEditSlots([]);
+      setEditAvailabilityMessage("");
+
+      setSelectedAppointmentAction(
+        null
+      );
+
+      setEditingAppointment(
+        appointment
+      );
+    } catch (error) {
+      console.error(
+        "OPEN EDIT APPOINTMENT ERROR:",
+        error
+      );
+
+      setMessage(
+        getErrorMessage(
+          error,
+          "Erro ao abrir edição."
+        )
+      );
+    }
+  }
+
+  async function loadEditAvailability() {
+    if (
+      !editingAppointment ||
+      !editServiceId ||
+      !editProfessionalId ||
+      !editDate
+    ) {
+      return;
+    }
+
+    try {
+      setEditLoadingAvailability(
+        true
+      );
+
+      setEditAvailabilityMessage(
+        ""
+      );
+
+      const params =
+        new URLSearchParams({
+          serviceId:
+            editServiceId,
+
+          professionalId:
+            editProfessionalId,
+
+          date:
+            editDate,
+
+          appointmentId:
+            editingAppointment._id,
+        });
+
+      const response =
+        await fetch(
+          `/api/dashboard/availability?${params.toString()}`,
+          {
+            cache:
+              "no-store",
+          }
+        );
+
+      const data =
+        await readJsonResponse(
+          response
+        );
+
+      if (!response.ok) {
+        setEditSlots([]);
+
+        setEditAvailabilityMessage(
+          data.message ||
+            "Erro ao consultar horários."
+        );
+
+        return;
+      }
+
+      const received =
+        Array.isArray(
+          data.slots
+        )
+          ? data.slots
+          : [];
+
+      setEditSlots(
+        received
+      );
+
+      /*
+      Mantém o horário atual disponível
+      visualmente mesmo se não vier da API.
+      */
+      const current =
+        String(
+          editingAppointment.time ||
+            editingAppointment.startTime ||
+            ""
+        );
+
+      const sameContext =
+        editServiceId ===
+          String(
+            editingAppointment.serviceId ||
+              ""
+          ) &&
+        editProfessionalId ===
+          String(
+            editingAppointment.professionalId ||
+              ""
+          ) &&
+        editDate ===
+          String(
+            editingAppointment.date ||
+              ""
+          );
+
+      if (
+        sameContext &&
+        current &&
+        !received.some(
+          (slot: Slot) =>
+            slot.time ===
+            current
+        )
+      ) {
+        setEditSlots([
+          {
+            time:
+              current,
+
+            endTime:
+              editingAppointment.endTime ||
+              "",
+          },
+          ...received,
+        ]);
+      }
+
+      if (
+        received.length ===
+        0 &&
+        !sameContext
+      ) {
+        setEditAvailabilityMessage(
+          data.message ||
+            "Nenhum horário disponível nesta data."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "EDIT AVAILABILITY ERROR:",
+        error
+      );
+
+      setEditSlots([]);
+
+      setEditAvailabilityMessage(
+        getErrorMessage(
+          error,
+          "Erro ao consultar disponibilidade."
+        )
+      );
+    } finally {
+      setEditLoadingAvailability(
+        false
+      );
+    }
+  }
+
+  async function saveEditedAppointment() {
+    if (
+      !editingAppointment
+    ) {
+      return;
+    }
+
+    if (
+      !editServiceId ||
+      !editProfessionalId ||
+      !editDate ||
+      !editTime
+    ) {
+      setMessage(
+        "Preencha serviço, profissional, data e horário."
+      );
+
+      return;
+    }
+
+    try {
+      setEditSaving(
+        true
+      );
+
+      setMessage("");
+      setSuccess("");
+
+      const response =
+        await fetch(
+          `/api/dashboard/appointments/${editingAppointment._id}/edit`,
+          {
+            method:
+              "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                serviceId:
+                  editServiceId,
+
+                professionalId:
+                  editProfessionalId,
+
+                date:
+                  editDate,
+
+                time:
+                  editTime,
+              }),
+          }
+        );
+
+      const data =
+        await readJsonResponse(
+          response
+        );
+
+      if (!response.ok) {
+        setMessage(
+          data.message ||
+            "Erro ao editar agendamento."
+        );
+
+        return;
+      }
+
+      setEditingAppointment(
+        null
+      );
+
+      setSuccess(
+        data.message ||
+          "Agendamento atualizado com sucesso."
+      );
+
+      setDate(
+        editDate
+      );
+
+      await loadAppointments();
+    } catch (error) {
+      console.error(
+        "SAVE EDIT APPOINTMENT ERROR:",
+        error
+      );
+
+      setMessage(
+        getErrorMessage(
+          error,
+          "Erro ao editar agendamento."
+        )
+      );
+    } finally {
+      setEditSaving(
+        false
+      );
+    }
   }
 
   function previousDay() {
@@ -2382,6 +2857,230 @@ export default function AgendaPage() {
         </div>
       ) : null}
 
+      {editingAppointment ? (
+        <div className="fixed inset-0 z-[220] overflow-y-auto bg-black/80 p-0 backdrop-blur-sm sm:p-4">
+          <div className="mx-auto min-h-screen w-full max-w-2xl bg-[#0a141d] shadow-2xl sm:my-8 sm:min-h-0 sm:rounded-3xl sm:border sm:border-white/10">
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5 sm:p-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">
+                  Agenda
+                </p>
+
+                <h2 className="mt-1 text-2xl font-black">
+                  Editar agendamento
+                </h2>
+
+                <p className="mt-1 text-sm text-zinc-500">
+                  {editingAppointment.clientName ||
+                    "Cliente"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                disabled={
+                  editSaving
+                }
+                onClick={() =>
+                  setEditingAppointment(
+                    null
+                  )
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-zinc-400 transition hover:bg-white/5"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-5 p-5 sm:p-6">
+              <SelectField
+                label="Serviço"
+                value={
+                  editServiceId
+                }
+                onChange={(
+                  value
+                ) => {
+                  setEditServiceId(
+                    value
+                  );
+
+                  setEditTime(
+                    ""
+                  );
+                }}
+                options={services.map(
+                  (service) => ({
+                    value:
+                      service._id,
+
+                    label:
+                      `${service.name} - ${formatPrice(
+                        service.price
+                      )}`,
+                  })
+                )}
+                placeholder="Selecione um serviço"
+              />
+
+              <SelectField
+                label="Profissional"
+                value={
+                  editProfessionalId
+                }
+                onChange={(
+                  value
+                ) => {
+                  setEditProfessionalId(
+                    value
+                  );
+
+                  setEditTime(
+                    ""
+                  );
+                }}
+                options={professionals.map(
+                  (
+                    professional
+                  ) => ({
+                    value:
+                      professional._id,
+
+                    label:
+                      professional.name,
+                  })
+                )}
+                placeholder="Selecione um profissional"
+              />
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  Data
+                </label>
+
+                <input
+                  type="date"
+                  min={
+                    todaySaoPaulo()
+                  }
+                  value={
+                    editDate
+                  }
+                  onChange={(
+                    event
+                  ) => {
+                    setEditDate(
+                      event.target.value
+                    );
+
+                    setEditTime(
+                      ""
+                    );
+                  }}
+                  className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between gap-4">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    Horário
+                  </label>
+
+                  {editLoadingAvailability ? (
+                    <span className="text-xs text-zinc-500">
+                      Buscando...
+                    </span>
+                  ) : null}
+                </div>
+
+                {!editServiceId ||
+                !editProfessionalId ||
+                !editDate ? (
+                  <div className="mt-3 rounded-xl border border-dashed border-white/10 p-5 text-center text-sm text-zinc-500">
+                    Selecione serviço, profissional e data.
+                  </div>
+                ) : editSlots.length ===
+                  0 ? (
+                  <div className="mt-3 rounded-xl border border-dashed border-white/10 p-5 text-center text-sm text-zinc-500">
+                    {editAvailabilityMessage ||
+                      "Nenhum horário disponível."}
+                  </div>
+                ) : (
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+                    {editSlots.map(
+                      (
+                        slot
+                      ) => (
+                        <button
+                          type="button"
+                          key={`${slot.time}-${slot.endTime}`}
+                          onClick={() =>
+                            setEditTime(
+                              slot.time
+                            )
+                          }
+                          className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
+                            editTime ===
+                            slot.time
+                              ? "border-emerald-500 bg-emerald-500 text-zinc-950"
+                              : "border-white/10 bg-[#071018] text-zinc-300 hover:border-emerald-500/40"
+                          }`}
+                        >
+                          {slot.time}
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {message ? (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+                  {message}
+                </div>
+              ) : null}
+
+              <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={
+                    editSaving
+                  }
+                  onClick={() =>
+                    setEditingAppointment(
+                      null
+                    )
+                  }
+                  className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold transition hover:bg-white/5 disabled:opacity-40"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  disabled={
+                    editSaving ||
+                    !editServiceId ||
+                    !editProfessionalId ||
+                    !editDate ||
+                    !editTime
+                  }
+                  onClick={
+                    saveEditedAppointment
+                  }
+                  className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {editSaving
+                    ? "Salvando..."
+                    : "Salvar alterações"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {selectedAppointmentAction ? (
         <AppointmentActionSheet
           appointment={
@@ -2428,6 +3127,11 @@ export default function AgendaPage() {
             changeStatusFromSheet(
               selectedAppointmentAction,
               "cancelado"
+            )
+          }
+          onEdit={() =>
+            openEditAppointment(
+              selectedAppointmentAction
             )
           }
           onReceipt={() =>
@@ -2552,6 +3256,7 @@ function AppointmentActionSheet({
   onComplete,
   onNoShow,
   onCancel,
+  onEdit,
   onReceipt,
 }: {
   appointment: Appointment;
@@ -2563,6 +3268,7 @@ function AppointmentActionSheet({
   onComplete: () => void;
   onNoShow: () => void;
   onCancel: () => void;
+  onEdit: () => void;
   onReceipt: () => void;
 }) {
   const status =
@@ -2625,6 +3331,23 @@ function AppointmentActionSheet({
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto px-3 py-3 sm:px-4">
+          {status !==
+            "concluido" &&
+          status !==
+            "cancelado" ? (
+            <SheetAction
+              icon="✎"
+              title="Editar agendamento"
+              description="Alterar serviço, profissional, data ou horário."
+              disabled={
+                updating
+              }
+              onClick={
+                onEdit
+              }
+            />
+          ) : null}
+
           {status ===
           "pendente" ? (
             <>
