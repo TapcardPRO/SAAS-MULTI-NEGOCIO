@@ -197,6 +197,21 @@ export default async function AgendarPage({
           business.primaryColor ||
             "#10b981"
         ),
+
+        secondaryColor: String(
+          business.secondaryColor ||
+            "#0d1822"
+        ),
+
+        backgroundColor: String(
+          business.backgroundColor ||
+            "#071018"
+        ),
+
+        textColor: String(
+          business.textColor ||
+            "#ffffff"
+        ),
       }}
       services={services.map(
         (service) => ({
