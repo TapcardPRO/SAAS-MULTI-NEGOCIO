@@ -72,6 +72,16 @@ const menu = [
     icon: "◉",
   },
   {
+    label: "Despesas",
+    href: "/dashboard/despesas",
+    icon: "−",
+  },
+  {
+    label: "Relatórios",
+    href: "/dashboard/relatorios",
+    icon: "▥",
+  },
+  {
     label: "Meu perfil",
     href: "/dashboard/perfil",
     icon: "☺",
