@@ -11,6 +11,10 @@ import {
   requireOwnerSession,
 } from "@/lib/tenant-auth";
 
+import {
+  isMonthClosed,
+} from "@/lib/monthly-closing";
+
 export const dynamic =
   "force-dynamic";
 
@@ -189,6 +193,41 @@ export async function PUT(
       );
     }
 
+    const currentClosed =
+      await isMonthClosed(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        String(
+          current.date ||
+            ""
+        )
+      );
+
+    const targetClosed =
+      await isMonthClosed(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        date
+      );
+
+    if (
+      currentClosed ||
+      targetClosed
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Este mês está fechado. Reabra o mês antes de alterar despesas.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
     await auth.db
       .collection(
         "expenses"
@@ -293,6 +332,63 @@ export async function DELETE(
         },
         {
           status: 400,
+        }
+      );
+    }
+
+    const current =
+      await auth.db
+        .collection(
+          "expenses"
+        )
+        .findOne({
+          _id:
+            new ObjectId(
+              id
+            ),
+
+          $or:
+            businessFilters(
+              auth.businessId,
+              auth.business.slug
+            ),
+        } as any);
+
+    if (!current) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Despesa não encontrada.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const closed =
+      await isMonthClosed(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        String(
+          current.date ||
+            ""
+        )
+      );
+
+    if (
+      closed
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Este mês está fechado. Reabra o mês antes de excluir despesas.",
+        },
+        {
+          status: 409,
         }
       );
     }

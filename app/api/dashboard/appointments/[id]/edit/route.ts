@@ -11,6 +11,10 @@ import {
   requireBusinessSession,
 } from "@/lib/tenant-auth";
 
+import {
+  isMonthClosed,
+} from "@/lib/monthly-closing";
+
 export const dynamic =
   "force-dynamic";
 
@@ -519,6 +523,41 @@ export async function PUT(
           ok: false,
           message:
             "Esse horário já está ocupado para este profissional.",
+        },
+        {
+          status: 409,
+        }
+      );
+    }
+
+    const originalMonthClosed =
+      await isMonthClosed(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        String(
+          existing.date ||
+            ""
+        )
+      );
+
+    const targetMonthClosed =
+      await isMonthClosed(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        date
+      );
+
+    if (
+      originalMonthClosed ||
+      targetMonthClosed
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Este mês está fechado. Reabra o fechamento antes de editar o agendamento.",
         },
         {
           status: 409,

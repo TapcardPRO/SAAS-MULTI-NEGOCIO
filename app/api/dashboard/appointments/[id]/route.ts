@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireBusinessSession } from "@/lib/tenant-auth";
+import { isMonthClosed } from "@/lib/monthly-closing";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,32 @@ export async function PUT(
           }
         );
       }
+    }
+
+    const monthClosed =
+      await isMonthClosed(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        String(
+          appointment.date ||
+            ""
+        )
+      );
+
+    if (
+      monthClosed
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Este mês está fechado. Reabra o fechamento antes de alterar o atendimento.",
+        },
+        {
+          status: 409,
+        }
+      );
     }
 
     const now = new Date();

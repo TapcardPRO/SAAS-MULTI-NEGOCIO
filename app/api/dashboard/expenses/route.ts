@@ -7,6 +7,10 @@ import {
   requireOwnerSession,
 } from "@/lib/tenant-auth";
 
+import {
+  isMonthClosed,
+} from "@/lib/monthly-closing";
+
 export const dynamic =
   "force-dynamic";
 
@@ -238,6 +242,29 @@ export async function POST(
         },
         {
           status: 400,
+        }
+      );
+    }
+
+    const closed =
+      await isMonthClosed(
+        auth.db,
+        auth.businessId,
+        auth.business.slug,
+        date
+      );
+
+    if (
+      closed
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Este mês está fechado. Reabra o mês antes de lançar novas despesas.",
+        },
+        {
+          status: 409,
         }
       );
     }

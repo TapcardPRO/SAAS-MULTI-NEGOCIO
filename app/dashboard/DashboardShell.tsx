@@ -82,6 +82,11 @@ const menu = [
     icon: "▥",
   },
   {
+    label: "Fechamento mensal",
+    href: "/dashboard/fechamento",
+    icon: "✓",
+  },
+  {
     label: "Meu perfil",
     href: "/dashboard/perfil",
     icon: "☺",
