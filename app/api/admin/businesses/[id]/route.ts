@@ -161,7 +161,26 @@ export async function GET(
         category: business.category || "",
         whatsapp: business.whatsapp || "",
         plan: business.plan || "basico",
-        active: business.active !== false,
+
+        active:
+          business.active !==
+          false,
+
+        billingStatus:
+          normalizeBillingStatus(
+            business.billingStatus
+          ),
+
+        trialEndsAt:
+          formatDateValue(
+            business.trialEndsAt
+          ),
+
+        subscriptionEndsAt:
+          formatDateValue(
+            business.subscriptionEndsAt
+          ),
+
         owner,
       },
     });
@@ -270,6 +289,69 @@ export async function PUT(
       }
 
       updateData.plan = plan;
+    }
+
+    if (
+      body.billingStatus !==
+      undefined
+    ) {
+      const billingStatus =
+        String(
+          body.billingStatus ||
+            ""
+        )
+          .trim()
+          .toLowerCase();
+
+      const allowed = [
+        "trial",
+        "active",
+        "past_due",
+        "cancelled",
+      ];
+
+      if (
+        !allowed.includes(
+          billingStatus
+        )
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Situação de cobrança inválida.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      updateData.billingStatus =
+        billingStatus;
+
+      updateData.billingUpdatedAt =
+        new Date();
+    }
+
+    if (
+      body.trialEndsAt !==
+      undefined
+    ) {
+      updateData.trialEndsAt =
+        parseDateOrNull(
+          body.trialEndsAt
+        );
+    }
+
+    if (
+      body.subscriptionEndsAt !==
+      undefined
+    ) {
+      updateData.subscriptionEndsAt =
+        parseDateOrNull(
+          body.subscriptionEndsAt
+        );
     }
 
     if (body.active !== undefined) {
@@ -390,6 +472,21 @@ export async function PUT(
           updatedBusiness?.active !==
           false,
 
+        billingStatus:
+          normalizeBillingStatus(
+            updatedBusiness?.billingStatus
+          ),
+
+        trialEndsAt:
+          formatDateValue(
+            updatedBusiness?.trialEndsAt
+          ),
+
+        subscriptionEndsAt:
+          formatDateValue(
+            updatedBusiness?.subscriptionEndsAt
+          ),
+
         owner,
       },
     });
@@ -410,4 +507,90 @@ export async function PUT(
       }
     );
   }
+}
+
+function normalizeBillingStatus(
+  value: unknown
+) {
+  const status =
+    String(
+      value ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+
+  if (
+    [
+      "trial",
+      "active",
+      "past_due",
+      "cancelled",
+    ].includes(
+      status
+    )
+  ) {
+    return status;
+  }
+
+  return "active";
+}
+
+function formatDateValue(
+  value: unknown
+) {
+  if (!value) {
+    return "";
+  }
+
+  if (
+    value instanceof Date
+  ) {
+    return value
+      .toISOString()
+      .slice(
+        0,
+        10
+      );
+  }
+
+  return String(
+    value
+  ).slice(
+    0,
+    10
+  );
+}
+
+function parseDateOrNull(
+  value: unknown
+) {
+  const text =
+    String(
+      value ||
+        ""
+    ).trim();
+
+  if (!text) {
+    return null;
+  }
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(
+      text
+    )
+  ) {
+    return null;
+  }
+
+  const date =
+    new Date(
+      `${text}T12:00:00.000Z`
+    );
+
+  return Number.isNaN(
+    date.getTime()
+  )
+    ? null
+    : date;
 }

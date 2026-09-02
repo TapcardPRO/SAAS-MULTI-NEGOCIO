@@ -159,6 +159,20 @@ export default function CustomerAreaClient({
     setProfileSuccess,
   ] = useState(false);
 
+  const [
+    cancellingId,
+    setCancellingId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
+    appointmentMessage,
+    setAppointmentMessage,
+  ] =
+    useState("");
+
   useEffect(() => {
     load();
   }, [slug]);
@@ -395,6 +409,72 @@ export default function CustomerAreaClient({
     }
   }
 
+  async function cancelAppointment(
+    appointment: Appointment
+  ) {
+    const confirmed =
+      window.confirm(
+        `Cancelar o agendamento de ${appointment.serviceName} em ${formatDate(
+          appointment.date
+        )} às ${appointment.time}?`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setCancellingId(
+        appointment.id
+      );
+
+      setAppointmentMessage(
+        ""
+      );
+
+      const response =
+        await fetch(
+          `/api/customer/${slug}/appointments/${appointment.id}/cancel`,
+          {
+            method:
+              "POST",
+          }
+        );
+
+      const body =
+        await response.json();
+
+      if (
+        !response.ok
+      ) {
+        setAppointmentMessage(
+          body.message ||
+            "Não foi possível cancelar."
+        );
+
+        return;
+      }
+
+      setAppointmentMessage(
+        "Agendamento cancelado com sucesso."
+      );
+
+      await load();
+    } catch (error) {
+      console.error(
+        error
+      );
+
+      setAppointmentMessage(
+        "Erro ao cancelar agendamento."
+      );
+    } finally {
+      setCancellingId(
+        null
+      );
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-zinc-950 text-white">
@@ -544,6 +624,12 @@ export default function CustomerAreaClient({
       </header>
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+        {appointmentMessage ? (
+          <div className="mb-5 rounded-xl border border-white/10 bg-zinc-900 p-4 text-sm">
+            {appointmentMessage}
+          </div>
+        ) : null}
+
         <section className="mb-6 flex items-center gap-3 sm:mb-8 sm:gap-4">
           <Avatar
             name={
@@ -802,7 +888,15 @@ export default function CustomerAreaClient({
                           appointment={
                             appointment
                           }
-                        />
+                        onCancel={
+                          cancelAppointment
+                        }
+                        cancelling={
+                          cancellingId ===
+                          appointment.id
+                        }
+                        rebookHref={`/${slug}/agendar`}
+                      />
                       )
                     )}
                 </div>
@@ -840,7 +934,15 @@ export default function CustomerAreaClient({
                       appointment={
                         appointment
                       }
-                    />
+                    onCancel={
+                          cancelAppointment
+                        }
+                        cancelling={
+                          cancellingId ===
+                          appointment.id
+                        }
+                        rebookHref={`/${slug}/agendar`}
+                      />
                   )
                 )}
               </div>
@@ -877,7 +979,15 @@ export default function CustomerAreaClient({
                       appointment={
                         appointment
                       }
-                    />
+                    onCancel={
+                          cancelAppointment
+                        }
+                        cancelling={
+                          cancellingId ===
+                          appointment.id
+                        }
+                        rebookHref={`/${slug}/agendar`}
+                      />
                   )
                 )}
               </div>
@@ -1383,8 +1493,16 @@ function TabButton({
 
 function AppointmentCard({
   appointment,
+  onCancel,
+  cancelling = false,
+  rebookHref,
 }: {
   appointment: Appointment;
+  onCancel?: (
+    appointment: Appointment
+  ) => void;
+  cancelling?: boolean;
+  rebookHref?: string;
 }) {
   return (
     <article className="rounded-3xl border border-white/10 bg-zinc-900 p-5">
@@ -1426,6 +1544,40 @@ function AppointmentCard({
           }
         />
       </div>
+
+      {appointment.isUpcoming ? (
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {rebookHref ? (
+            <Link
+              href={
+                rebookHref
+              }
+              className="flex min-h-[44px] items-center justify-center rounded-xl border border-white/10 px-4 text-center text-sm font-semibold transition hover:bg-white/5"
+            >
+              Agendar outro horário
+            </Link>
+          ) : null}
+
+          {onCancel ? (
+            <button
+              type="button"
+              disabled={
+                cancelling
+              }
+              onClick={() =>
+                onCancel(
+                  appointment
+                )
+              }
+              className="min-h-[44px] rounded-xl border border-red-500/20 bg-red-500/5 px-4 text-sm font-semibold text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
+            >
+              {cancelling
+                ? "Cancelando..."
+                : "Cancelar horário"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 }

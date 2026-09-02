@@ -19,7 +19,20 @@ type BusinessData = {
   category: string;
   whatsapp: string;
   plan: string;
+
   active: boolean;
+
+  billingStatus:
+    "trial" |
+    "active" |
+    "past_due" |
+    "cancelled";
+
+  trialEndsAt:
+    string;
+
+  subscriptionEndsAt:
+    string;
 
   owner: {
     id: string;
@@ -142,8 +155,20 @@ export default function GerenciarEmpresaPage() {
           },
 
           body: JSON.stringify({
-            plan: business.plan,
-            active: business.active,
+            plan:
+              business.plan,
+
+            active:
+              business.active,
+
+            billingStatus:
+              business.billingStatus,
+
+            trialEndsAt:
+              business.trialEndsAt,
+
+            subscriptionEndsAt:
+              business.subscriptionEndsAt,
           }),
         }
       );
@@ -446,6 +471,109 @@ export default function GerenciarEmpresaPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-2 block text-sm text-zinc-400">
+                  Situação da assinatura
+                </label>
+
+                <select
+                  value={
+                    business.billingStatus
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setBusiness(
+                      (current) =>
+                        current
+                          ? {
+                              ...current,
+                              billingStatus:
+                                event.target.value as BusinessData["billingStatus"],
+                            }
+                          : current
+                    )
+                  }
+                  className="min-h-12 w-full rounded-xl border border-white/10 bg-zinc-900 px-4 outline-none focus:border-emerald-500"
+                >
+                  <option value="trial">
+                    Período de teste
+                  </option>
+
+                  <option value="active">
+                    Em dia
+                  </option>
+
+                  <option value="past_due">
+                    Pagamento atrasado
+                  </option>
+
+                  <option value="cancelled">
+                    Cancelada
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm text-zinc-400">
+                  Fim do teste
+                </label>
+
+                <input
+                  type="date"
+                  value={
+                    business.trialEndsAt ||
+                    ""
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setBusiness(
+                      (current) =>
+                        current
+                          ? {
+                              ...current,
+                              trialEndsAt:
+                                event.target.value,
+                            }
+                          : current
+                    )
+                  }
+                  className="min-h-12 w-full rounded-xl border border-white/10 bg-zinc-900 px-4 outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm text-zinc-400">
+                  Assinatura válida até
+                </label>
+
+                <input
+                  type="date"
+                  value={
+                    business.subscriptionEndsAt ||
+                    ""
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setBusiness(
+                      (current) =>
+                        current
+                          ? {
+                              ...current,
+                              subscriptionEndsAt:
+                                event.target.value,
+                            }
+                          : current
+                    )
+                  }
+                  className="min-h-12 w-full rounded-xl border border-white/10 bg-zinc-900 px-4 outline-none focus:border-emerald-500"
+                />
+              </div>
             </div>
 
             <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-white/10 bg-zinc-900 p-4">

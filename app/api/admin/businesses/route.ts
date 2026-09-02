@@ -79,6 +79,22 @@ export async function GET() {
               business.active !==
               false,
 
+            billingStatus:
+              String(
+                business.billingStatus ||
+                  "active"
+              ),
+
+            trialEndsAt:
+              formatDateValue(
+                business.trialEndsAt
+              ),
+
+            subscriptionEndsAt:
+              formatDateValue(
+                business.subscriptionEndsAt
+              ),
+
             owner,
           };
         }
@@ -426,6 +442,36 @@ export async function POST(
 
       active,
 
+      /*
+      CONTROLE COMERCIAL DO VELLTO
+
+      Não cobra automaticamente ainda.
+      Esses campos serão usados pelo
+      gateway de pagamento posteriormente.
+      */
+
+      billingStatus:
+        "trial",
+
+      trialStartedAt:
+        now,
+
+      trialEndsAt:
+        new Date(
+          now.getTime() +
+            14 *
+              24 *
+              60 *
+              60 *
+              1000
+        ),
+
+      subscriptionEndsAt:
+        null,
+
+      billingUpdatedAt:
+        now,
+
       ownerUserId: null,
 
       workingHours: {
@@ -580,4 +626,27 @@ function createSlug(
       /^-+|-+$/g,
       ""
     );
+}
+
+function formatDateValue(
+  value: unknown
+) {
+  if (!value) {
+    return "";
+  }
+
+  if (
+    value instanceof Date
+  ) {
+    return value
+      .toISOString()
+      .slice(0, 10);
+  }
+
+  return String(
+    value
+  ).slice(
+    0,
+    10
+  );
 }
