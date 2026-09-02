@@ -1343,7 +1343,63 @@ export default function MinhaPagina() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-zinc-950 p-8 text-white">
+      <main className="vellto-minha-pagina min-h-screen bg-[var(--vellto-surface-2)] p-8 text-[var(--vellto-text)]">
+      <style>{`
+        .vellto-minha-pagina {
+          color:
+            var(--vellto-text);
+        }
+
+        .vellto-minha-pagina input,
+        .vellto-minha-pagina textarea,
+        .vellto-minha-pagina select {
+          background-color:
+            var(--vellto-surface-2) !important;
+
+          color:
+            var(--vellto-text) !important;
+
+          border-color:
+            var(--vellto-border) !important;
+        }
+
+        .vellto-minha-pagina input::placeholder,
+        .vellto-minha-pagina textarea::placeholder {
+          color:
+            var(--vellto-text-muted) !important;
+        }
+
+        .vellto-minha-pagina input:focus,
+        .vellto-minha-pagina textarea:focus,
+        .vellto-minha-pagina select:focus {
+          border-color:
+            var(--vellto-primary) !important;
+
+          box-shadow:
+            0 0 0 3px
+            var(--vellto-primary-soft);
+        }
+
+        .vellto-minha-pagina select option {
+          background:
+            var(--vellto-surface-2);
+
+          color:
+            var(--vellto-text);
+        }
+
+        /*
+        Evita blocos realmente pretos nessa página.
+        */
+
+        .vellto-minha-pagina .bg-black,
+        .vellto-minha-pagina .bg-zinc-950,
+        .vellto-minha-pagina .bg-slate-950 {
+          background-color:
+            var(--vellto-surface-2) !important;
+        }
+      `}</style>
+
         Carregando sua empresa...
       </main>
     );
@@ -1351,14 +1407,14 @@ export default function MinhaPagina() {
 
   if (!slug) {
     return (
-      <main className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
+      <main className="min-h-screen bg-[var(--vellto-surface-2)] px-6 py-10 text-[var(--vellto-text)]">
         <div className="mx-auto max-w-3xl">
           <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6">
             <h1 className="text-xl font-bold">
               Empresa não encontrada
             </h1>
 
-            <p className="mt-3 text-zinc-400">
+            <p className="mt-3 text-[var(--vellto-text-secondary)]">
               {message ||
                 "Sua conta ainda não possui uma empresa vinculada."}
             </p>
@@ -1366,7 +1422,7 @@ export default function MinhaPagina() {
             <button
               type="button"
               onClick={handleLogout}
-              className="mt-5 rounded-xl border border-white/10 px-5 py-3"
+              className="mt-5 rounded-xl border border-[var(--vellto-border)] px-5 py-3"
             >
               Sair
             </button>
@@ -1377,12 +1433,12 @@ export default function MinhaPagina() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white">
+    <main className="min-h-screen bg-[var(--vellto-surface-2)] text-[var(--vellto-text)]">
       <div className="mx-auto max-w-7xl px-6 py-10">
         {/* CABEÇALHO */}
         <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--vellto-primary)]">
               Personalização
             </p>
 
@@ -1390,7 +1446,7 @@ export default function MinhaPagina() {
               Minha página
             </h1>
 
-            <p className="mt-2 text-zinc-400">
+            <p className="mt-2 text-[var(--vellto-text-secondary)]">
               {businessName ||
                 form.name}
             </p>
@@ -1411,7 +1467,7 @@ export default function MinhaPagina() {
               href={`/${slug}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-xl border border-white/10 px-5 py-3 text-sm font-medium transition hover:bg-white/5"
+              className="rounded-xl border border-[var(--vellto-border)] px-5 py-3 text-sm font-medium transition hover:bg-white/5"
             >
               Ver página publicada ↗
             </a>
@@ -1427,39 +1483,39 @@ export default function MinhaPagina() {
         </div>
 
         {/* NAVEGAÇÃO DA PÁGINA */}
-        <div className="sticky top-0 z-30 mb-8 overflow-x-auto border-y border-white/10 bg-zinc-950/95 py-3 backdrop-blur-xl">
+        <div className="sticky top-0 z-30 mb-8 overflow-x-auto border-y border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/95 py-3 backdrop-blur-xl">
           <div className="flex min-w-max gap-2">
             <a
               href="#geral"
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
             >
               Geral
             </a>
 
             <a
               href="#sobre"
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
             >
               Sobre nós
             </a>
 
             <a
               href="#galeria"
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
             >
               Galeria
             </a>
 
             <a
               href="#aparencia"
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
             >
               Aparência
             </a>
 
             <a
               href="#agendamento"
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
             >
               Agendamento
             </a>
@@ -1495,7 +1551,7 @@ export default function MinhaPagina() {
             />
 
             <div>
-              <label className="mb-2 block text-sm text-zinc-400">
+              <label className="mb-2 block text-sm text-[var(--vellto-text-secondary)]">
                 Sobre o negócio
               </label>
 
@@ -1510,7 +1566,7 @@ export default function MinhaPagina() {
                   )
                 }
                 rows={5}
-                className="w-full resize-none rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 outline-none focus:border-emerald-500"
+                className="w-full resize-none rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] px-4 py-3 outline-none focus:border-[var(--vellto-primary)]"
               />
             </div>
 
@@ -1566,7 +1622,7 @@ export default function MinhaPagina() {
             className="mt-8"
           >
             <div>
-              <label className="mb-2 block text-sm text-zinc-400">
+              <label className="mb-2 block text-sm text-[var(--vellto-text-secondary)]">
                 Conte a história e os diferenciais do seu negócio
               </label>
 
@@ -1580,10 +1636,10 @@ export default function MinhaPagina() {
                 }
                 rows={7}
                 placeholder="Ex: Somos especializados em oferecer uma experiência de atendimento completa, com qualidade, conforto e atenção aos detalhes."
-                className="w-full resize-none rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 leading-7 outline-none transition focus:border-emerald-500"
+                className="w-full resize-none rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] px-4 py-3 leading-7 outline-none transition focus:border-[var(--vellto-primary)]"
               />
 
-              <p className="mt-2 text-xs text-zinc-500">
+              <p className="mt-2 text-xs text-[var(--vellto-text-muted)]">
                 Esse texto será exibido na seção Sobre nós da página pública.
               </p>
             </div>
@@ -1611,7 +1667,7 @@ export default function MinhaPagina() {
             />
 
             <div>
-              <label className="mb-2 block text-sm text-zinc-400">
+              <label className="mb-2 block text-sm text-[var(--vellto-text-secondary)]">
                 Ao clicar
               </label>
 
@@ -1629,7 +1685,7 @@ export default function MinhaPagina() {
                       | "link"
                   )
                 }
-                className="w-full rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 outline-none"
+                className="w-full rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] px-4 py-3 outline-none"
               >
                 <option value="booking">
                   Agendamento
@@ -1820,7 +1876,7 @@ export default function MinhaPagina() {
           title="Galeria"
           className="mt-8"
         >
-          <label className="flex cursor-pointer justify-center rounded-xl border border-dashed border-white/20 bg-zinc-900 p-5">
+          <label className="flex cursor-pointer justify-center rounded-xl border border-dashed border-[var(--vellto-border-strong)] bg-[var(--vellto-surface-2)] p-5">
             {uploadingGallery
               ? "Enviando..."
               : "+ Adicionar fotos"}
@@ -1846,7 +1902,7 @@ export default function MinhaPagina() {
               (photo, index) => (
                 <div
                   key={`${photo}-${index}`}
-                  className="rounded-xl border border-white/10 p-3"
+                  className="rounded-xl border border-[var(--vellto-border)] p-3"
                 >
                   <img
                     src={photo}
@@ -1891,7 +1947,7 @@ export default function MinhaPagina() {
             }
           />
 
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-[var(--vellto-text-muted)]">
             Ex: Escolha seu corte, Confira nosso cardápio, Nossos produtos.
           </p>
 
@@ -1900,7 +1956,7 @@ export default function MinhaPagina() {
               onSubmit={
                 saveService
               }
-              className="space-y-5 rounded-2xl border border-white/10 bg-zinc-950/40 p-5"
+              className="space-y-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/40 p-5"
             >
               <h3 className="font-semibold">
                 {editingServiceId
@@ -2048,14 +2104,14 @@ export default function MinhaPagina() {
                   onClick={
                     cancelServiceEdit
                   }
-                  className="w-full rounded-xl border border-white/10 p-3"
+                  className="w-full rounded-xl border border-[var(--vellto-border)] p-3"
                 >
                   Cancelar
                 </button>
               ) : null}
 
               {serviceMessage ? (
-                <p className="rounded-xl border border-white/10 p-3 text-sm">
+                <p className="rounded-xl border border-[var(--vellto-border)] p-3 text-sm">
                   {serviceMessage}
                 </p>
               ) : null}
@@ -2064,7 +2120,7 @@ export default function MinhaPagina() {
             <div>
               {services.length ===
               0 ? (
-                <div className="rounded-2xl border border-dashed border-white/20 p-10 text-center text-zinc-500">
+                <div className="rounded-2xl border border-dashed border-[var(--vellto-border-strong)] p-10 text-center text-[var(--vellto-text-muted)]">
                   Nenhum serviço cadastrado.
                 </div>
               ) : (
@@ -2137,7 +2193,7 @@ export default function MinhaPagina() {
               onSubmit={
                 saveProfessional
               }
-              className="space-y-5 rounded-2xl border border-white/10 bg-zinc-950/40 p-5"
+              className="space-y-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/40 p-5"
             >
               <h3 className="font-semibold">
                 {editingProfessionalId
@@ -2269,14 +2325,14 @@ export default function MinhaPagina() {
                   onClick={
                     cancelProfessionalEdit
                   }
-                  className="w-full rounded-xl border border-white/10 p-3"
+                  className="w-full rounded-xl border border-[var(--vellto-border)] p-3"
                 >
                   Cancelar
                 </button>
               ) : null}
 
               {professionalMessage ? (
-                <p className="rounded-xl border border-white/10 p-3 text-sm">
+                <p className="rounded-xl border border-[var(--vellto-border)] p-3 text-sm">
                   {professionalMessage}
                 </p>
               ) : null}
@@ -2285,7 +2341,7 @@ export default function MinhaPagina() {
             <div>
               {professionals.length ===
               0 ? (
-                <div className="rounded-2xl border border-dashed border-white/20 p-10 text-center text-zinc-500">
+                <div className="rounded-2xl border border-dashed border-[var(--vellto-border-strong)] p-10 text-center text-[var(--vellto-text-muted)]">
                   Nenhum profissional cadastrado.
                 </div>
               ) : (
@@ -2340,7 +2396,7 @@ export default function MinhaPagina() {
           title="Seção final da página"
           className="mt-8"
         >
-          <p className="mb-5 text-sm text-zinc-500">
+          <p className="mb-5 text-sm text-[var(--vellto-text-muted)]">
             Essa é a área usada para agendamento, pedidos, reservas ou outra ação final.
           </p>
 
@@ -2386,7 +2442,7 @@ export default function MinhaPagina() {
             />
 
             <div>
-              <label className="mb-2 block text-sm text-zinc-400">
+              <label className="mb-2 block text-sm text-[var(--vellto-text-secondary)]">
                 Descrição
               </label>
 
@@ -2401,19 +2457,19 @@ export default function MinhaPagina() {
                   )
                 }
                 rows={4}
-                className="w-full resize-none rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 outline-none focus:border-emerald-500"
+                className="w-full resize-none rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] px-4 py-3 outline-none focus:border-[var(--vellto-primary)]"
               />
             </div>
           </div>
         </Panel>
 
         {/* SALVAR */}
-        <div className="mt-10 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div className="mt-10 rounded-2xl border border-[var(--vellto-primary)]/20 bg-emerald-500/5 p-6">
           <h2 className="text-xl font-bold">
             Salvar alterações
           </h2>
 
-          <p className="mt-2 text-sm text-zinc-400">
+          <p className="mt-2 text-sm text-[var(--vellto-text-secondary)]">
             Depois de personalizar sua página, clique abaixo para salvar.
           </p>
 
@@ -2436,7 +2492,7 @@ export default function MinhaPagina() {
           </button>
 
           {message ? (
-            <p className="mt-4 rounded-xl border border-white/10 bg-zinc-950/40 p-4 text-sm">
+            <p className="mt-4 rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/40 p-4 text-sm">
               {message}
             </p>
           ) : null}
@@ -2444,20 +2500,20 @@ export default function MinhaPagina() {
       </div>
 
       {previewOpen ? (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-black/90 backdrop-blur-md">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-zinc-950 px-4 py-3 sm:px-6">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-[var(--vellto-surface-2)]/90 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] px-4 py-3 sm:px-6">
             <div>
-              <p className="text-sm font-bold text-white">
+              <p className="text-sm font-bold text-[var(--vellto-text)]">
                 Prévia da página
               </p>
 
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-[var(--vellto-text-muted)]">
                 As alterações ainda não precisam estar salvas.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-xl border border-white/10 bg-zinc-900 p-1">
+              <div className="flex rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-1">
                 <button
                   type="button"
                   onClick={() =>
@@ -2469,7 +2525,7 @@ export default function MinhaPagina() {
                     previewDevice ===
                     "mobile"
                       ? "bg-emerald-500 text-zinc-950"
-                      : "text-zinc-400 hover:text-white"
+                      : "text-[var(--vellto-text-secondary)] hover:text-[var(--vellto-text)]"
                   }`}
                 >
                   Celular
@@ -2486,7 +2542,7 @@ export default function MinhaPagina() {
                     previewDevice ===
                     "tablet"
                       ? "bg-emerald-500 text-zinc-950"
-                      : "text-zinc-400 hover:text-white"
+                      : "text-[var(--vellto-text-secondary)] hover:text-[var(--vellto-text)]"
                   }`}
                 >
                   Tablet
@@ -2503,7 +2559,7 @@ export default function MinhaPagina() {
                     previewDevice ===
                     "desktop"
                       ? "bg-emerald-500 text-zinc-950"
-                      : "text-zinc-400 hover:text-white"
+                      : "text-[var(--vellto-text-secondary)] hover:text-[var(--vellto-text)]"
                   }`}
                 >
                   Computador
@@ -2515,14 +2571,14 @@ export default function MinhaPagina() {
                 onClick={() =>
                   setPreviewOpen(false)
                 }
-                className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/5"
+                className="rounded-xl border border-[var(--vellto-border)] px-4 py-2 text-sm font-semibold text-[var(--vellto-text)] transition hover:bg-white/5"
               >
                 Fechar ✕
               </button>
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 justify-center overflow-y-auto bg-zinc-900 p-3 sm:p-6">
+          <div className="flex min-h-0 flex-1 justify-center overflow-y-auto bg-[var(--vellto-surface-2)] p-3 sm:p-6">
             <div
               className={`h-max min-h-full overflow-hidden bg-white shadow-2xl transition-all duration-300 ${
                 previewDevice ===
@@ -2602,7 +2658,7 @@ function PublicPagePreview({
             <img
               src={form.logoUrl}
               alt=""
-              className="mb-5 h-20 w-20 rounded-2xl border-2 border-white/20 object-cover shadow-xl"
+              className="mb-5 h-20 w-20 rounded-2xl border-2 border-[var(--vellto-border-strong)] object-cover shadow-xl"
             />
           ) : (
             <div
@@ -2660,7 +2716,7 @@ function PublicPagePreview({
             {form.whatsapp ? (
               <button
                 type="button"
-                className="rounded-xl border border-white/20 bg-black/20 px-6 py-3 text-sm font-semibold"
+                className="rounded-xl border border-[var(--vellto-border-strong)] bg-[var(--vellto-surface-2)]/20 px-6 py-3 text-sm font-semibold"
               >
                 WhatsApp
               </button>
@@ -2749,7 +2805,7 @@ function PublicPagePreview({
                     key={
                       service._id
                     }
-                    className="overflow-hidden rounded-2xl border border-white/10"
+                    className="overflow-hidden rounded-2xl border border-[var(--vellto-border)]"
                     style={{
                       backgroundColor:
                         form.secondaryColor,
@@ -2812,7 +2868,7 @@ function PublicPagePreview({
                   </div>
                 ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-white/20 p-8 text-sm opacity-50 sm:col-span-2 lg:col-span-3">
+              <div className="rounded-2xl border border-dashed border-[var(--vellto-border-strong)] p-8 text-sm opacity-50 sm:col-span-2 lg:col-span-3">
                 Seus serviços aparecerão
                 aqui.
               </div>
@@ -2847,7 +2903,7 @@ function PublicPagePreview({
                       key={
                         professional._id
                       }
-                      className="rounded-2xl border border-white/10 p-5"
+                      className="rounded-2xl border border-[var(--vellto-border)] p-5"
                       style={{
                         backgroundColor:
                           form.secondaryColor,
@@ -2896,7 +2952,7 @@ function PublicPagePreview({
 
               {activeProfessionals.length ===
               0 ? (
-                <div className="rounded-2xl border border-dashed border-white/20 p-8 text-sm opacity-50 sm:col-span-2 lg:col-span-3">
+                <div className="rounded-2xl border border-dashed border-[var(--vellto-border-strong)] p-8 text-sm opacity-50 sm:col-span-2 lg:col-span-3">
                   Seus profissionais
                   aparecerão aqui.
                 </div>
@@ -2998,7 +3054,7 @@ function PreviewInfo({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className="rounded-2xl border border-[var(--vellto-border)] bg-white/5 p-4">
       <p className="text-xs uppercase tracking-wider opacity-50">
         {title}
       </p>
@@ -3021,7 +3077,7 @@ function Panel({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-white/10 bg-white/5 p-6 ${className}`}
+      className={`rounded-2xl border border-[var(--vellto-border)] bg-white/5 p-6 ${className}`}
     >
       <h2 className="mb-5 text-xl font-semibold">
         {title}
@@ -3045,7 +3101,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm text-zinc-400">
+      <label className="mb-2 block text-sm text-[var(--vellto-text-secondary)]">
         {label}
       </label>
 
@@ -3056,7 +3112,7 @@ function Field({
             e.target.value
           )
         }
-        className="w-full rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 outline-none focus:border-emerald-500"
+        className="w-full rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] px-4 py-3 outline-none focus:border-[var(--vellto-primary)]"
       />
     </div>
   );
@@ -3075,7 +3131,7 @@ function ColorField({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm text-zinc-400">
+      <label className="mb-2 block text-sm text-[var(--vellto-text-secondary)]">
         {label}
       </label>
 
@@ -3088,7 +3144,7 @@ function ColorField({
               e.target.value
             )
           }
-          className="h-12 w-14 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1"
+          className="h-12 w-14 cursor-pointer rounded-lg border border-[var(--vellto-border)] bg-transparent p-1"
         />
 
         <input
@@ -3098,7 +3154,7 @@ function ColorField({
               e.target.value
             )
           }
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-900 px-3 py-3 outline-none"
+          className="min-w-0 flex-1 rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] px-3 py-3 outline-none"
         />
       </div>
     </div>
@@ -3117,7 +3173,7 @@ function UploadField({
   ) => void;
 }) {
   return (
-    <label className="flex cursor-pointer justify-center rounded-xl border border-dashed border-white/20 bg-zinc-900 p-5 transition hover:border-emerald-500">
+    <label className="flex cursor-pointer justify-center rounded-xl border border-dashed border-[var(--vellto-border-strong)] bg-[var(--vellto-surface-2)] p-5 transition hover:border-[var(--vellto-primary)]">
       {uploading
         ? "Enviando..."
         : text}
@@ -3152,14 +3208,14 @@ function Toggle({
   ) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-white/10 bg-zinc-900 p-4">
+    <label className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-4">
       <div>
         <p className="font-medium">
           {label}
         </p>
 
         {description ? (
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-[var(--vellto-text-muted)]">
             {description}
           </p>
         ) : null}
@@ -3198,9 +3254,9 @@ function ItemCard({
 }) {
   return (
     <div
-      className={`overflow-hidden rounded-2xl border bg-zinc-900 ${
+      className={`overflow-hidden rounded-2xl border bg-[var(--vellto-surface-2)] ${
         active
-          ? "border-white/10"
+          ? "border-[var(--vellto-border)]"
           : "border-red-500/20 opacity-60"
       }`}
     >
@@ -3211,7 +3267,7 @@ function ItemCard({
           className="h-44 w-full object-cover"
         />
       ) : (
-        <div className="flex h-44 items-center justify-center bg-zinc-950 text-zinc-600">
+        <div className="flex h-44 items-center justify-center bg-[var(--vellto-surface-2)] text-[var(--vellto-text-muted)]">
           Sem foto
         </div>
       )}
@@ -3221,14 +3277,14 @@ function ItemCard({
           {title}
         </h3>
 
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-[var(--vellto-text-muted)]">
           {subtitle}
         </p>
 
         <p
           className={`mt-2 text-xs font-bold uppercase ${
             active
-              ? "text-emerald-400"
+              ? "text-[var(--vellto-primary)]"
               : "text-red-400"
           }`}
         >
@@ -3241,7 +3297,7 @@ function ItemCard({
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-lg border border-white/10 p-2 text-sm"
+            className="rounded-lg border border-[var(--vellto-border)] p-2 text-sm"
           >
             Editar
           </button>
@@ -3249,7 +3305,7 @@ function ItemCard({
           <button
             type="button"
             onClick={onToggle}
-            className="rounded-lg border border-white/10 p-2 text-sm"
+            className="rounded-lg border border-[var(--vellto-border)] p-2 text-sm"
           >
             {active
               ? "Desativar"
