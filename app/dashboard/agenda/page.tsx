@@ -115,6 +115,41 @@ export default function AgendaPage() {
   const [clientId, setClientId] =
     useState("");
 
+  const [
+    clientSearch,
+    setClientSearch,
+  ] = useState("");
+
+  const [
+    showQuickClient,
+    setShowQuickClient,
+  ] = useState(false);
+
+  const [
+    newClientName,
+    setNewClientName,
+  ] = useState("");
+
+  const [
+    newClientPhone,
+    setNewClientPhone,
+  ] = useState("");
+
+  const [
+    creatingClient,
+    setCreatingClient,
+  ] = useState(false);
+
+  const [
+    clientFormMessage,
+    setClientFormMessage,
+  ] = useState("");
+
+  const [
+    clientFormSuccess,
+    setClientFormSuccess,
+  ] = useState("");
+
   const [serviceId, setServiceId] =
     useState("");
 
@@ -385,6 +420,13 @@ export default function AgendaPage() {
         todaySaoPaulo();
 
       setClientId("");
+      setClientSearch("");
+      setShowQuickClient(false);
+      setNewClientName("");
+      setNewClientPhone("");
+      setClientFormMessage("");
+      setClientFormSuccess("");
+
       setServiceId("");
       setProfessionalId(
         availableProfessionals.length ===
@@ -515,6 +557,228 @@ export default function AgendaPage() {
     setShowNewAppointment(
       false
     );
+  }
+
+  async function createQuickClient() {
+    const name =
+      newClientName.trim();
+
+    const phone =
+      newClientPhone.trim();
+
+    if (
+      name.length < 2
+    ) {
+      setClientFormMessage(
+        "Informe o nome do cliente."
+      );
+
+      setClientFormSuccess("");
+
+      return;
+    }
+
+    if (
+      phone.replace(
+        /\D/g,
+        ""
+      ).length < 8
+    ) {
+      setClientFormMessage(
+        "Informe um telefone válido."
+      );
+
+      setClientFormSuccess("");
+
+      return;
+    }
+
+    try {
+      setCreatingClient(
+        true
+      );
+
+      setClientFormMessage(
+        ""
+      );
+
+      setClientFormSuccess(
+        ""
+      );
+
+      const response =
+        await fetch(
+          "/api/dashboard/booking-clients",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                name,
+                phone,
+              }),
+          }
+        );
+
+      const data =
+        await readJsonResponse(
+          response
+        );
+
+      /*
+      ===============================================
+      CLIENTE JÁ EXISTE
+      Selecionamos automaticamente.
+      ===============================================
+      */
+
+      if (
+        response.status ===
+          409 &&
+        data.existingClient?._id
+      ) {
+        const existing =
+          data.existingClient as Client;
+
+        setClients(
+          (current) => {
+            const alreadyExists =
+              current.some(
+                (client) =>
+                  client._id ===
+                  existing._id
+              );
+
+            if (
+              alreadyExists
+            ) {
+              return current;
+            }
+
+            return [
+              ...current,
+              existing,
+            ].sort(
+              (a, b) =>
+                a.name.localeCompare(
+                  b.name,
+                  "pt-BR"
+                )
+            );
+          }
+        );
+
+        setClientId(
+          existing._id
+        );
+
+        setClientSearch(
+          ""
+        );
+
+        setNewClientName(
+          ""
+        );
+
+        setNewClientPhone(
+          ""
+        );
+
+        setShowQuickClient(
+          false
+        );
+
+        setClientFormSuccess(
+          "Cliente já estava cadastrado e foi selecionado automaticamente."
+        );
+
+        return;
+      }
+
+      if (!response.ok) {
+        setClientFormMessage(
+          data.message ||
+            "Erro ao cadastrar cliente"
+        );
+
+        return;
+      }
+
+      const createdClient =
+        data.client as
+          | Client
+          | undefined;
+
+      if (
+        !createdClient?._id
+      ) {
+        setClientFormMessage(
+          "Cliente criado, mas a API não retornou os dados corretamente."
+        );
+
+        return;
+      }
+
+      setClients(
+        (current) =>
+          [
+            ...current,
+            createdClient,
+          ].sort(
+            (a, b) =>
+              a.name.localeCompare(
+                b.name,
+                "pt-BR"
+              )
+          )
+      );
+
+      setClientId(
+        createdClient._id
+      );
+
+      setClientSearch(
+        ""
+      );
+
+      setNewClientName(
+        ""
+      );
+
+      setNewClientPhone(
+        ""
+      );
+
+      setShowQuickClient(
+        false
+      );
+
+      setClientFormSuccess(
+        "Cliente cadastrado e selecionado."
+      );
+    } catch (error) {
+      console.error(
+        "CREATE QUICK CLIENT ERROR:",
+        error
+      );
+
+      setClientFormMessage(
+        getErrorMessage(
+          error,
+          "Erro ao cadastrar cliente"
+        )
+      );
+    } finally {
+      setCreatingClient(
+        false
+      );
+    }
   }
 
   async function createAppointment() {
@@ -773,6 +1037,66 @@ export default function AgendaPage() {
       ""
     );
   }
+
+  const filteredClients =
+    useMemo(() => {
+      const term =
+        clientSearch
+          .trim()
+          .toLowerCase();
+
+      if (!term) {
+        return clients;
+      }
+
+      const searchDigits =
+        term.replace(
+          /\D/g,
+          ""
+        );
+
+      return clients.filter(
+        (client) => {
+          const name =
+            String(
+              client.name ||
+                ""
+            ).toLowerCase();
+
+          const phone =
+            String(
+              client.phone ||
+                ""
+            );
+
+          const phoneDigits =
+            phone.replace(
+              /\D/g,
+              ""
+            );
+
+          return (
+            name.includes(
+              term
+            ) ||
+            phone
+              .toLowerCase()
+              .includes(
+                term
+              ) ||
+            Boolean(
+              searchDigits &&
+                phoneDigits.includes(
+                  searchDigits
+                )
+            )
+          );
+        }
+      );
+    }, [
+      clients,
+      clientSearch,
+    ]);
 
   const selectedService =
     useMemo(() => {
@@ -1223,33 +1547,187 @@ export default function AgendaPage() {
 
             <div className="grid gap-5 p-4 sm:gap-6 sm:p-6 lg:grid-cols-[340px_minmax(0,1fr)]">
               <div className="space-y-5">
-                <SelectField
-                  label="Cliente"
-                  value={
-                    clientId
-                  }
-                  onChange={(
-                    value
-                  ) => {
-                    setClientId(
-                      value
-                    );
-                  }}
-                  options={clients.map(
-                    (
-                      client
-                    ) => ({
-                      value:
-                        client._id,
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                      Cliente
+                    </label>
 
-                      label:
-                        client.phone
-                          ? `${client.name} - ${client.phone}`
-                          : client.name,
-                    })
-                  )}
-                  placeholder="Selecione um cliente"
-                />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowQuickClient(
+                          (current) =>
+                            !current
+                        );
+
+                        setClientFormMessage(
+                          ""
+                        );
+
+                        setClientFormSuccess(
+                          ""
+                        );
+                      }}
+                      className="text-xs font-bold text-emerald-400 transition hover:text-emerald-300"
+                    >
+                      {showQuickClient
+                        ? "Cancelar cadastro"
+                        : "+ Novo cliente"}
+                    </button>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={
+                      clientSearch
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setClientSearch(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Buscar por nome ou telefone..."
+                    className="mb-2 min-h-[44px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
+                  />
+
+                  <select
+                    value={
+                      clientId
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setClientId(
+                        event.target.value
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                  >
+                    <option value="">
+                      Selecione um cliente
+                    </option>
+
+                    {filteredClients.map(
+                      (client) => (
+                        <option
+                          key={
+                            client._id
+                          }
+                          value={
+                            client._id
+                          }
+                        >
+                          {client.phone
+                            ? `${client.name} - ${formatPhone(
+                                client.phone
+                              )}`
+                            : client.name}
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  {clientSearch &&
+                  filteredClients.length ===
+                    0 ? (
+                    <p className="mt-2 text-xs text-amber-400">
+                      Nenhum cliente encontrado. Você pode cadastrar um novo logo abaixo.
+                    </p>
+                  ) : null}
+
+                  {showQuickClient ? (
+                    <div className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                      <div>
+                        <p className="font-semibold text-emerald-300">
+                          Novo cliente
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-zinc-500">
+                          Cadastre rapidamente e continue o agendamento.
+                        </p>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold text-zinc-400">
+                            Nome
+                          </label>
+
+                          <input
+                            type="text"
+                            value={
+                              newClientName
+                            }
+                            onChange={(
+                              event
+                            ) =>
+                              setNewClientName(
+                                event.target.value
+                              )
+                            }
+                            placeholder="Nome do cliente"
+                            className="min-h-[44px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-1.5 block text-xs font-semibold text-zinc-400">
+                            Telefone
+                          </label>
+
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            value={
+                              newClientPhone
+                            }
+                            onChange={(
+                              event
+                            ) =>
+                              setNewClientPhone(
+                                formatPhoneInput(
+                                  event.target.value
+                                )
+                              )
+                            }
+                            placeholder="(21) 99999-9999"
+                            className="min-h-[44px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={
+                            creatingClient
+                          }
+                          onClick={
+                            createQuickClient
+                          }
+                          className="min-h-[44px] w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {creatingClient
+                            ? "Cadastrando..."
+                            : "Cadastrar e selecionar"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {clientFormMessage ? (
+                    <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-xs text-red-300">
+                      {clientFormMessage}
+                    </div>
+                  ) : null}
+
+                  {clientFormSuccess ? (
+                    <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-300">
+                      {clientFormSuccess}
+                    </div>
+                  ) : null}
+                </div>
 
                 <SelectField
                   label="Serviço"
@@ -1667,9 +2145,9 @@ function AppointmentCard({
 
               {appointment.clientPhone ? (
                 <span>
-                  {
+                  {formatPhone(
                     appointment.clientPhone
-                  }
+                  )}
                 </span>
               ) : null}
             </div>
@@ -2011,6 +2489,114 @@ function EmptyState({
       </p>
     </div>
   );
+}
+
+function formatPhone(
+  value?: string
+) {
+  const digits =
+    String(
+      value || ""
+    )
+      .replace(
+        /\D/g,
+        ""
+      )
+      .slice(
+        0,
+        11
+      );
+
+  if (
+    digits.length === 11
+  ) {
+    return `(${digits.slice(
+      0,
+      2
+    )}) ${digits.slice(
+      2,
+      7
+    )}-${digits.slice(
+      7
+    )}`;
+  }
+
+  if (
+    digits.length === 10
+  ) {
+    return `(${digits.slice(
+      0,
+      2
+    )}) ${digits.slice(
+      2,
+      6
+    )}-${digits.slice(
+      6
+    )}`;
+  }
+
+  return (
+    value ||
+    ""
+  );
+}
+
+function formatPhoneInput(
+  value: string
+) {
+  const digits =
+    value
+      .replace(
+        /\D/g,
+        ""
+      )
+      .slice(
+        0,
+        11
+      );
+
+  if (
+    digits.length <= 2
+  ) {
+    return digits
+      ? `(${digits}`
+      : "";
+  }
+
+  if (
+    digits.length <= 6
+  ) {
+    return `(${digits.slice(
+      0,
+      2
+    )}) ${digits.slice(
+      2
+    )}`;
+  }
+
+  if (
+    digits.length <= 10
+  ) {
+    return `(${digits.slice(
+      0,
+      2
+    )}) ${digits.slice(
+      2,
+      6
+    )}-${digits.slice(
+      6
+    )}`;
+  }
+
+  return `(${digits.slice(
+    0,
+    2
+  )}) ${digits.slice(
+    2,
+    7
+  )}-${digits.slice(
+    7
+  )}`;
 }
 
 async function readJsonResponse(
