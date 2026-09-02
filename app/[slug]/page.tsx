@@ -377,46 +377,6 @@ export default async function BusinessPage({
                   "Qualidade, cuidado e praticidade para você. Escolha seu serviço e reserve seu horário online."}
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row">
-                <a
-                  href={
-                    bookingHref
-                  }
-                  className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl px-5 font-bold shadow-2xl transition hover:-translate-y-1 sm:w-auto sm:px-7"
-                  style={{
-                    backgroundColor:
-                      primaryColor,
-
-                    color:
-                      getContrastColor(
-                        primaryColor
-                      ),
-
-                    boxShadow:
-                      `0 18px 50px ${primaryColor}25`,
-                  }}
-                >
-                  Agendar agora
-
-                  <span>
-                    →
-                  </span>
-                </a>
-
-                {whatsappHref ? (
-                  <a
-                    href={
-                      whatsappHref
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] px-5 font-semibold text-white backdrop-blur-md transition hover:bg-white/10 sm:w-auto sm:px-7"
-                  >
-                    Falar no WhatsApp
-                  </a>
-                ) : null}
-              </div>
-
               <div className="mt-10 flex flex-wrap gap-x-7 gap-y-4 text-sm text-white/55">
                 {services.length >
                 0 ? (
@@ -464,6 +424,103 @@ export default async function BusinessPage({
                 ) : null}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================================================
+          AÇÕES PRINCIPAIS
+      ================================================== */}
+
+      <section
+        className="relative z-20 px-4 py-5 sm:px-6 sm:py-6"
+        style={{
+          backgroundColor,
+        }}
+      >
+        <div
+          className="mx-auto flex max-w-7xl flex-col gap-3 rounded-3xl border p-4 shadow-2xl sm:flex-row sm:items-center sm:justify-between sm:p-5"
+          style={{
+            borderColor:
+              `${textColor}12`,
+
+            backgroundColor:
+              secondaryColor,
+
+            boxShadow:
+              "0 24px 70px rgba(0,0,0,.22)",
+          }}
+        >
+          <div className="min-w-0">
+            <p
+              className="text-xs font-bold uppercase tracking-[0.16em]"
+              style={{
+                color:
+                  primaryColor,
+              }}
+            >
+              Atendimento online
+            </p>
+
+            <h2 className="mt-1 text-lg font-bold sm:text-xl">
+              Reserve seu horário
+            </h2>
+
+            <p
+              className="mt-1 text-sm"
+              style={{
+                color:
+                  `${textColor}8f`,
+              }}
+            >
+              Escolha seus serviços, profissional, dia e horário.
+            </p>
+          </div>
+
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <a
+              href={bookingHref}
+              className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl px-6 font-bold transition hover:-translate-y-0.5 sm:w-auto"
+              style={{
+                backgroundColor:
+                  primaryColor,
+
+                color:
+                  getContrastColor(
+                    primaryColor
+                  ),
+
+                boxShadow:
+                  `0 14px 36px ${primaryColor}28`,
+              }}
+            >
+              Agendar agora
+
+              <span>
+                →
+              </span>
+            </a>
+
+            {whatsappHref ? (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border px-6 font-semibold transition hover:-translate-y-0.5 sm:w-auto"
+                style={{
+                  borderColor:
+                    `${textColor}18`,
+
+                  backgroundColor:
+                    `${textColor}08`,
+
+                  color:
+                    textColor,
+                }}
+              >
+                Falar no WhatsApp
+              </a>
+            ) : null}
           </div>
         </div>
       </section>
