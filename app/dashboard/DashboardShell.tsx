@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useEffect, useState } from "react";
+import {
+  CSSProperties,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 type Props = {
@@ -17,6 +22,7 @@ type Props = {
     name: string;
     slug: string;
     logoUrl: string;
+    primaryColor: string;
   };
 };
 
@@ -174,8 +180,73 @@ export default function DashboardShell({
     return pathname.startsWith(href);
   }
 
+  const themeColor =
+    /^#[0-9a-fA-F]{6}$/.test(
+      business.primaryColor || ""
+    )
+      ? business.primaryColor
+      : "#10b981";
+
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#071018] text-white">
+    <div
+      className="vellto-dashboard-theme min-h-screen overflow-x-hidden bg-[#071018] text-white"
+      style={
+        {
+          "--vellto-primary":
+            themeColor,
+        } as CSSProperties
+      }
+    >
+      <style>{`
+        .vellto-dashboard-theme .bg-emerald-500 {
+          background-color: var(--vellto-primary) !important;
+        }
+
+        .vellto-dashboard-theme .bg-emerald-400 {
+          background-color: var(--vellto-primary) !important;
+        }
+
+        .vellto-dashboard-theme .text-emerald-400,
+        .vellto-dashboard-theme .text-emerald-300 {
+          color: var(--vellto-primary) !important;
+        }
+
+        .vellto-dashboard-theme .border-emerald-500,
+        .vellto-dashboard-theme .border-emerald-500\\/20,
+        .vellto-dashboard-theme .border-emerald-500\\/40 {
+          border-color: color-mix(
+            in srgb,
+            var(--vellto-primary) 55%,
+            transparent
+          ) !important;
+        }
+
+        .vellto-dashboard-theme .bg-emerald-500\\/15,
+        .vellto-dashboard-theme .bg-emerald-500\\/10,
+        .vellto-dashboard-theme .bg-emerald-500\\/5 {
+          background-color: color-mix(
+            in srgb,
+            var(--vellto-primary) 12%,
+            transparent
+          ) !important;
+        }
+
+        .vellto-dashboard-theme .focus\\:border-emerald-500:focus {
+          border-color: var(--vellto-primary) !important;
+        }
+
+        .vellto-dashboard-theme .hover\\:bg-emerald-400:hover,
+        .vellto-dashboard-theme .hover\\:bg-emerald-500:hover {
+          background-color: var(--vellto-primary) !important;
+          filter: brightness(1.08);
+        }
+
+        .vellto-dashboard-theme .hover\\:text-emerald-300:hover,
+        .vellto-dashboard-theme .hover\\:text-emerald-400:hover {
+          color: var(--vellto-primary) !important;
+          filter: brightness(1.08);
+        }
+      `}</style>
       {/* TOPO MOBILE */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-white/10 bg-[#09131d]/95 px-3 backdrop-blur sm:px-4 lg:hidden">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">

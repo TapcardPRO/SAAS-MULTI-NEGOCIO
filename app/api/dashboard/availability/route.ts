@@ -71,10 +71,28 @@ export async function GET(
         ) || ""
       ).trim();
 
-    const serviceId =
+    const rawServiceIds =
       String(
-        url.searchParams.get("serviceId") || ""
+        url.searchParams.get(
+          "serviceIds"
+        ) ||
+        url.searchParams.get(
+          "serviceId"
+        ) ||
+        ""
       ).trim();
+
+    const serviceIds: string[] =
+      rawServiceIds
+        .split(",")
+        .map(
+          (value: string) =>
+            value.trim()
+        )
+        .filter(Boolean);
+
+    const serviceId =
+      serviceIds[0] || "";
 
     let professionalId =
       String(
@@ -118,8 +136,13 @@ export async function GET(
     }
 
     if (
-      !serviceId ||
-      !ObjectId.isValid(serviceId)
+      serviceIds.length === 0 ||
+      serviceIds.some(
+        (id: string) =>
+          !ObjectId.isValid(
+            id
+          )
+      )
     ) {
       return NextResponse.json(
         {
@@ -205,9 +228,58 @@ export async function GET(
       );
     }
 
+    const selectedServices =
+      serviceIds.length > 1
+        ? await auth.db
+            .collection("services")
+            .find({
+              _id: {
+                $in:
+                  serviceIds.map(
+                    (id: string) =>
+                      new ObjectId(
+                        id
+                      )
+                  ),
+              },
+              businessId,
+              active: {
+                $ne: false,
+              },
+            } as any)
+            .toArray()
+        : [
+            service,
+          ];
+
+    if (
+      selectedServices.length !==
+      serviceIds.length
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Um dos serviços selecionados é inválido.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
     const duration =
-      Number(
-        service.duration || 30
+      selectedServices.reduce(
+        (
+          total,
+          item
+        ) =>
+          total +
+          Number(
+            item.duration ||
+              30
+          ),
+        0
       );
 
     if (

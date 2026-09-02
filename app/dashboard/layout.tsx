@@ -86,6 +86,8 @@ export default async function DashboardLayout({
         name: business.name || "Minha empresa",
         slug: business.slug || "",
         logoUrl: business.logoUrl || "",
+        primaryColor:
+          business.primaryColor || "#10b981",
       }}
     >
       {children}

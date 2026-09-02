@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CSSProperties,
   useEffect,
   useMemo,
   useState,
@@ -61,8 +62,10 @@ export default function BookingClient({
   services,
   professionals,
 }: Props) {
-  const [serviceId, setServiceId] =
-    useState("");
+  const [
+    serviceIds,
+    setServiceIds,
+  ] = useState<string[]>([]);
 
   const [
     professionalId,
@@ -139,7 +142,7 @@ export default function BookingClient({
 
   useEffect(() => {
     if (
-      !serviceId ||
+      serviceIds.length === 0 ||
       !professionalId ||
       !date
     ) {
@@ -150,7 +153,7 @@ export default function BookingClient({
 
     loadSlots();
   }, [
-    serviceId,
+    serviceIds,
     professionalId,
     date,
   ]);
@@ -161,16 +164,80 @@ export default function BookingClient({
   =====================================================
   */
 
-  const service =
+  const selectedServices =
     useMemo(() => {
-      return services.find(
+      return services.filter(
         (item) =>
-          item.id === serviceId
+          serviceIds.includes(
+            item.id
+          )
       );
     }, [
       services,
-      serviceId,
+      serviceIds,
     ]);
+
+  const totalDuration =
+    useMemo(
+      () =>
+        selectedServices.reduce(
+          (
+            total,
+            item
+          ) =>
+            total +
+            Number(
+              item.duration ||
+                0
+            ),
+          0
+        ),
+      [
+        selectedServices,
+      ]
+    );
+
+  const totalPrice =
+    useMemo(
+      () =>
+        selectedServices.reduce(
+          (
+            total,
+            item
+          ) =>
+            total +
+            Number(
+              item.price ||
+                0
+            ),
+          0
+        ),
+      [
+        selectedServices,
+      ]
+    );
+
+  function toggleService(
+    id: string
+  ) {
+    setServiceIds(
+      (current) =>
+        current.includes(
+          id
+        )
+          ? current.filter(
+              (item) =>
+                item !== id
+            )
+          : [
+              ...current,
+              id,
+            ]
+    );
+
+    setTime("");
+    setMessage("");
+  }
 
   const professional =
     useMemo(() => {
@@ -307,7 +374,8 @@ export default function BookingClient({
 
       const query =
         new URLSearchParams({
-          serviceId,
+          serviceIds:
+            serviceIds.join(","),
           professionalId,
           date,
         });
@@ -383,9 +451,12 @@ export default function BookingClient({
       return;
     }
 
-    if (!serviceId) {
+    if (
+      serviceIds.length ===
+      0
+    ) {
       setMessage(
-        "Escolha um serviço."
+        "Escolha pelo menos um serviço."
       );
       return;
     }
@@ -429,7 +500,9 @@ export default function BookingClient({
 
             body:
               JSON.stringify({
-                serviceId,
+                serviceIds,
+                serviceId:
+                  serviceIds[0],
                 professionalId,
                 date,
                 time,
@@ -521,7 +594,16 @@ export default function BookingClient({
 
   if (done) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#050b10] px-5 py-10 text-white">
+      <main
+        className="flex min-h-screen items-center justify-center bg-[#050b10] px-5 py-10 text-white"
+        style={
+          {
+            "--booking-primary":
+              business.primaryColor ||
+              "#10b981",
+          } as CSSProperties
+        }
+      >
         <div className="w-full max-w-lg rounded-2xl border border-emerald-500/20 bg-[#0a141d] p-5 text-center shadow-2xl sm:rounded-3xl sm:p-8">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-3xl font-black text-zinc-950">
             ✓
@@ -546,10 +628,16 @@ export default function BookingClient({
 
           <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-left sm:mt-7 sm:p-5">
             <SummaryRow
-              label="Serviço"
+              label="Serviços"
               value={
-                service?.name ||
-                "-"
+                selectedServices.length
+                  ? selectedServices
+                      .map(
+                        (item) =>
+                          item.name
+                      )
+                      .join(" + ")
+                  : "-"
               }
             />
 
@@ -573,13 +661,20 @@ export default function BookingClient({
               value={time}
             />
 
-            {service ? (
-              <SummaryRow
-                label="Valor"
-                value={money(
-                  service.price
-                )}
-              />
+            {selectedServices.length ? (
+              <>
+                <SummaryRow
+                  label="Duração total"
+                  value={`${totalDuration} min`}
+                />
+
+                <SummaryRow
+                  label="Valor"
+                  value={money(
+                    totalPrice
+                  )}
+                />
+              </>
             ) : null}
           </div>
 
@@ -601,7 +696,34 @@ export default function BookingClient({
   */
 
   return (
-    <main className="min-h-screen bg-[#050b10] text-white">
+    <main
+      className="vellto-public-booking min-h-screen bg-[#050b10] text-white"
+      style={
+        {
+          "--booking-primary":
+            business.primaryColor ||
+            "#10b981",
+        } as CSSProperties
+      }
+    >
+      <style>{`
+        .vellto-public-booking .bg-emerald-500 {
+          background-color: var(--booking-primary) !important;
+        }
+
+        .vellto-public-booking .text-emerald-400,
+        .vellto-public-booking .text-emerald-300 {
+          color: var(--booking-primary) !important;
+        }
+
+        .vellto-public-booking .border-emerald-500 {
+          border-color: var(--booking-primary) !important;
+        }
+
+        .vellto-public-booking .focus\\:border-emerald-500:focus {
+          border-color: var(--booking-primary) !important;
+        }
+      `}</style>
       <div className="border-b border-white/10 bg-[#081119]">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
           <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
@@ -679,15 +801,16 @@ export default function BookingClient({
         <section className="mt-8 sm:mt-10">
           <SectionTitle
             number="1"
-            title="Escolha o serviço"
+            title="Escolha os serviços"
           />
 
           <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2 sm:gap-4">
             {services.map(
               (item) => {
                 const selected =
-                  serviceId ===
-                  item.id;
+                  serviceIds.includes(
+                    item.id
+                  );
 
                 return (
                   <button
@@ -695,19 +818,11 @@ export default function BookingClient({
                       item.id
                     }
                     type="button"
-                    onClick={() => {
-                      setServiceId(
+                    onClick={() =>
+                      toggleService(
                         item.id
-                      );
-
-                      setTime(
-                        ""
-                      );
-
-                      setMessage(
-                        ""
-                      );
-                    }}
+                      )
+                    }
                     className={`rounded-2xl border p-4 text-left transition sm:p-5 ${
                       selected
                         ? "border-emerald-500 bg-emerald-500/[0.07]"
@@ -767,8 +882,8 @@ export default function BookingClient({
             title="Escolha o profissional"
           />
 
-          {!serviceId ? (
-            <EmptyState text="Escolha um serviço primeiro." />
+          {serviceIds.length === 0 ? (
+            <EmptyState text="Escolha pelo menos um serviço primeiro." />
           ) : (
             <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
               {professionals.map(
@@ -1098,10 +1213,16 @@ export default function BookingClient({
             />
 
             <SummaryRow
-              label="Serviço"
+              label="Serviços"
               value={
-                service?.name ||
-                "-"
+                selectedServices.length
+                  ? selectedServices
+                      .map(
+                        (item) =>
+                          item.name
+                      )
+                      .join(" + ")
+                  : "-"
               }
             />
 
@@ -1131,17 +1252,17 @@ export default function BookingClient({
               }
             />
 
-            {service ? (
+            {selectedServices.length ? (
               <>
                 <SummaryRow
-                  label="Duração"
-                  value={`${service.duration} min`}
+                  label="Duração total"
+                  value={`${totalDuration} min`}
                 />
 
                 <SummaryRow
-                  label="Valor"
+                  label="Valor total"
                   value={money(
-                    service.price
+                    totalPrice
                   )}
                 />
               </>
@@ -1163,7 +1284,7 @@ export default function BookingClient({
               submitting ||
               loadingCustomer ||
               !customer ||
-              !serviceId ||
+              serviceIds.length === 0 ||
               !professionalId ||
               !date ||
               !time

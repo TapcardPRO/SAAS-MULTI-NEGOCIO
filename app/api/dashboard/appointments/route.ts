@@ -141,9 +141,27 @@ export async function POST(request: NextRequest) {
       body.clientId || ""
     ).trim();
 
-    const serviceId = String(
-      body.serviceId || ""
-    ).trim();
+    const serviceIds =
+      (
+        Array.isArray(
+          body.serviceIds
+        )
+          ? body.serviceIds
+          : [
+              body.serviceId,
+            ]
+      )
+        .map(
+          (value: unknown) =>
+            String(
+              value || ""
+            ).trim()
+        )
+        .filter(Boolean);
+
+    const serviceId =
+      serviceIds[0] ||
+      "";
 
     let professionalId = String(
       body.professionalId || ""
@@ -202,7 +220,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ObjectId.isValid(serviceId)) {
+    if (
+      serviceIds.length === 0 ||
+      serviceIds.some(
+        (id: string) =>
+          !ObjectId.isValid(
+            id
+          )
+      )
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -329,6 +355,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const allServices =
+      serviceIds.length === 1
+        ? [
+            service,
+          ]
+        : await auth.db
+            .collection(
+              "services"
+            )
+            .find({
+              _id: {
+                $in:
+                  serviceIds.map(
+                    (id: string) =>
+                      new ObjectId(
+                        id
+                      )
+                  ),
+              },
+
+              $or:
+                businessFilters,
+
+              active: {
+                $ne: false,
+              },
+            } as any)
+            .toArray();
+
+    if (
+      allServices.length !==
+      serviceIds.length
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Um dos serviços selecionados não foi encontrado.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const orderedServices =
+      serviceIds.map(
+        (id: string) =>
+          allServices.find(
+            (item) =>
+              String(
+                item._id
+              ) === id
+          )
+      ).filter(Boolean) as any[];
+
     /*
     =====================================================
     PROFISSIONAL
@@ -372,9 +454,19 @@ export async function POST(request: NextRequest) {
     =====================================================
     */
 
-    const duration = Number(
-      service.duration || 30
-    );
+    const duration =
+      orderedServices.reduce(
+        (
+          total,
+          item
+        ) =>
+          total +
+          Number(
+            item.duration ||
+              30
+          ),
+        0
+      );
 
     if (
       !Number.isFinite(duration) ||
@@ -566,10 +658,51 @@ export async function POST(request: NextRequest) {
         client.phone || ""
       ),
 
-      serviceId: serviceObjectId,
-      serviceName: String(
-        service.name || ""
-      ),
+      serviceId:
+        serviceObjectId,
+
+      serviceIds:
+        orderedServices.map(
+          (item) =>
+            item._id
+        ),
+
+      services:
+        orderedServices.map(
+          (item) => ({
+            serviceId:
+              item._id,
+
+            name:
+              String(
+                item.name ||
+                  ""
+              ),
+
+            duration:
+              Number(
+                item.duration ||
+                  30
+              ),
+
+            price:
+              Number(
+                item.price ||
+                  0
+              ),
+          })
+        ),
+
+      serviceName:
+        orderedServices
+          .map(
+            (item) =>
+              String(
+                item.name ||
+                  ""
+              )
+          )
+          .join(" + "),
 
       professionalId:
         professionalObjectId,
@@ -586,9 +719,19 @@ export async function POST(request: NextRequest) {
       duration,
       serviceDuration: duration,
 
-      price: Number(
-        service.price || 0
-      ),
+      price:
+        orderedServices.reduce(
+          (
+            total,
+            item
+          ) =>
+            total +
+            Number(
+              item.price ||
+                0
+            ),
+          0
+        ),
 
       status: "pendente",
 

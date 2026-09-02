@@ -27,9 +27,26 @@ export async function POST(
 
     const body = await request.json();
 
-    const serviceId = String(
-      body.serviceId || ""
-    ).trim();
+    const serviceIds =
+      (
+        Array.isArray(
+          body.serviceIds
+        )
+          ? body.serviceIds
+          : [
+              body.serviceId,
+            ]
+      )
+        .map(
+          (value: unknown) =>
+            String(
+              value || ""
+            ).trim()
+        )
+        .filter(Boolean);
+
+    const serviceId =
+      serviceIds[0] || "";
 
     const requestedProfessionalId = String(
       body.professionalId || ""
@@ -67,7 +84,15 @@ export async function POST(
     =====================================================
     */
 
-    if (!ObjectId.isValid(serviceId)) {
+    if (
+      serviceIds.length === 0 ||
+      serviceIds.some(
+        (id: string) =>
+          !ObjectId.isValid(
+            id
+          )
+      )
+    ) {
       return NextResponse.json(
         {
           ok: false,
@@ -207,35 +232,105 @@ export async function POST(
     =====================================================
     */
 
-    const serviceObjectId =
-      new ObjectId(serviceId);
+    const serviceObjectIds =
+      serviceIds.map(
+        (id: string) =>
+          new ObjectId(
+            id
+          )
+      );
 
-    const service = await db
-      .collection("services")
-      .findOne({
-        _id:
-          serviceObjectId,
+    const foundServices =
+      await db
+        .collection("services")
+        .find({
+          _id: {
+            $in:
+              serviceObjectIds,
+          },
 
-        active: {
-          $ne: false,
-        },
+          active: {
+            $ne: false,
+          },
 
-        $or:
-          tenantFilters,
-      } as any);
+          $or:
+            tenantFilters,
+        } as any)
+        .toArray();
 
-    if (!service) {
+    if (
+      foundServices.length !==
+      serviceIds.length
+    ) {
       return NextResponse.json(
         {
           ok: false,
           message:
-            "Serviço não encontrado",
+            "Um dos serviços selecionados não está disponível",
         },
         {
           status: 404,
         }
       );
     }
+
+    const services =
+      serviceIds
+        .map(
+          (id: string) =>
+            foundServices.find(
+              (service) =>
+                String(
+                  service._id
+                ) === id
+            )
+        )
+        .filter(Boolean) as any[];
+
+    const service =
+      services[0];
+
+    const totalDuration =
+      services.reduce(
+        (
+          total,
+          item
+        ) =>
+          total +
+          Math.max(
+            5,
+            Number(
+              item.duration ||
+                30
+            )
+          ),
+        0
+      );
+
+    const totalPrice =
+      services.reduce(
+        (
+          total,
+          item
+        ) =>
+          total +
+          Number(
+            item.price ||
+              0
+          ),
+        0
+      );
+
+    const serviceName =
+      services
+        .map(
+          (item) =>
+            String(
+              item.name ||
+                "Serviço"
+            )
+        )
+        .join(" + ");
 
     /*
     =====================================================
@@ -282,35 +377,10 @@ export async function POST(
         );
       }
 
-      const availability =
-        await computeAvailability(
-          db,
-          {
-            businessId,
-            professionalId:
-              professional._id,
-            serviceId:
-              service._id,
-            date,
-          }
-        );
-
-      if (
-        !availability.slots.includes(
-          time
-        )
-      ) {
-        return NextResponse.json(
-          {
-            ok: false,
-            message:
-              "Esse horário não está mais disponível",
-          },
-          {
-            status: 409,
-          }
-        );
-      }
+      /*
+      A validação definitiva do intervalo completo acontece
+      mais abaixo usando totalDuration.
+      */
     } else {
       const professionals =
         await getEligibleProfessionals(
@@ -319,40 +389,16 @@ export async function POST(
           service._id
         );
 
-      for (
-        const candidate of professionals
-      ) {
-        const availability =
-          await computeAvailability(
-            db,
-            {
-              businessId,
-              professionalId:
-                candidate._id,
-              serviceId:
-                service._id,
-              date,
-            }
-          );
-
-        if (
-          availability.slots.includes(
-            time
-          )
-        ) {
-          professional =
-            candidate;
-
-          break;
-        }
-      }
+      professional =
+        professionals[0] ||
+        null;
 
       if (!professional) {
         return NextResponse.json(
           {
             ok: false,
             message:
-              "Nenhum profissional disponível nesse horário",
+              "Nenhum profissional disponível",
           },
           {
             status: 409,
@@ -511,13 +557,7 @@ export async function POST(
     */
 
     const duration =
-      Math.max(
-        5,
-        Number(
-          service.duration ||
-            30
-        )
-      );
+      totalDuration;
 
     const startMinutes =
       toMinutes(time);
@@ -723,17 +763,42 @@ export async function POST(
       serviceId:
         service._id,
 
-      serviceName:
-        String(
-          service.name ||
-            "Serviço"
+      serviceIds:
+        services.map(
+          (item) =>
+            item._id
         ),
 
-      price:
-        Number(
-          service.price ||
-            0
+      services:
+        services.map(
+          (item) => ({
+            serviceId:
+              item._id,
+
+            name:
+              String(
+                item.name ||
+                  "Serviço"
+              ),
+
+            duration:
+              Number(
+                item.duration ||
+                  30
+              ),
+
+            price:
+              Number(
+                item.price ||
+                  0
+              ),
+          })
         ),
+
+      serviceName,
+
+      price:
+        totalPrice,
 
       duration,
 

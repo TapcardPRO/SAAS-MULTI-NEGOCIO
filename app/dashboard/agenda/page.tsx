@@ -227,6 +227,11 @@ export default function AgendaPage() {
     useState("");
 
   const [
+    serviceIds,
+    setServiceIds,
+  ] = useState<string[]>([]);
+
+  const [
     professionalId,
     setProfessionalId,
   ] = useState("");
@@ -293,7 +298,7 @@ export default function AgendaPage() {
     }
 
     if (
-      !serviceId ||
+      serviceIds.length === 0 ||
       !professionalId ||
       !appointmentDate
     ) {
@@ -306,7 +311,7 @@ export default function AgendaPage() {
     loadAvailability();
   }, [
     showNewAppointment,
-    serviceId,
+    serviceIds,
     professionalId,
     appointmentDate,
   ]);
@@ -522,6 +527,7 @@ export default function AgendaPage() {
       setClientFormSuccess("");
 
       setServiceId("");
+      setServiceIds([]);
       setProfessionalId(
         availableProfessionals.length ===
           1
@@ -575,7 +581,10 @@ export default function AgendaPage() {
 
       const params =
         new URLSearchParams({
-          serviceId,
+          serviceIds:
+            serviceIds.join(","),
+          serviceId:
+            serviceIds[0] || "",
           professionalId,
           date:
             appointmentDate,
@@ -884,9 +893,12 @@ export default function AgendaPage() {
       return;
     }
 
-    if (!serviceId) {
+    if (
+      serviceIds.length ===
+      0
+    ) {
       setMessage(
-        "Selecione um serviço."
+        "Selecione pelo menos um serviço."
       );
 
       return;
@@ -936,7 +948,9 @@ export default function AgendaPage() {
             body:
               JSON.stringify({
                 clientId,
-                serviceId,
+                serviceIds,
+                serviceId:
+                  serviceIds[0],
                 professionalId,
 
                 date:
@@ -2011,17 +2025,49 @@ export default function AgendaPage() {
       clientSearch,
     ]);
 
-  const selectedService =
+  const selectedServices =
     useMemo(() => {
-      return services.find(
+      return services.filter(
         (service) =>
-          service._id ===
-          serviceId
+          serviceIds.includes(
+            service._id
+          )
       );
     }, [
       services,
-      serviceId,
+      serviceIds,
     ]);
+
+  const selectedService =
+    selectedServices[0];
+
+  const selectedServicesDuration =
+    selectedServices.reduce(
+      (
+        total,
+        service
+      ) =>
+        total +
+        Number(
+          service.duration ||
+            0
+        ),
+      0
+    );
+
+  const selectedServicesPrice =
+    selectedServices.reduce(
+      (
+        total,
+        service
+      ) =>
+        total +
+        Number(
+          service.price ||
+            0
+        ),
+      0
+    );
 
   const selectedProfessional =
     useMemo(() => {
@@ -2665,37 +2711,80 @@ export default function AgendaPage() {
                   ) : null}
                 </div>
 
-                <SelectField
-                  label="Serviço"
-                  value={
-                    serviceId
-                  }
-                  onChange={(
-                    value
-                  ) => {
-                    setServiceId(
-                      value
-                    );
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    Serviços
+                  </label>
 
-                    setAppointmentTime(
-                      ""
-                    );
-                  }}
-                  options={services.map(
-                    (
-                      service
-                    ) => ({
-                      value:
-                        service._id,
+                  <div className="space-y-2">
+                    {services.map(
+                      (service) => {
+                        const selected =
+                          serviceIds.includes(
+                            service._id
+                          );
 
-                      label:
-                        `${service.name} - ${formatPrice(
-                          service.price
-                        )}`,
-                    })
-                  )}
-                  placeholder="Selecione um serviço"
-                />
+                        return (
+                          <button
+                            key={
+                              service._id
+                            }
+                            type="button"
+                            onClick={() => {
+                              setServiceIds(
+                                (current) =>
+                                  current.includes(
+                                    service._id
+                                  )
+                                    ? current.filter(
+                                        (id) =>
+                                          id !==
+                                          service._id
+                                      )
+                                    : [
+                                        ...current,
+                                        service._id,
+                                      ]
+                              );
+
+                              setAppointmentTime(
+                                ""
+                              );
+                            }}
+                            className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition ${
+                              selected
+                                ? "border-emerald-500 bg-emerald-500/5"
+                                : "border-white/10 bg-[#071018]"
+                            }`}
+                          >
+                            <div>
+                              <p className="text-sm font-semibold">
+                                {service.name}
+                              </p>
+
+                              <p className="mt-1 text-xs text-zinc-500">
+                                {service.duration} min •{" "}
+                                {formatPrice(
+                                  service.price
+                                )}
+                              </p>
+                            </div>
+
+                            <span
+                              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs ${
+                                selected
+                                  ? "border-emerald-500 bg-emerald-500 text-zinc-950"
+                                  : "border-white/15 text-transparent"
+                              }`}
+                            >
+                              ✓
+                            </span>
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
 
                 <SelectField
                   label="Profissional"
@@ -2742,10 +2831,25 @@ export default function AgendaPage() {
                     />
 
                     <SummaryLine
-                      label="Serviço"
+                      label="Serviços"
                       value={
-                        selectedService?.name ||
-                        "-"
+                        selectedServices.length
+                          ? selectedServices
+                              .map(
+                                (item) =>
+                                  item.name
+                              )
+                              .join(" + ")
+                          : "-"
+                      }
+                    />
+
+                    <SummaryLine
+                      label="Duração"
+                      value={
+                        selectedServices.length
+                          ? `${selectedServicesDuration} min`
+                          : "-"
                       }
                     />
 
@@ -2779,9 +2883,9 @@ export default function AgendaPage() {
                     <SummaryLine
                       label="Valor"
                       value={
-                        selectedService
+                        selectedServices.length
                           ? formatPrice(
-                              selectedService.price
+                              selectedServicesPrice
                             )
                           : "-"
                       }
@@ -2898,17 +3002,14 @@ export default function AgendaPage() {
                       </h3>
                     </div>
 
-                    {selectedService ? (
+                    {selectedServices.length ? (
                       <p className="text-xs text-zinc-500">
-                        {
-                          selectedService.duration
-                        }{" "}
-                        min
+                        {selectedServicesDuration} min
                       </p>
                     ) : null}
                   </div>
 
-                  {!serviceId ||
+                  {serviceIds.length === 0 ||
                   !professionalId ? (
                     <div className="mt-5 rounded-xl border border-dashed border-white/10 p-8 text-center text-sm text-zinc-500">
                       Selecione primeiro o serviço e o profissional.

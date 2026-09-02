@@ -1,10 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
 
-import { getDb } from "@/lib/db";
+import {
+  ObjectId,
+} from "mongodb";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import {
+  getDb,
+} from "@/lib/db";
+
+export const dynamic =
+  "force-dynamic";
+
+export const revalidate =
+  0;
 
 type Props = {
   params: Promise<{
@@ -21,25 +32,7 @@ type DaySchedule = {
   breakEnd: string;
 };
 
-type WeeklySchedule = {
-  monday: DaySchedule;
-  tuesday: DaySchedule;
-  wednesday: DaySchedule;
-  thursday: DaySchedule;
-  friday: DaySchedule;
-  saturday: DaySchedule;
-  sunday: DaySchedule;
-};
-
-type ScheduleBlock = {
-  date: string;
-  start?: string;
-  end?: string;
-  allDay?: boolean;
-  reason?: string;
-};
-
-const weekKeys: Array<keyof WeeklySchedule> = [
+const weekKeys = [
   "sunday",
   "monday",
   "tuesday",
@@ -54,50 +47,62 @@ export async function GET(
   { params }: Props
 ) {
   try {
-    const { slug } = await params;
+    const { slug } =
+      await params;
 
-    const url = new URL(
-      request.url
-    );
-
-    const serviceId = String(
-      url.searchParams.get("serviceId") || ""
-    ).trim();
-
-    const professionalId = String(
-      url.searchParams.get("professionalId") || ""
-    ).trim();
-
-    const date = String(
-      url.searchParams.get("date") || ""
-    ).trim();
-
-    /*
-    =====================================================
-    VALIDAÇÕES
-    =====================================================
-    */
-
-    if (!slug) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: "Empresa não informada",
-        },
-        {
-          status: 400,
-        }
+    const url =
+      new URL(
+        request.url
       );
-    }
+
+    const rawServiceIds =
+      String(
+        url.searchParams.get(
+          "serviceIds"
+        ) ||
+        url.searchParams.get(
+          "serviceId"
+        ) ||
+        ""
+      );
+
+    const serviceIds =
+      rawServiceIds
+        .split(",")
+        .map(
+          (value) =>
+            value.trim()
+        )
+        .filter(Boolean);
+
+    const professionalId =
+      String(
+        url.searchParams.get(
+          "professionalId"
+        ) || ""
+      ).trim();
+
+    const date =
+      String(
+        url.searchParams.get(
+          "date"
+        ) || ""
+      ).trim();
 
     if (
-      !serviceId ||
-      !ObjectId.isValid(serviceId)
+      serviceIds.length === 0 ||
+      serviceIds.some(
+        (id) =>
+          !ObjectId.isValid(
+            id
+          )
+      )
     ) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Serviço inválido",
+          message:
+            "Selecione pelo menos um serviço.",
         },
         {
           status: 400,
@@ -106,7 +111,6 @@ export async function GET(
     }
 
     if (
-      !professionalId ||
       !ObjectId.isValid(
         professionalId
       )
@@ -115,7 +119,7 @@ export async function GET(
         {
           ok: false,
           message:
-            "Selecione um profissional",
+            "Selecione um profissional.",
         },
         {
           status: 400,
@@ -123,11 +127,16 @@ export async function GET(
       );
     }
 
-    if (!isValidDateString(date)) {
+    if (
+      !isValidDate(
+        date
+      )
+    ) {
       return NextResponse.json(
         {
           ok: false,
-          message: "Data inválida",
+          message:
+            "Data inválida.",
         },
         {
           status: 400,
@@ -135,30 +144,27 @@ export async function GET(
       );
     }
 
-    const db = await getDb();
+    const db =
+      await getDb();
 
-    /*
-    =====================================================
-    EMPRESA
-    =====================================================
-    */
-
-    const business = await db
-      .collection("businesses")
-      .findOne({
-        slug,
-
-        active: {
-          $ne: false,
-        },
-      });
+    const business =
+      await db
+        .collection(
+          "businesses"
+        )
+        .findOne({
+          slug,
+          active: {
+            $ne: false,
+          },
+        });
 
     if (!business) {
       return NextResponse.json(
         {
           ok: false,
           message:
-            "Empresa não encontrada",
+            "Empresa não encontrada.",
         },
         {
           status: 404,
@@ -169,51 +175,57 @@ export async function GET(
     const businessId =
       business._id;
 
-    const businessFilters: any[] = [
+    const tenant = [
       {
         businessId,
       },
-
       {
         businessId:
           businessId.toString(),
       },
-
       {
         businessSlug:
           slug,
       },
     ];
 
-    /*
-    =====================================================
-    SERVIÇO
-    =====================================================
-    */
+    const serviceObjectIds =
+      serviceIds.map(
+        (id) =>
+          new ObjectId(
+            id
+          )
+      );
 
-    const serviceObjectId =
-      new ObjectId(serviceId);
+    const services =
+      await db
+        .collection(
+          "services"
+        )
+        .find({
+          _id: {
+            $in:
+              serviceObjectIds,
+          },
 
-    const service = await db
-      .collection("services")
-      .findOne({
-        _id:
-          serviceObjectId,
+          active: {
+            $ne: false,
+          },
 
-        active: {
-          $ne: false,
-        },
+          $or:
+            tenant,
+        } as any)
+        .toArray();
 
-        $or:
-          businessFilters,
-      } as any);
-
-    if (!service) {
+    if (
+      services.length !==
+      serviceIds.length
+    ) {
       return NextResponse.json(
         {
           ok: false,
           message:
-            "Serviço não encontrado",
+            "Um dos serviços selecionados não está disponível.",
         },
         {
           status: 404,
@@ -221,58 +233,89 @@ export async function GET(
       );
     }
 
-    const duration =
-      Number(
-        service.duration || 30
-      );
-
-    if (
-      !Number.isFinite(duration) ||
-      duration <= 0
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "Duração do serviço inválida",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
     /*
-    =====================================================
-    PROFISSIONAL
-    =====================================================
+    Mantém a mesma ordem escolhida pelo cliente.
     */
+    const orderedServices =
+      serviceIds.map(
+        (id) =>
+          services.find(
+            (service) =>
+              String(
+                service._id
+              ) === id
+          )
+      ).filter(Boolean) as any[];
+
+    const totalDuration =
+      orderedServices.reduce(
+        (
+          total,
+          service
+        ) => {
+          const duration =
+            Number(
+              service.duration ||
+                30
+            );
+
+          return (
+            total +
+            (
+              Number.isFinite(
+                duration
+              ) &&
+              duration > 0
+                ? duration
+                : 30
+            )
+          );
+        },
+        0
+      );
+
+    const totalPrice =
+      orderedServices.reduce(
+        (
+          total,
+          service
+        ) =>
+          total +
+          Number(
+            service.price ||
+              0
+          ),
+        0
+      );
 
     const professionalObjectId =
       new ObjectId(
         professionalId
       );
 
-    const professional = await db
-      .collection("professionals")
-      .findOne({
-        _id:
-          professionalObjectId,
+    const professional =
+      await db
+        .collection(
+          "professionals"
+        )
+        .findOne({
+          _id:
+            professionalObjectId,
 
-        active: {
-          $ne: false,
-        },
+          active: {
+            $ne: false,
+          },
 
-        $or:
-          businessFilters,
-      } as any);
+          $or:
+            tenant,
+        } as any);
 
     if (!professional) {
       return NextResponse.json(
         {
           ok: false,
           message:
-            "Profissional não encontrado",
+            "Profissional não encontrado.",
         },
         {
           status: 404,
@@ -280,15 +323,11 @@ export async function GET(
       );
     }
 
-    /*
-    =====================================================
-    HORÁRIOS CONFIGURADOS
-    =====================================================
-    */
-
     const schedule =
       await db
-        .collection("schedules")
+        .collection(
+          "schedules"
+        )
         .findOne({
           $and: [
             {
@@ -299,11 +338,10 @@ export async function GET(
                 },
                 {
                   professionalId:
-                    professionalObjectId.toString(),
+                    professionalId,
                 },
               ],
             },
-
             {
               $or: [
                 {
@@ -319,53 +357,34 @@ export async function GET(
         } as any);
 
     if (
-      !schedule ||
-      !schedule.weekly
+      !schedule?.weekly
     ) {
       return NextResponse.json({
         ok: true,
-
-        date,
-
-        serviceId,
-
-        professionalId,
-
-        duration,
-
         slots: [],
-
+        totalDuration,
+        totalPrice,
         message:
-          "Profissional sem horários configurados",
+          "Profissional sem horários configurados.",
       });
     }
 
-    const weekly =
-      schedule.weekly as WeeklySchedule;
-
-    const blocks: ScheduleBlock[] =
-      Array.isArray(
-        schedule.blocks
-      )
-        ? schedule.blocks
-        : [];
-
-    /*
-    =====================================================
-    DIA DA SEMANA
-    =====================================================
-    */
-
     const dateObject =
-      createUTCDate(date);
+      createUTCDate(
+        date
+      );
 
-    const weekDayKey =
+    const key =
       weekKeys[
         dateObject.getUTCDay()
       ];
 
     const day =
-      weekly[weekDayKey];
+      schedule.weekly[
+        key
+      ] as
+        | DaySchedule
+        | undefined;
 
     if (
       !day ||
@@ -373,59 +392,39 @@ export async function GET(
     ) {
       return NextResponse.json({
         ok: true,
-
-        date,
-
-        serviceId,
-
-        professionalId,
-
-        duration,
-
         slots: [],
-
+        totalDuration,
+        totalPrice,
         message:
-          "Profissional não atende nesta data",
+          "Profissional não atende nesta data.",
       });
     }
 
-    /*
-    =====================================================
-    BLOQUEIO DO DIA INTEIRO
-    =====================================================
-    */
+    const blocks =
+      Array.isArray(
+        schedule.blocks
+      )
+        ? schedule.blocks
+        : [];
 
-    const allDayBlocked =
+    if (
       blocks.some(
-        (block) =>
-          block.date === date &&
-          block.allDay === true
-      );
-
-    if (allDayBlocked) {
+        (block: any) =>
+          block.date ===
+            date &&
+          block.allDay ===
+            true
+      )
+    ) {
       return NextResponse.json({
         ok: true,
-
-        date,
-
-        serviceId,
-
-        professionalId,
-
-        duration,
-
         slots: [],
-
+        totalDuration,
+        totalPrice,
         message:
-          "Profissional indisponível nesta data",
+          "Profissional indisponível nesta data.",
       });
     }
-
-    /*
-    =====================================================
-    AGENDAMENTOS EXISTENTES
-    =====================================================
-    */
 
     const appointments =
       await db
@@ -444,7 +443,7 @@ export async function GET(
                 },
                 {
                   professionalId:
-                    professionalObjectId.toString(),
+                    professionalId,
                 },
               ],
             },
@@ -462,6 +461,10 @@ export async function GET(
             },
           ],
 
+          /*
+          Pendente e confirmado bloqueiam o horário.
+          Só cancelado/faltou liberam.
+          */
           status: {
             $nin: [
               "cancelado",
@@ -471,12 +474,6 @@ export async function GET(
           },
         } as any)
         .toArray();
-
-    /*
-    =====================================================
-    GERAR HORÁRIOS
-    =====================================================
-    */
 
     const startOfDay =
       timeToMinutes(
@@ -496,7 +493,7 @@ export async function GET(
         {
           ok: false,
           message:
-            "Horário de expediente inválido",
+            "Horário de expediente inválido.",
         },
         {
           status: 500,
@@ -504,33 +501,31 @@ export async function GET(
       );
     }
 
-    const slotInterval =
-      15;
-
-    const slots: Array<{
+    const slots: {
       time: string;
       endTime: string;
-    }> = [];
+    }[] = [];
 
+    /*
+    Mantemos grade de 15 minutos,
+    mas a duração real pode ser 30, 40, 70, 90...
+    */
     for (
       let start =
         startOfDay;
-      start + duration <=
+
+      start +
+        totalDuration <=
       endOfDay;
-      start += slotInterval
+
+      start += 15
     ) {
       const end =
-        start + duration;
-
-      /*
-      ===================================================
-      INTERVALO
-      ===================================================
-      */
+        start +
+        totalDuration;
 
       if (
-        day.breakEnabled ===
-        true
+        day.breakEnabled
       ) {
         const breakStart =
           timeToMinutes(
@@ -543,8 +538,10 @@ export async function GET(
           );
 
         if (
-          breakStart !== null &&
-          breakEnd !== null &&
+          breakStart !==
+            null &&
+          breakEnd !==
+            null &&
           overlaps(
             start,
             end,
@@ -556,15 +553,9 @@ export async function GET(
         }
       }
 
-      /*
-      ===================================================
-      BLOQUEIOS
-      ===================================================
-      */
-
       const blocked =
         blocks.some(
-          (block) => {
+          (block: any) => {
             if (
               block.date !==
               date
@@ -573,20 +564,25 @@ export async function GET(
             }
 
             if (
-              block.allDay ===
-              true
+              block.allDay
             ) {
               return true;
             }
 
             const blockStart =
               timeToMinutes(
-                block.start || ""
+                String(
+                  block.start ||
+                    ""
+                )
               );
 
             const blockEnd =
               timeToMinutes(
-                block.end || ""
+                String(
+                  block.end ||
+                    ""
+                )
               );
 
             if (
@@ -611,19 +607,13 @@ export async function GET(
         continue;
       }
 
-      /*
-      ===================================================
-      HORÁRIOS OCUPADOS
-      ===================================================
-      */
-
       const occupied =
         appointments.some(
           (
             appointment
           ) => {
             const appointmentStart =
-              getAppointmentStartMinutes(
+              getAppointmentStart(
                 appointment
               );
 
@@ -635,7 +625,7 @@ export async function GET(
             }
 
             const appointmentEnd =
-              getAppointmentEndMinutes(
+              getAppointmentEnd(
                 appointment,
                 appointmentStart
               );
@@ -653,22 +643,13 @@ export async function GET(
         continue;
       }
 
-      /*
-      ===================================================
-      HORÁRIOS QUE JÁ PASSARAM
-      ===================================================
-      */
-
       if (
         date ===
         todaySaoPaulo()
       ) {
-        const nowMinutes =
-          currentMinutesSaoPaulo();
-
         if (
           start <=
-          nowMinutes
+          currentMinutesSaoPaulo()
         ) {
           continue;
         }
@@ -687,54 +668,51 @@ export async function GET(
       });
     }
 
-    /*
-    =====================================================
-    RETORNO
-    =====================================================
-    */
-
     return NextResponse.json({
       ok: true,
 
-      business: {
-        _id:
-          businessId.toString(),
+      serviceIds,
 
-        name:
-          String(
-            business.name || ""
-          ),
+      services:
+        orderedServices.map(
+          (service) => ({
+            id:
+              String(
+                service._id
+              ),
 
-        slug:
-          String(
-            business.slug || ""
-          ),
-      },
+            name:
+              String(
+                service.name ||
+                  ""
+              ),
 
-      service: {
-        _id:
-          serviceObjectId.toString(),
+            duration:
+              Number(
+                service.duration ||
+                  30
+              ),
 
-        name:
-          String(
-            service.name || ""
-          ),
+            price:
+              Number(
+                service.price ||
+                  0
+              ),
+          })
+        ),
 
-        duration,
+      totalDuration,
 
-        price:
-          Number(
-            service.price || 0
-          ),
-      },
+      totalPrice,
 
       professional: {
-        _id:
-          professionalObjectId.toString(),
+        id:
+          professionalId,
 
         name:
           String(
-            professional.name || ""
+            professional.name ||
+              ""
           ),
       },
 
@@ -744,7 +722,7 @@ export async function GET(
     });
   } catch (error) {
     console.error(
-      "GET PUBLIC AVAILABILITY ERROR:",
+      "PUBLIC MULTI AVAILABILITY ERROR:",
       error
     );
 
@@ -752,7 +730,7 @@ export async function GET(
       {
         ok: false,
         message:
-          "Erro interno ao calcular disponibilidade",
+          "Erro ao calcular disponibilidade.",
       },
       {
         status: 500,
@@ -761,11 +739,69 @@ export async function GET(
   }
 }
 
-/*
-=========================================================
-HELPERS
-=========================================================
-*/
+function getAppointmentStart(
+  appointment: any
+): number | null {
+  if (
+    Number.isFinite(
+      Number(
+        appointment.startMinutes
+      )
+    )
+  ) {
+    return Number(
+      appointment.startMinutes
+    );
+  }
+
+  return timeToMinutes(
+    String(
+      appointment.startTime ||
+        appointment.time ||
+        ""
+    )
+  );
+}
+
+function getAppointmentEnd(
+  appointment: any,
+  start: number
+) {
+  if (
+    Number.isFinite(
+      Number(
+        appointment.endMinutes
+      )
+    )
+  ) {
+    return Number(
+      appointment.endMinutes
+    );
+  }
+
+  const end =
+    timeToMinutes(
+      String(
+        appointment.endTime ||
+          ""
+      )
+    );
+
+  if (
+    end !== null
+  ) {
+    return end;
+  }
+
+  return (
+    start +
+    Number(
+      appointment.duration ||
+        appointment.serviceDuration ||
+        30
+    )
+  );
+}
 
 function overlaps(
   startA: number,
@@ -774,8 +810,10 @@ function overlaps(
   endB: number
 ) {
   return (
-    startA < endB &&
-    endA > startB
+    startA <
+      endB &&
+    endA >
+      startB
   );
 }
 
@@ -806,21 +844,15 @@ function timeToMinutes(
 function minutesToTime(
   value: number
 ) {
-  const hour =
+  return `${String(
     Math.floor(
       value / 60
-    );
-
-  const minute =
-    value % 60;
-
-  return `${String(
-    hour
+    )
   ).padStart(
     2,
     "0"
   )}:${String(
-    minute
+    value % 60
   ).padStart(
     2,
     "0"
@@ -848,159 +880,28 @@ function createUTCDate(
   );
 }
 
-function isValidDateString(
+function isValidDate(
   value: string
 ) {
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(
-      value
-    )
-  ) {
-    return false;
-  }
-
-  const [
-    year,
-    month,
-    day,
-  ] = value
-    .split("-")
-    .map(Number);
-
-  const date =
-    new Date(
-      Date.UTC(
-        year,
-        month - 1,
-        day,
-        12
-      )
-    );
-
-  return (
-    date.getUTCFullYear() ===
-      year &&
-    date.getUTCMonth() ===
-      month - 1 &&
-    date.getUTCDate() ===
-      day
-  );
-}
-
-function getAppointmentStartMinutes(
-  appointment: any
-): number | null {
-  if (
-    Number.isFinite(
-      Number(
-        appointment.startMinutes
-      )
-    )
-  ) {
-    return Number(
-      appointment.startMinutes
-    );
-  }
-
-  return timeToMinutes(
-    String(
-      appointment.startTime ||
-        appointment.time ||
-        ""
-    )
-  );
-}
-
-function getAppointmentEndMinutes(
-  appointment: any,
-  appointmentStart: number
-) {
-  if (
-    Number.isFinite(
-      Number(
-        appointment.endMinutes
-      )
-    )
-  ) {
-    return Number(
-      appointment.endMinutes
-    );
-  }
-
-  const storedEnd =
-    timeToMinutes(
-      String(
-        appointment.endTime ||
-          ""
-      )
-    );
-
-  if (
-    storedEnd !== null
-  ) {
-    return storedEnd;
-  }
-
-  return (
-    appointmentStart +
-    Number(
-      appointment.duration ||
-        appointment.serviceDuration ||
-        30
-    )
+  return /^\d{4}-\d{2}-\d{2}$/.test(
+    value
   );
 }
 
 function todaySaoPaulo() {
-  const formatter =
-    new Intl.DateTimeFormat(
-      "en-CA",
-      {
-        timeZone:
-          "America/Sao_Paulo",
-
-        year:
-          "numeric",
-
-        month:
-          "2-digit",
-
-        day:
-          "2-digit",
-      }
-    );
-
-  const parts =
-    formatter.formatToParts(
-      new Date()
-    );
-
-  const year =
-    parts.find(
-      (part) =>
-        part.type ===
-        "year"
-    )?.value;
-
-  const month =
-    parts.find(
-      (part) =>
-        part.type ===
-        "month"
-    )?.value;
-
-  const day =
-    parts.find(
-      (part) =>
-        part.type ===
-        "day"
-    )?.value;
-
-  return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone:
+        "America/Sao_Paulo",
+    }
+  ).format(
+    new Date()
+  );
 }
 
 function currentMinutesSaoPaulo() {
-  const formatter =
+  const parts =
     new Intl.DateTimeFormat(
       "en-US",
       {
@@ -1016,10 +917,7 @@ function currentMinutesSaoPaulo() {
         hour12:
           false,
       }
-    );
-
-  const parts =
-    formatter.formatToParts(
+    ).formatToParts(
       new Date()
     );
 
@@ -1029,7 +927,8 @@ function currentMinutesSaoPaulo() {
         (part) =>
           part.type ===
           "hour"
-      )?.value || 0
+      )?.value ||
+        0
     );
 
   const minute =
@@ -1038,7 +937,8 @@ function currentMinutesSaoPaulo() {
         (part) =>
           part.type ===
           "minute"
-      )?.value || 0
+      )?.value ||
+        0
     );
 
   return (
