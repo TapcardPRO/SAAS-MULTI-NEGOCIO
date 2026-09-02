@@ -1,5 +1,14 @@
-import { getDb } from "@/lib/db";
-import { notFound } from "next/navigation";
+import type {
+  ReactNode,
+} from "react";
+
+import {
+  getDb,
+} from "@/lib/db";
+
+import {
+  notFound,
+} from "next/navigation";
 
 type PageProps = {
   params: Promise<{
@@ -10,24 +19,32 @@ type PageProps = {
 export default async function BusinessPage({
   params,
 }: PageProps) {
-  const { slug } = await params;
+  const {
+    slug,
+  } = await params;
 
-  const db = await getDb();
+  const db =
+    await getDb();
 
-  const business = await db
-    .collection("businesses")
-    .findOne({
-      slug,
-      active: {
-        $ne: false,
-      },
-    });
+  const business =
+    await db
+      .collection(
+        "businesses"
+      )
+      .findOne({
+        slug,
+
+        active: {
+          $ne: false,
+        },
+      });
 
   if (!business) {
     notFound();
   }
 
-  const businessId = business._id;
+  const businessId =
+    business._id;
 
   const tenantFilter = {
     $or: [
@@ -39,56 +56,201 @@ export default async function BusinessPage({
           businessId.toString(),
       },
       {
-        businessSlug: slug,
+        businessSlug:
+          slug,
       },
     ],
   };
 
-  const services = await db
-    .collection("services")
-    .find({
-      ...tenantFilter,
+  const [
+    services,
+    professionals,
+  ] = await Promise.all([
+    db
+      .collection(
+        "services"
+      )
+      .find({
+        ...tenantFilter,
 
-      active: {
-        $ne: false,
-      },
-    } as any)
-    .sort({
-      order: 1,
-      createdAt: 1,
-    })
-    .toArray();
+        active: {
+          $ne: false,
+        },
+      } as any)
+      .sort({
+        order: 1,
+        createdAt: 1,
+      })
+      .toArray(),
 
-  const professionals = await db
-    .collection("professionals")
-    .find({
-      ...tenantFilter,
+    db
+      .collection(
+        "professionals"
+      )
+      .find({
+        ...tenantFilter,
 
-      active: {
-        $ne: false,
-      },
-    } as any)
-    .sort({
-      order: 1,
-      createdAt: 1,
-    })
-    .toArray();
+        active: {
+          $ne: false,
+        },
+      } as any)
+      .sort({
+        order: 1,
+        createdAt: 1,
+      })
+      .toArray(),
+  ]);
+
+  /*
+  =========================================================
+  TEMA
+  =========================================================
+  */
 
   const primaryColor =
-    business.primaryColor ||
-    "#10b981";
+    normalizeHex(
+      business.primaryColor,
+      "#10b981"
+    );
 
   const backgroundColor =
-    business.backgroundColor ||
-    "#050b10";
-
-  const textColor =
-    business.textColor ||
-    "#ffffff";
+    normalizeHex(
+      business.backgroundColor,
+      "#071018"
+    );
 
   const secondaryColor =
-    business.secondaryColor ||
-    "#0a141d";
+    normalizeHex(
+      business.secondaryColor,
+      "#0d1822"
+    );
+
+  const configuredText =
+    normalizeHex(
+      business.textColor,
+      "#ffffff"
+    );
+
+  const textColor =
+    contrastRatio(
+      configuredText,
+      backgroundColor
+    ) >= 4.2
+      ? configuredText
+      : bestContrastColor(
+          backgroundColor
+        );
+
+  const darkTheme =
+    luminance(
+      backgroundColor
+    ) < 0.48;
+
+  const surfaceColor =
+    mixHex(
+      backgroundColor,
+      secondaryColor,
+      0.72
+    );
+
+  const elevatedColor =
+    mixHex(
+      surfaceColor,
+      darkTheme
+        ? "#ffffff"
+        : "#000000",
+      darkTheme
+        ? 0.045
+        : 0.025
+    );
+
+  const softSurface =
+    mixHex(
+      backgroundColor,
+      darkTheme
+        ? "#ffffff"
+        : "#000000",
+      darkTheme
+        ? 0.035
+        : 0.025
+    );
+
+  const mutedText =
+    rgba(
+      hexToRgb(
+        textColor
+      ),
+      0.60
+    );
+
+  const softerText =
+    rgba(
+      hexToRgb(
+        textColor
+      ),
+      0.42
+    );
+
+  const borderColor =
+    rgba(
+      hexToRgb(
+        textColor
+      ),
+      darkTheme
+        ? 0.10
+        : 0.14
+    );
+
+  const borderStrong =
+    rgba(
+      hexToRgb(
+        textColor
+      ),
+      darkTheme
+        ? 0.16
+        : 0.20
+    );
+
+  const primarySoft =
+    rgba(
+      hexToRgb(
+        primaryColor
+      ),
+      darkTheme
+        ? 0.12
+        : 0.09
+    );
+
+  const primarySoftStrong =
+    rgba(
+      hexToRgb(
+        primaryColor
+      ),
+      darkTheme
+        ? 0.20
+        : 0.15
+    );
+
+  const onPrimary =
+    bestContrastColor(
+      primaryColor
+    );
+
+  const gallery =
+    Array.isArray(
+      business.gallery
+    )
+      ? business.gallery
+          .filter(Boolean)
+          .map(String)
+      : [];
+
+  const showProfessionals =
+    business.showProfessionals !==
+    false;
+
+  const bookingHref =
+    `/${slug}/agendar`;
 
   const whatsappHref =
     getWhatsAppHref(
@@ -100,96 +262,206 @@ export default async function BusinessPage({
       business.instagram
     );
 
-  const bookingHref =
-    `/${slug}/agendar`;
-
   const mapsHref =
     business.address
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-          business.address
+          String(
+            business.address
+          )
         )}`
       : "";
 
   const wazeHref =
     business.address
       ? `https://www.waze.com/ul?q=${encodeURIComponent(
-          business.address
+          String(
+            business.address
+          )
         )}&navigate=yes`
       : "";
 
-  const gallery =
-    Array.isArray(
-      business.gallery
-    )
-      ? business.gallery.filter(
-          Boolean
-        )
-      : [];
+  const cssVariables = {
+    "--public-primary":
+      primaryColor,
 
-  const showProfessionals =
-    business.showProfessionals !==
-    false;
+    "--public-primary-soft":
+      primarySoft,
+
+    "--public-primary-soft-strong":
+      primarySoftStrong,
+
+    "--public-on-primary":
+      onPrimary,
+
+    "--public-background":
+      backgroundColor,
+
+    "--public-surface":
+      surfaceColor,
+
+    "--public-elevated":
+      elevatedColor,
+
+    "--public-soft-surface":
+      softSurface,
+
+    "--public-text":
+      textColor,
+
+    "--public-muted":
+      mutedText,
+
+    "--public-softer":
+      softerText,
+
+    "--public-border":
+      borderColor,
+
+    "--public-border-strong":
+      borderStrong,
+  } as React.CSSProperties;
 
   return (
     <main
-      className="min-h-screen overflow-hidden"
-      style={{
-        backgroundColor,
-        color: textColor,
-      }}
+      className="vellto-public min-h-screen overflow-x-hidden"
+      style={
+        cssVariables
+      }
     >
+      <style>{`
+        html {
+          scroll-behavior: smooth;
+        }
+
+        .vellto-public {
+          background:
+            radial-gradient(
+              circle at 90% 2%,
+              var(--public-primary-soft),
+              transparent 28rem
+            ),
+            var(--public-background);
+
+          color:
+            var(--public-text);
+        }
+
+        .vellto-public ::selection {
+          background:
+            var(--public-primary);
+
+          color:
+            var(--public-on-primary);
+        }
+
+        .vellto-public a,
+        .vellto-public button {
+          -webkit-tap-highlight-color:
+            transparent;
+        }
+
+        .vellto-public .glass {
+          background:
+            color-mix(
+              in srgb,
+              var(--public-surface) 88%,
+              transparent
+            );
+
+          backdrop-filter:
+            blur(18px);
+        }
+
+        .vellto-public .surface {
+          background:
+            var(--public-surface);
+        }
+
+        .vellto-public .elevated {
+          background:
+            var(--public-elevated);
+        }
+
+        .vellto-public .public-border {
+          border-color:
+            var(--public-border);
+        }
+
+        .vellto-public .primary-shadow {
+          box-shadow:
+            0 20px 50px
+            color-mix(
+              in srgb,
+              var(--public-primary) 22%,
+              transparent
+            );
+        }
+      `}</style>
+
       {/* ==================================================
           HEADER
       ================================================== */}
 
       <header
-        className="sticky top-0 z-50 border-b backdrop-blur-xl"
+        className="sticky top-0 z-50 border-b glass"
         style={{
-          borderColor:
-            `${textColor}12`,
-
-          backgroundColor:
-            `${backgroundColor}e8`,
+          borderColor,
         }}
       >
-        <div className="mx-auto flex min-h-[74px] max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-5 sm:px-6">
+        <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <a
             href={`/${slug}`}
-            className="flex min-w-0 flex-1 items-center gap-3 sm:flex-none"
+            className="flex min-w-0 items-center gap-3"
           >
             {business.logoUrl ? (
               <img
                 src={
-                  business.logoUrl
+                  String(
+                    business.logoUrl
+                  )
                 }
                 alt={
-                  business.name
+                  String(
+                    business.name
+                  )
                 }
-                className="h-11 w-11 shrink-0 rounded-xl object-cover"
+                className="h-10 w-10 rounded-xl border object-cover"
+                style={{
+                  borderColor,
+                }}
               />
             ) : (
               <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-black"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black"
                 style={{
                   backgroundColor:
-                    `${primaryColor}20`,
+                    primarySoftStrong,
 
                   color:
                     primaryColor,
                 }}
               >
                 {getInitials(
-                  business.name
+                  String(
+                    business.name ||
+                      ""
+                  )
                 )}
               </div>
             )}
 
             <div className="min-w-0">
-              <p className="max-w-[150px] truncate text-sm font-bold sm:max-w-none sm:text-base">
+              <p className="max-w-[180px] truncate text-sm font-extrabold tracking-tight sm:max-w-[260px] sm:text-base">
                 {business.name}
               </p>
 
-              <p className="hidden truncate text-[11px] uppercase tracking-[0.16em] opacity-40 sm:block">
+              <p
+                className="mt-0.5 hidden max-w-[230px] truncate text-[10px] font-semibold uppercase tracking-[0.16em] sm:block"
+                style={{
+                  color:
+                    softerText,
+                }}
+              >
                 {business.category ||
                   "Agendamento online"}
               </p>
@@ -197,61 +469,42 @@ export default async function BusinessPage({
           </a>
 
           <nav className="hidden items-center gap-7 lg:flex">
-            <a
-              href="#servicos"
-              className="text-sm opacity-60 transition hover:opacity-100"
-            >
+            <NavLink href="#servicos">
               Serviços
-            </a>
+            </NavLink>
 
-            <a
-              href="#sobre"
-              className="text-sm opacity-60 transition hover:opacity-100"
-            >
-              Sobre nós
-            </a>
+            <NavLink href="#sobre">
+              Sobre
+            </NavLink>
 
             {showProfessionals &&
             professionals.length >
               0 ? (
-              <a
-                href="#equipe"
-                className="text-sm opacity-60 transition hover:opacity-100"
-              >
+              <NavLink href="#equipe">
                 Equipe
-              </a>
+              </NavLink>
             ) : null}
 
             {gallery.length >
             0 ? (
-              <a
-                href="#galeria"
-                className="text-sm opacity-60 transition hover:opacity-100"
-              >
+              <NavLink href="#galeria">
                 Galeria
-              </a>
+              </NavLink>
             ) : null}
 
             {business.address ? (
-              <a
-                href="#localizacao"
-                className="text-sm opacity-60 transition hover:opacity-100"
-              >
+              <NavLink href="#localizacao">
                 Localização
-              </a>
+              </NavLink>
             ) : null}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2">
             <a
               href={`/${slug}/cliente`}
-              className="inline-flex rounded-xl border px-3 py-2.5 text-xs font-semibold transition hover:-translate-y-0.5 sm:px-4 sm:py-3 sm:text-sm"
+              className="hidden rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 sm:inline-flex"
               style={{
-                borderColor:
-                  `${textColor}18`,
-
-                backgroundColor:
-                  `${textColor}08`,
+                borderColor,
 
                 color:
                   textColor,
@@ -261,19 +514,19 @@ export default async function BusinessPage({
             </a>
 
             <a
-              href={bookingHref}
-              className="hidden rounded-xl px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 sm:inline-flex"
+              href={
+                bookingHref
+              }
+              className="inline-flex min-h-[42px] items-center justify-center rounded-xl px-4 text-sm font-extrabold transition hover:-translate-y-0.5 sm:px-5"
               style={{
                 backgroundColor:
                   primaryColor,
 
                 color:
-                  getContrastColor(
-                    primaryColor
-                  ),
+                  onPrimary,
               }}
             >
-              Agendar horário
+              Agendar
             </a>
           </div>
         </div>
@@ -284,144 +537,261 @@ export default async function BusinessPage({
       ================================================== */}
 
       <section className="relative">
-        <div className="relative min-h-[600px] sm:min-h-[680px] lg:min-h-[760px]">
-          {business.coverUrl ? (
-            <img
-              src={
-                business.coverUrl
-              }
-              alt={`Capa de ${business.name}`}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-14 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-16 lg:pb-24 lg:pt-20">
+          <div className="relative z-10">
             <div
-              className="absolute inset-0"
+              className="inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.18em]"
               style={{
-                background: `
-                  radial-gradient(
-                    circle at 80% 20%,
-                    ${primaryColor}35,
-                    transparent 35%
+                borderColor:
+                  rgba(
+                    hexToRgb(
+                      primaryColor
+                    ),
+                    0.28
                   ),
-                  linear-gradient(
-                    135deg,
-                    ${secondaryColor},
-                    ${backgroundColor}
-                  )
-                `,
+
+                backgroundColor:
+                  primarySoft,
+
+                color:
+                  primaryColor,
+              }}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{
+                  backgroundColor:
+                    primaryColor,
+                }}
+              />
+
+              {business.category ||
+                "Atendimento profissional"}
+            </div>
+
+            <h1 className="mt-6 max-w-2xl text-[2.6rem] font-black leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-[4.7rem]">
+              {business.name}
+            </h1>
+
+            <p
+              className="mt-6 max-w-xl text-base leading-7 sm:text-lg sm:leading-8"
+              style={{
+                color:
+                  mutedText,
+              }}
+            >
+              {business.description ||
+                "Atendimento profissional, organizado e com agendamento online para tornar sua experiência mais simples."}
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a
+                href={
+                  bookingHref
+                }
+                className="primary-shadow inline-flex min-h-[54px] items-center justify-center gap-3 rounded-2xl px-7 font-extrabold transition hover:-translate-y-1"
+                style={{
+                  backgroundColor:
+                    primaryColor,
+
+                  color:
+                    onPrimary,
+                }}
+              >
+                Agendar horário
+
+                <span>
+                  →
+                </span>
+              </a>
+
+              {whatsappHref ? (
+                <a
+                  href={
+                    whatsappHref
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl border px-7 font-bold transition hover:-translate-y-1"
+                  style={{
+                    borderColor:
+                      borderStrong,
+
+                    backgroundColor:
+                      elevatedColor,
+
+                    color:
+                      textColor,
+                  }}
+                >
+                  WhatsApp
+                </a>
+              ) : null}
+            </div>
+
+            <div
+              className="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-sm"
+              style={{
+                color:
+                  softerText,
+              }}
+            >
+              {services.length >
+              0 ? (
+                <TrustItem
+                  accent={
+                    primaryColor
+                  }
+                >
+                  {services.length}{" "}
+                  {services.length ===
+                  1
+                    ? "serviço disponível"
+                    : "serviços disponíveis"}
+                </TrustItem>
+              ) : null}
+
+              {professionals.length >
+              0 ? (
+                <TrustItem
+                  accent={
+                    primaryColor
+                  }
+                >
+                  Atendimento com
+                  hora marcada
+                </TrustItem>
+              ) : null}
+            </div>
+          </div>
+
+          {/* FOTO DE CAPA */}
+
+          <div className="relative">
+            <div
+              className="absolute -inset-6 rounded-[44px] opacity-70 blur-3xl"
+              style={{
+                background:
+                  `radial-gradient(circle, ${primarySoftStrong}, transparent 68%)`,
               }}
             />
-          )}
 
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                business.coverUrl
-                  ? `
-                    linear-gradient(
-                      90deg,
-                      rgba(0,0,0,.86) 0%,
-                      rgba(0,0,0,.62) 44%,
-                      rgba(0,0,0,.20) 100%
-                    ),
-                    linear-gradient(
-                      to top,
-                      ${backgroundColor} 0%,
-                      transparent 42%
-                    )
-                  `
-                  : `
-                    linear-gradient(
-                      to top,
-                      ${backgroundColor},
-                      transparent
-                    )
-                  `,
-            }}
-          />
+            <div
+              className="relative overflow-hidden rounded-[28px] border p-2 shadow-2xl sm:rounded-[36px]"
+              style={{
+                borderColor,
 
-          <div className="relative z-10 mx-auto flex min-h-[600px] max-w-7xl items-center px-4 py-16 sm:min-h-[680px] sm:px-6 sm:py-20 lg:min-h-[760px]">
-            <div className="max-w-3xl">
+                backgroundColor:
+                  elevatedColor,
+
+                boxShadow:
+                  darkTheme
+                    ? "0 40px 90px rgba(0,0,0,.38)"
+                    : "0 30px 70px rgba(0,0,0,.12)",
+              }}
+            >
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] sm:rounded-[29px] lg:aspect-[1.08/1]">
+                {business.coverUrl ? (
+                  <img
+                    src={
+                      String(
+                        business.coverUrl
+                      )
+                    }
+                    alt={`Capa de ${business.name}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="flex h-full items-center justify-center"
+                    style={{
+                      background: `
+                        radial-gradient(
+                          circle at 70% 20%,
+                          ${primarySoftStrong},
+                          transparent 40%
+                        ),
+                        linear-gradient(
+                          135deg,
+                          ${surfaceColor},
+                          ${backgroundColor}
+                        )
+                      `,
+                    }}
+                  >
+                    {business.logoUrl ? (
+                      <img
+                        src={
+                          String(
+                            business.logoUrl
+                          )
+                        }
+                        alt={
+                          String(
+                            business.name
+                          )
+                        }
+                        className="h-28 w-28 rounded-[28px] object-cover shadow-2xl sm:h-36 sm:w-36"
+                      />
+                    ) : (
+                      <span
+                        className="text-7xl font-black opacity-80"
+                        style={{
+                          color:
+                            primaryColor,
+                        }}
+                      >
+                        {getInitials(
+                          String(
+                            business.name ||
+                              ""
+                          )
+                        )}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+              </div>
+            </div>
+
+            <div
+              className="absolute -bottom-5 left-5 right-5 flex items-center justify-between gap-4 rounded-2xl border p-4 shadow-xl sm:left-8 sm:right-auto sm:min-w-[280px]"
+              style={{
+                borderColor,
+
+                backgroundColor:
+                  elevatedColor,
+              }}
+            >
+              <div>
+                <p
+                  className="text-[10px] font-black uppercase tracking-[0.18em]"
+                  style={{
+                    color:
+                      primaryColor,
+                  }}
+                >
+                  Agendamento
+                </p>
+
+                <p className="mt-1 text-sm font-bold">
+                  Reserve online
+                </p>
+              </div>
+
               <div
-                className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em]"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-black"
                 style={{
-                  borderColor:
-                    `${primaryColor}40`,
-
                   backgroundColor:
-                    `${primaryColor}12`,
+                    primarySoftStrong,
 
                   color:
                     primaryColor,
                 }}
               >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{
-                    backgroundColor:
-                      primaryColor,
-                  }}
-                />
-
-                {business.category ||
-                  "Atendimento profissional"}
-              </div>
-
-              <h1 className="mt-6 break-words text-[2.55rem] font-black leading-[0.98] tracking-[-0.04em] text-white sm:mt-7 sm:text-6xl lg:text-7xl">
-                {business.name}
-              </h1>
-
-              <p className="mt-7 max-w-2xl text-base leading-7 text-white/65 sm:text-lg sm:leading-8">
-                {business.description ||
-                  "Qualidade, cuidado e praticidade para você. Escolha seu serviço e reserve seu horário online."}
-              </p>
-
-              <div className="mt-10 flex flex-wrap gap-x-7 gap-y-4 text-sm text-white/55">
-                {services.length >
-                0 ? (
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="flex h-7 w-7 items-center justify-center rounded-full text-xs"
-                      style={{
-                        backgroundColor:
-                          `${primaryColor}18`,
-
-                        color:
-                          primaryColor,
-                      }}
-                    >
-                      ✓
-                    </span>
-
-                    {services.length}{" "}
-                    {services.length ===
-                    1
-                      ? "serviço disponível"
-                      : "serviços disponíveis"}
-                  </div>
-                ) : null}
-
-                {professionals.length >
-                0 ? (
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="flex h-7 w-7 items-center justify-center rounded-full text-xs"
-                      style={{
-                        backgroundColor:
-                          `${primaryColor}18`,
-
-                        color:
-                          primaryColor,
-                      }}
-                    >
-                      ✓
-                    </span>
-
-                    Atendimento com
-                    horário marcado
-                  </div>
-                ) : null}
+                ✓
               </div>
             </div>
           </div>
@@ -429,179 +799,58 @@ export default async function BusinessPage({
       </section>
 
       {/* ==================================================
-          AÇÕES PRINCIPAIS
+          INFORMAÇÕES RÁPIDAS
       ================================================== */}
 
-      <section
-        className="relative z-20 px-4 py-5 sm:px-6 sm:py-6"
-        style={{
-          backgroundColor,
-        }}
-      >
+      <section className="px-4 py-4 sm:px-6">
         <div
-          className="mx-auto flex max-w-7xl flex-col gap-3 rounded-3xl border p-4 shadow-2xl sm:flex-row sm:items-center sm:justify-between sm:p-5"
+          className="mx-auto grid max-w-7xl overflow-hidden rounded-[26px] border sm:grid-cols-2 lg:grid-cols-4"
           style={{
-            borderColor:
-              `${textColor}12`,
+            borderColor,
 
             backgroundColor:
-              secondaryColor,
-
-            boxShadow:
-              "0 24px 70px rgba(0,0,0,.22)",
+              surfaceColor,
           }}
         >
-          <div className="min-w-0">
-            <p
-              className="text-xs font-bold uppercase tracking-[0.16em]"
-              style={{
-                color:
-                  primaryColor,
-              }}
-            >
-              Atendimento online
-            </p>
-
-            <h2 className="mt-1 text-lg font-bold sm:text-xl">
-              Reserve seu horário
-            </h2>
-
-            <p
-              className="mt-1 text-sm"
-              style={{
-                color:
-                  `${textColor}8f`,
-              }}
-            >
-              Escolha seus serviços, profissional, dia e horário.
-            </p>
-          </div>
-
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <a
-              href={bookingHref}
-              className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl px-6 font-bold transition hover:-translate-y-0.5 sm:w-auto"
-              style={{
-                backgroundColor:
-                  primaryColor,
-
-                color:
-                  getContrastColor(
-                    primaryColor
-                  ),
-
-                boxShadow:
-                  `0 14px 36px ${primaryColor}28`,
-              }}
-            >
-              Agendar agora
-
-              <span>
-                →
-              </span>
-            </a>
-
-            {whatsappHref ? (
-              <a
-                href={whatsappHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border px-6 font-semibold transition hover:-translate-y-0.5 sm:w-auto"
-                style={{
-                  borderColor:
-                    `${textColor}18`,
-
-                  backgroundColor:
-                    `${textColor}08`,
-
-                  color:
-                    textColor,
-                }}
-              >
-                Falar no WhatsApp
-              </a>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      {/* ==================================================
-          ATALHOS
-      ================================================== */}
-
-      <section className="relative z-20 -mt-8 px-4 sm:-mt-10 sm:px-6">
-        <div
-          className="mx-auto grid max-w-7xl overflow-hidden rounded-3xl border shadow-2xl sm:grid-cols-2 lg:grid-cols-4"
-          style={{
-            borderColor:
-              `${textColor}12`,
-
-            backgroundColor:
-              secondaryColor,
-
-            boxShadow:
-              "0 30px 80px rgba(0,0,0,.30)",
-          }}
-        >
-          <QuickInfo
-            eyebrow="Agendamento"
-            title="Reserve online"
-            description="Escolha o melhor dia e horário."
-            href={
-              bookingHref
-            }
+          <InfoCard
+            label="Agendamento"
+            title="100% online"
+            description="Escolha serviço, profissional, data e horário."
             accent={
               primaryColor
             }
           />
 
-          {whatsappHref ? (
-            <QuickInfo
-              eyebrow="Contato"
-              title="WhatsApp"
-              description={
-                business.whatsapp ||
-                "Fale conosco"
-              }
-              href={
-                whatsappHref
-              }
-              external
-              accent={
-                primaryColor
-              }
-            />
-          ) : (
-            <QuickInfo
-              eyebrow="Atendimento"
-              title="Prático e rápido"
-              description="Agende em poucos passos."
-              accent={
-                primaryColor
-              }
-            />
-          )}
+          <InfoCard
+            label="Atendimento"
+            title="Horário reservado"
+            description="Mais organização e menos tempo esperando."
+            accent={
+              primaryColor
+            }
+          />
 
           {business.address ? (
-            <QuickInfo
-              eyebrow="Localização"
+            <InfoCard
+              label="Localização"
               title="Como chegar"
               description={
-                business.address
+                String(
+                  business.address
+                )
               }
               href={
                 mapsHref
               }
-              external
               accent={
                 primaryColor
               }
             />
           ) : (
-            <QuickInfo
-              eyebrow="Serviços"
-              title={`${services.length} disponíveis`}
-              description="Confira nossas opções."
+            <InfoCard
+              label="Serviços"
+              title={`${services.length} opções`}
+              description="Confira todos os serviços disponíveis."
               href="#servicos"
               accent={
                 primaryColor
@@ -610,14 +859,14 @@ export default async function BusinessPage({
           )}
 
           {instagramHref ? (
-            <QuickInfo
-              eyebrow="Redes sociais"
-              title="Instagram"
-              description={
+            <InfoCard
+              label="Instagram"
+              title={
                 cleanInstagram(
                   business.instagram
                 )
               }
+              description="Acompanhe novidades e trabalhos."
               href={
                 instagramHref
               }
@@ -627,10 +876,10 @@ export default async function BusinessPage({
               }
             />
           ) : (
-            <QuickInfo
-              eyebrow="Experiência"
-              title="Feito para você"
-              description="Atendimento personalizado."
+            <InfoCard
+              label="Experiência"
+              title="Atendimento profissional"
+              description="Praticidade do início ao fim."
               accent={
                 primaryColor
               }
@@ -647,77 +896,58 @@ export default async function BusinessPage({
         id="servicos"
         className="scroll-mt-24"
       >
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
-          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-            <div className="max-w-2xl">
-              <SectionLabel
-                color={
-                  primaryColor
-                }
-              >
-                Serviços
-              </SectionLabel>
-
-              <h2 className="mt-4 text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-                {business.servicesTitle ||
-                  "Escolha a experiência ideal para você"}
-              </h2>
-
-              <p className="mt-5 max-w-xl leading-7 opacity-50">
-                Confira os serviços
-                disponíveis e faça seu
-                agendamento online de
-                forma simples e rápida.
-              </p>
-            </div>
-
-            <a
-              href={
-                bookingHref
-              }
-              className="hidden items-center gap-2 text-sm font-bold lg:flex"
-              style={{
-                color:
-                  primaryColor,
-              }}
-            >
-              Ver horários
-              disponíveis
-              <span>→</span>
-            </a>
-          </div>
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+          <SectionHeading
+            eyebrow="Serviços"
+            title={
+              business.servicesTitle ||
+              "Escolha o serviço ideal para você"
+            }
+            description="Conheça nossas opções e reserve seu horário de forma simples."
+            accent={
+              primaryColor
+            }
+            muted={
+              mutedText
+            }
+          />
 
           {services.length >
           0 ? (
-            <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {services.map(
                 (
                   service,
                   index
                 ) => (
                   <article
-                    key={String(
-                      service._id
-                    )}
-                    className="group relative overflow-hidden rounded-[28px] border transition duration-300 hover:-translate-y-2"
+                    key={
+                      String(
+                        service._id
+                      )
+                    }
+                    className="group overflow-hidden rounded-[26px] border transition duration-300 hover:-translate-y-1.5"
                     style={{
-                      borderColor:
-                        `${textColor}10`,
+                      borderColor,
 
                       backgroundColor:
-                        secondaryColor,
+                        surfaceColor,
                     }}
                   >
-                    <div className="relative h-64 overflow-hidden">
+                    <div className="relative aspect-[16/10] overflow-hidden">
                       {service.photoUrl ? (
                         <img
                           src={
-                            service.photoUrl
+                            String(
+                              service.photoUrl
+                            )
                           }
                           alt={
-                            service.name
+                            String(
+                              service.name
+                            )
                           }
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                          className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
                         />
                       ) : (
                         <div
@@ -725,19 +955,22 @@ export default async function BusinessPage({
                           style={{
                             background: `
                               radial-gradient(
-                                circle at 70% 30%,
-                                ${primaryColor}30,
-                                transparent 40%
+                                circle at 75% 25%,
+                                ${primarySoftStrong},
+                                transparent 38%
                               ),
-                              ${secondaryColor}
+                              ${elevatedColor}
                             `,
                           }}
                         >
                           <span
-                            className="text-7xl font-black opacity-20"
+                            className="text-5xl font-black"
                             style={{
                               color:
                                 primaryColor,
+
+                              opacity:
+                                0.3,
                             }}
                           >
                             {String(
@@ -751,22 +984,21 @@ export default async function BusinessPage({
                         </div>
                       )}
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
 
                       <div
-                        className="absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold"
+                        className="absolute bottom-4 left-4 rounded-full px-3 py-1.5 text-xs font-black"
                         style={{
                           backgroundColor:
                             primaryColor,
 
                           color:
-                            getContrastColor(
-                              primaryColor
-                            ),
+                            onPrimary,
                         }}
                       >
                         {Number(
-                          service.duration
+                          service.duration ||
+                            0
                         ) > 0
                           ? `${Number(
                               service.duration
@@ -775,32 +1007,37 @@ export default async function BusinessPage({
                       </div>
                     </div>
 
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold">
-                        {
-                          service.name
-                        }
+                    <div className="p-5 sm:p-6">
+                      <h3 className="text-lg font-extrabold tracking-tight sm:text-xl">
+                        {service.name}
                       </h3>
 
-                      {service.description ? (
-                        <p className="mt-3 line-clamp-2 min-h-[48px] text-sm leading-6 opacity-50">
-                          {
-                            service.description
-                          }
-                        </p>
-                      ) : (
-                        <p className="mt-3 min-h-[48px] text-sm leading-6 opacity-40">
-                          Atendimento com
-                          qualidade e
-                          horário reservado
-                          para você.
-                        </p>
-                      )}
+                      <p
+                        className="mt-2 line-clamp-2 min-h-[44px] text-sm leading-6"
+                        style={{
+                          color:
+                            mutedText,
+                        }}
+                      >
+                        {service.description ||
+                          "Atendimento com horário reservado e toda atenção que você merece."}
+                      </p>
 
-                      <div className="mt-6 flex items-center justify-between gap-5 border-t border-white/[0.07] pt-5">
+                      <div
+                        className="mt-5 flex items-end justify-between gap-5 border-t pt-5"
+                        style={{
+                          borderColor,
+                        }}
+                      >
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] opacity-30">
-                            A partir de
+                          <p
+                            className="text-[9px] font-black uppercase tracking-[0.17em]"
+                            style={{
+                              color:
+                                softerText,
+                            }}
+                          >
+                            Valor
                           </p>
 
                           <p
@@ -812,7 +1049,8 @@ export default async function BusinessPage({
                           >
                             {formatPrice(
                               Number(
-                                service.price
+                                service.price ||
+                                  0
                               )
                             )}
                           </p>
@@ -822,20 +1060,16 @@ export default async function BusinessPage({
                           href={
                             bookingHref
                           }
-                          className="flex h-11 w-11 items-center justify-center rounded-full border text-lg transition group-hover:translate-x-1"
+                          className="flex h-11 items-center justify-center rounded-xl px-4 text-sm font-extrabold transition group-hover:-translate-y-0.5"
                           style={{
-                            borderColor:
-                              `${primaryColor}35`,
+                            backgroundColor:
+                              primarySoftStrong,
 
                             color:
                               primaryColor,
-
-                            backgroundColor:
-                              `${primaryColor}0d`,
                           }}
-                          aria-label={`Agendar ${service.name}`}
                         >
-                          →
+                          Agendar
                         </a>
                       </div>
                     </div>
@@ -845,71 +1079,77 @@ export default async function BusinessPage({
             </div>
           ) : (
             <div
-              className="mt-12 rounded-3xl border border-dashed p-12 text-center"
+              className="mt-10 rounded-[26px] border border-dashed p-10 text-center"
               style={{
                 borderColor:
-                  `${textColor}15`,
+                  borderStrong,
+
+                color:
+                  mutedText,
               }}
             >
-              <p className="opacity-40">
-                Nenhum serviço
-                disponível no momento.
-              </p>
+              Nenhum serviço disponível no momento.
             </div>
           )}
         </div>
       </section>
 
       {/* ==================================================
-          CTA INTERMEDIÁRIO
+          CTA CENTRAL
       ================================================== */}
 
-      <section className="px-5 sm:px-6">
+      <section className="px-4 sm:px-6">
         <div
-          className="relative mx-auto max-w-7xl overflow-hidden rounded-[36px] border px-7 py-12 sm:px-12 sm:py-16 lg:px-16"
+          className="relative mx-auto max-w-7xl overflow-hidden rounded-[30px] border px-6 py-10 sm:px-10 sm:py-12 lg:px-14"
           style={{
             borderColor:
-              `${primaryColor}25`,
+              rgba(
+                hexToRgb(
+                  primaryColor
+                ),
+                0.24
+              ),
 
-            backgroundColor:
-              secondaryColor,
+            background:
+              `linear-gradient(
+                135deg,
+                ${surfaceColor},
+                ${elevatedColor}
+              )`,
           }}
         >
           <div
-            className="absolute -right-32 -top-32 h-80 w-80 rounded-full blur-3xl"
+            className="absolute -right-20 -top-24 h-64 w-64 rounded-full blur-3xl"
             style={{
               backgroundColor:
-                `${primaryColor}20`,
+                primarySoftStrong,
             }}
           />
 
-          <div
-            className="absolute -bottom-40 right-1/3 h-72 w-72 rounded-full blur-3xl"
-            style={{
-              backgroundColor:
-                `${primaryColor}10`,
-            }}
-          />
-
-          <div className="relative grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
-              <SectionLabel
-                color={
-                  primaryColor
-                }
+              <p
+                className="text-[10px] font-black uppercase tracking-[0.2em]"
+                style={{
+                  color:
+                    primaryColor,
+                }}
               >
-                Seu tempo importa
-              </SectionLabel>
+                Seu horário, do seu jeito
+              </p>
 
-              <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-                Escolha seu horário sem
-                precisar esperar.
+              <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl">
+                Agende em poucos passos.
               </h2>
 
-              <p className="mt-4 max-w-xl leading-7 opacity-50">
-                Consulte os horários
-                disponíveis e confirme
-                seu atendimento online.
+              <p
+                className="mt-3 max-w-xl text-sm leading-6 sm:text-base"
+                style={{
+                  color:
+                    mutedText,
+                }}
+              >
+                Escolha seus serviços, profissional e o melhor horário sem precisar ligar ou esperar.
               </p>
             </div>
 
@@ -917,18 +1157,16 @@ export default async function BusinessPage({
               href={
                 bookingHref
               }
-              className="inline-flex min-h-[58px] items-center justify-center rounded-2xl px-8 font-bold transition hover:-translate-y-1"
+              className="primary-shadow inline-flex min-h-[54px] shrink-0 items-center justify-center rounded-2xl px-7 font-extrabold transition hover:-translate-y-1"
               style={{
                 backgroundColor:
                   primaryColor,
 
                 color:
-                  getContrastColor(
-                    primaryColor
-                  ),
+                  onPrimary,
               }}
             >
-              Reservar meu horário
+              Reservar horário
               <span className="ml-3">
                 →
               </span>
@@ -945,138 +1183,136 @@ export default async function BusinessPage({
         id="sobre"
         className="scroll-mt-24"
       >
-        <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6 sm:py-32">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-2 lg:items-center lg:gap-20">
           <div className="relative">
             <div
-              className="overflow-hidden rounded-[34px] border"
+              className="overflow-hidden rounded-[30px] border p-2"
               style={{
-                borderColor:
-                  `${textColor}10`,
-              }}
-            >
-              {business.coverUrl ? (
-                <img
-                  src={
-                    business.coverUrl
-                  }
-                  alt={
-                    business.name
-                  }
-                  className="aspect-[4/3] w-full object-cover"
-                />
-              ) : business.logoUrl ? (
-                <div
-                  className="flex aspect-[4/3] items-center justify-center"
-                  style={{
-                    backgroundColor:
-                      secondaryColor,
-                  }}
-                >
-                  <img
-                    src={
-                      business.logoUrl
-                    }
-                    alt={
-                      business.name
-                    }
-                    className="h-40 w-40 rounded-[32px] object-cover shadow-2xl"
-                  />
-                </div>
-              ) : (
-                <div
-                  className="flex aspect-[4/3] items-center justify-center text-7xl font-black"
-                  style={{
-                    background: `
-                      radial-gradient(
-                        circle at 50% 40%,
-                        ${primaryColor}30,
-                        transparent 45%
-                      ),
-                      ${secondaryColor}
-                    `,
-
-                    color:
-                      primaryColor,
-                  }}
-                >
-                  {getInitials(
-                    business.name
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div
-              className="absolute -bottom-5 -right-2 rounded-2xl border p-5 shadow-2xl sm:right-7"
-              style={{
-                borderColor:
-                  `${textColor}10`,
+                borderColor,
 
                 backgroundColor:
-                  secondaryColor,
+                  elevatedColor,
               }}
             >
-              <p
-                className="text-2xl font-black"
-                style={{
-                  color:
-                    primaryColor,
-                }}
-              >
-                Online
-              </p>
+              <div className="aspect-[4/3] overflow-hidden rounded-[23px]">
+                {business.coverUrl ? (
+                  <img
+                    src={
+                      String(
+                        business.coverUrl
+                      )
+                    }
+                    alt={
+                      String(
+                        business.name
+                      )
+                    }
+                    className="h-full w-full object-cover"
+                  />
+                ) : business.logoUrl ? (
+                  <div
+                    className="flex h-full items-center justify-center"
+                    style={{
+                      backgroundColor:
+                        surfaceColor,
+                    }}
+                  >
+                    <img
+                      src={
+                        String(
+                          business.logoUrl
+                        )
+                      }
+                      alt={
+                        String(
+                          business.name
+                        )
+                      }
+                      className="h-32 w-32 rounded-[26px] object-cover shadow-xl"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="flex h-full items-center justify-center text-6xl font-black"
+                    style={{
+                      backgroundColor:
+                        surfaceColor,
 
-              <p className="mt-1 text-xs opacity-45">
-                Agendamento fácil
-                e rápido
-              </p>
+                      color:
+                        primaryColor,
+                    }}
+                  >
+                    {getInitials(
+                      String(
+                        business.name ||
+                          ""
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           <div>
-            <SectionLabel
-              color={
+            <SectionHeading
+              eyebrow="Sobre nós"
+              title="Um atendimento pensado em cada detalhe."
+              description={
+                String(
+                  business.description ||
+                    "Nosso compromisso é oferecer qualidade, organização e uma experiência agradável em cada atendimento."
+                )
+              }
+              accent={
                 primaryColor
               }
-            >
-              Sobre nós
-            </SectionLabel>
+              muted={
+                mutedText
+              }
+            />
 
-            <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">
-              Uma experiência pensada
-              para você.
-            </h2>
-
-            <p className="mt-7 text-base leading-8 opacity-55 sm:text-lg">
-              {business.description ||
-                "Nosso compromisso é oferecer um atendimento de qualidade, com atenção aos detalhes e respeito ao seu tempo."}
-            </p>
-
-            <div className="mt-9 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 grid gap-4">
               <Feature
-                title="Agendamento online"
-                description="Escolha o melhor horário diretamente pelo celular."
+                title="Horário reservado"
+                description="Organização para que você seja atendido no momento combinado."
                 accent={
                   primaryColor
+                }
+                muted={
+                  mutedText
+                }
+                surface={
+                  elevatedColor
+                }
+                border={
+                  borderColor
                 }
               />
 
               <Feature
-                title="Atendimento organizado"
-                description="Seu horário fica reservado para oferecer mais praticidade."
+                title="Agendamento online"
+                description="Escolha seus serviços e marque pelo celular em poucos passos."
                 accent={
                   primaryColor
+                }
+                muted={
+                  mutedText
+                }
+                surface={
+                  elevatedColor
+                }
+                border={
+                  borderColor
                 }
               />
             </div>
           </div>
         </div>
-        </div>
       </section>
 
       {/* ==================================================
-          PROFISSIONAIS
+          EQUIPE
       ================================================== */}
 
       {showProfessionals &&
@@ -1086,119 +1322,113 @@ export default async function BusinessPage({
           id="equipe"
           className="scroll-mt-24 border-y"
           style={{
-            borderColor:
-              `${textColor}08`,
+            borderColor,
 
             backgroundColor:
-              `${textColor}025`,
+              softSurface,
           }}
         >
-          <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6 sm:py-32">
-            <div className="max-w-2xl">
-              <SectionLabel
-                color={
-                  primaryColor
-                }
-              >
-                Nossa equipe
-              </SectionLabel>
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+            <SectionHeading
+              eyebrow="Equipe"
+              title="Quem cuida do seu atendimento"
+              description="Conheça nossos profissionais e escolha quem vai atender você."
+              accent={
+                primaryColor
+              }
+              muted={
+                mutedText
+              }
+            />
 
-              <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">
-                Profissionais prontos
-                para atender você.
-              </h2>
-
-              <p className="mt-5 max-w-xl leading-7 opacity-50">
-                Conheça quem faz parte
-                da nossa equipe e escolha
-                seu profissional no
-                momento do agendamento.
-              </p>
-            </div>
-
-            <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {professionals.map(
                 (
                   professional
                 ) => (
                   <article
-                    key={String(
-                      professional._id
-                    )}
-                    className="group overflow-hidden rounded-[30px] border"
+                    key={
+                      String(
+                        professional._id
+                      )
+                    }
+                    className="overflow-hidden rounded-[26px] border"
                     style={{
-                      borderColor:
-                        `${textColor}10`,
+                      borderColor,
 
                       backgroundColor:
-                        secondaryColor,
+                        surfaceColor,
                     }}
                   >
-                    <div className="relative aspect-[4/4.5] overflow-hidden">
+                    <div className="aspect-[4/4.4] overflow-hidden">
                       {professional.photoUrl ? (
                         <img
                           src={
-                            professional.photoUrl
+                            String(
+                              professional.photoUrl
+                            )
                           }
                           alt={
-                            professional.name
+                            String(
+                              professional.name
+                            )
                           }
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                          className="h-full w-full object-cover"
                         />
                       ) : (
                         <div
-                          className="flex h-full items-center justify-center text-6xl font-black"
+                          className="flex h-full items-center justify-center text-5xl font-black"
                           style={{
-                            background: `
-                              radial-gradient(
-                                circle at 50% 40%,
-                                ${primaryColor}25,
-                                transparent 45%
+                            background:
+                              `radial-gradient(
+                                circle at center,
+                                ${primarySoftStrong},
+                                transparent 48%
                               ),
-                              ${secondaryColor}
-                            `,
+                              ${elevatedColor}`,
 
                             color:
                               primaryColor,
                           }}
                         >
                           {getInitials(
-                            professional.name
+                            String(
+                              professional.name ||
+                                ""
+                            )
                           )}
                         </div>
                       )}
-
-                      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 to-transparent" />
-
-                      <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-                        <h3 className="text-xl font-bold">
-                          {
-                            professional.name
-                          }
-                        </h3>
-
-                        <p
-                          className="mt-1 text-sm font-medium"
-                          style={{
-                            color:
-                              primaryColor,
-                          }}
-                        >
-                          {professional.role ||
-                            "Profissional"}
-                        </p>
-                      </div>
                     </div>
 
-                    {professional.description ? (
-                      <div className="p-6">
-                        <p className="text-sm leading-6 opacity-50">
-                          {
-                            professional.description
-                          }
+                    <div className="p-5">
+                      <h3 className="text-lg font-extrabold">
+                        {professional.name}
+                      </h3>
+
+                      <p
+                        className="mt-1 text-sm font-semibold"
+                        style={{
+                          color:
+                            primaryColor,
+                        }}
+                      >
+                        {professional.role ||
+                          "Profissional"}
+                      </p>
+
+                      {professional.description ? (
+                        <p
+                          className="mt-3 line-clamp-3 text-sm leading-6"
+                          style={{
+                            color:
+                              mutedText,
+                          }}
+                        >
+                          {professional.description}
                         </p>
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </div>
                   </article>
                 )
               )}
@@ -1211,38 +1441,42 @@ export default async function BusinessPage({
           GALERIA
       ================================================== */}
 
-      {gallery.length > 0 ? (
+      {gallery.length >
+      0 ? (
         <section
           id="galeria"
           className="scroll-mt-24"
         >
-          <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6 sm:py-32">
-            <div className="max-w-2xl">
-              <SectionLabel
-                color={
-                  primaryColor
-                }
-              >
-                Galeria
-              </SectionLabel>
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+            <SectionHeading
+              eyebrow="Galeria"
+              title="Conheça nosso espaço"
+              description="Um pouco da nossa estrutura, ambiente e trabalho."
+              accent={
+                primaryColor
+              }
+              muted={
+                mutedText
+              }
+            />
 
-              <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">
-                Conheça um pouco mais
-                do nosso espaço.
-              </h2>
-            </div>
-
-            <div className="mt-12 grid auto-rows-[220px] gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid auto-rows-[190px] gap-3 sm:grid-cols-2 sm:auto-rows-[230px] lg:grid-cols-3">
               {gallery.map(
                 (
-                  photo: string,
-                  index: number
+                  photo,
+                  index
                 ) => (
                   <div
                     key={`${photo}-${index}`}
-                    className={`group overflow-hidden rounded-[28px] ${
-                      index === 0
+                    className={`group overflow-hidden rounded-[22px] ${
+                      index ===
+                      0
                         ? "sm:row-span-2"
+                        : ""
+                    } ${
+                      index ===
+                      3
+                        ? "lg:col-span-2"
                         : ""
                     }`}
                   >
@@ -1251,11 +1485,12 @@ export default async function BusinessPage({
                         photo
                       }
                       alt={`Foto ${
-                        index + 1
+                        index +
+                        1
                       } de ${
                         business.name
                       }`}
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
                     />
                   </div>
                 )
@@ -1272,59 +1507,62 @@ export default async function BusinessPage({
       {business.address ? (
         <section
           id="localizacao"
-          className="scroll-mt-24 border-y"
+          className="scroll-mt-24 border-t"
           style={{
-            borderColor:
-              `${textColor}08`,
-
-            backgroundColor:
-              `${textColor}025`,
+            borderColor,
           }}
         >
-          <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6">
-            <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-              <div>
-                <SectionLabel
-                  color={
-                    primaryColor
-                  }
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+            <div
+              className="grid overflow-hidden rounded-[30px] border lg:grid-cols-[0.9fr_1.1fr]"
+              style={{
+                borderColor,
+
+                backgroundColor:
+                  surfaceColor,
+              }}
+            >
+              <div className="p-7 sm:p-10 lg:p-12">
+                <p
+                  className="text-[10px] font-black uppercase tracking-[0.2em]"
+                  style={{
+                    color:
+                      primaryColor,
+                  }}
                 >
                   Localização
-                </SectionLabel>
+                </p>
 
-                <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">
-                  Estamos esperando
-                  por você.
+                <h2 className="mt-3 text-2xl font-black tracking-tight sm:text-4xl">
+                  Estamos esperando por você.
                 </h2>
 
-                <div className="mt-8">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-30">
-                    Endereço
-                  </p>
+                <p
+                  className="mt-5 max-w-lg text-base leading-7"
+                  style={{
+                    color:
+                      mutedText,
+                  }}
+                >
+                  {String(
+                    business.address
+                  )}
+                </p>
 
-                  <p className="mt-3 max-w-lg text-lg font-medium leading-8 opacity-70">
-                    {
-                      business.address
-                    }
-                  </p>
-                </div>
-
-                <div className="mt-8 flex flex-wrap gap-3">
+                <div className="mt-7 flex flex-wrap gap-3">
                   <a
                     href={
                       mapsHref
                     }
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-xl px-6 py-3.5 font-bold transition hover:-translate-y-0.5"
+                    className="rounded-xl px-5 py-3 text-sm font-extrabold"
                     style={{
                       backgroundColor:
                         primaryColor,
 
                       color:
-                        getContrastColor(
-                          primaryColor
-                        ),
+                        onPrimary,
                     }}
                   >
                     Google Maps
@@ -1336,78 +1574,60 @@ export default async function BusinessPage({
                     }
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-xl border px-6 py-3.5 font-semibold transition hover:bg-white/5"
+                    className="rounded-xl border px-5 py-3 text-sm font-bold"
                     style={{
                       borderColor:
-                        `${textColor}15`,
+                        borderStrong,
+
+                      color:
+                        textColor,
                     }}
                   >
-                    Abrir no Waze
+                    Waze
                   </a>
                 </div>
               </div>
 
               <div
-                className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-[34px] border p-8"
+                className="relative flex min-h-[300px] items-center justify-center overflow-hidden p-8 sm:min-h-[370px]"
                 style={{
-                  borderColor:
-                    `${textColor}10`,
-
                   background: `
                     radial-gradient(
                       circle at center,
-                      ${primaryColor}20,
+                      ${primarySoftStrong},
                       transparent 45%
                     ),
-                    ${secondaryColor}
+                    ${elevatedColor}
                   `,
                 }}
               >
-                <div className="relative text-center">
+                <div className="text-center">
                   <div
-                    className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-3xl shadow-2xl"
+                    className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-2xl shadow-xl"
                     style={{
                       backgroundColor:
                         primaryColor,
 
                       color:
-                        getContrastColor(
-                          primaryColor
-                        ),
-
-                      boxShadow:
-                        `0 20px 60px ${primaryColor}35`,
+                        onPrimary,
                     }}
                   >
-                    ●
+                    ⌖
                   </div>
 
-                  <p className="mt-6 font-bold">
-                    {
-                      business.name
-                    }
+                  <p className="mt-5 font-extrabold">
+                    Ver no mapa
                   </p>
 
-                  <p className="mx-auto mt-2 max-w-sm text-sm leading-6 opacity-45">
-                    {
-                      business.address
-                    }
-                  </p>
-
-                  <a
-                    href={
-                      mapsHref
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-6 inline-flex text-sm font-bold"
+                  <p
+                    className="mt-2 text-sm"
                     style={{
                       color:
-                        primaryColor,
+                        mutedText,
                     }}
                   >
-                    Ver rota →
-                  </a>
+                    Toque em Google Maps ou Waze para navegar.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1416,129 +1636,148 @@ export default async function BusinessPage({
       ) : null}
 
       {/* ==================================================
-          CTA FINAL
+          ÚLTIMO CTA
       ================================================== */}
 
-      {business.showBookingSection !==
-      false ? (
-        <section className="px-5 py-24 sm:px-6 sm:py-32">
-          <div
-            className="relative mx-auto max-w-7xl overflow-hidden rounded-[40px] px-7 py-16 text-center sm:px-12 sm:py-24"
+      <section className="px-4 pb-20 sm:px-6 sm:pb-24">
+        <div
+          className="mx-auto max-w-7xl rounded-[30px] border px-6 py-12 text-center sm:px-10 sm:py-16"
+          style={{
+            borderColor:
+              rgba(
+                hexToRgb(
+                  primaryColor
+                ),
+                0.24
+              ),
+
+            backgroundColor:
+              surfaceColor,
+          }}
+        >
+          <p
+            className="text-[10px] font-black uppercase tracking-[0.2em]"
+            style={{
+              color:
+                primaryColor,
+            }}
+          >
+            Pronto para agendar?
+          </p>
+
+          <h2 className="mx-auto mt-3 max-w-2xl text-2xl font-black tracking-tight sm:text-4xl">
+            Escolha seu horário e cuide do seu tempo.
+          </h2>
+
+          <p
+            className="mx-auto mt-4 max-w-xl text-sm leading-6 sm:text-base"
+            style={{
+              color:
+                mutedText,
+            }}
+          >
+            Faça seu agendamento online agora e deixe seu horário reservado.
+          </p>
+
+          <a
+            href={
+              bookingHref
+            }
+            className="primary-shadow mt-7 inline-flex min-h-[54px] items-center justify-center rounded-2xl px-8 font-extrabold transition hover:-translate-y-1"
             style={{
               backgroundColor:
                 primaryColor,
 
               color:
-                getContrastColor(
-                  primaryColor
-                ),
+                onPrimary,
             }}
           >
-            <div className="relative z-10 mx-auto max-w-3xl">
-              <p className="text-xs font-black uppercase tracking-[0.22em] opacity-60">
-                {business.bookingSectionLabel ||
-                  "Agendamento online"}
-              </p>
-
-              <h2 className="mt-5 text-4xl font-black tracking-[-0.04em] sm:text-5xl lg:text-6xl">
-                {business.bookingSectionTitle ||
-                  "Seu próximo horário está a poucos cliques."}
-              </h2>
-
-              <p className="mx-auto mt-6 max-w-xl leading-7 opacity-65">
-                {business.bookingSectionDescription ||
-                  "Escolha seu serviço, profissional, data e horário. Simples, rápido e online."}
-              </p>
-
-              <a
-                href={
-                  bookingHref
-                }
-                className="mt-9 inline-flex min-h-[58px] items-center justify-center rounded-2xl bg-black px-9 font-bold text-white transition hover:-translate-y-1"
-              >
-                {business.bookingSectionButtonText ||
-                  "Agendar meu horário"}
-
-                <span className="ml-3">
-                  →
-                </span>
-              </a>
-            </div>
-
-            <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-2xl" />
-
-            <div className="absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-black/10 blur-2xl" />
-          </div>
-        </section>
-      ) : null}
+            Agendar agora
+          </a>
+        </div>
+      </section>
 
       {/* ==================================================
           FOOTER
       ================================================== */}
 
       <footer
-        className="border-t pb-24 sm:pb-0"
+        className="border-t"
         style={{
-          borderColor:
-            `${textColor}08`,
+          borderColor,
+
+          backgroundColor:
+            surfaceColor,
         }}
       >
-        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6">
-          <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+          <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               {business.logoUrl ? (
                 <img
                   src={
-                    business.logoUrl
+                    String(
+                      business.logoUrl
+                    )
                   }
                   alt={
-                    business.name
+                    String(
+                      business.name
+                    )
                   }
-                  className="h-11 w-11 rounded-xl object-cover"
+                  className="h-10 w-10 rounded-xl object-cover"
                 />
               ) : (
                 <div
-                  className="flex h-11 w-11 items-center justify-center rounded-xl font-black"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl font-black"
                   style={{
                     backgroundColor:
-                      `${primaryColor}15`,
+                      primarySoftStrong,
 
                     color:
                       primaryColor,
                   }}
                 >
                   {getInitials(
-                    business.name
+                    String(
+                      business.name ||
+                        ""
+                    )
                   )}
                 </div>
               )}
 
               <div>
-                <p className="font-bold">
-                  {
-                    business.name
-                  }
+                <p className="font-extrabold">
+                  {business.name}
                 </p>
 
-                <p className="text-xs opacity-35">
+                <p
+                  className="mt-0.5 text-xs"
+                  style={{
+                    color:
+                      softerText,
+                  }}
+                >
                   Agendamento online
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-5 text-sm opacity-50">
-              {whatsappHref ? (
-                <a
-                  href={
-                    whatsappHref
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition hover:opacity-100"
-                >
-                  WhatsApp
-                </a>
-              ) : null}
+            <div
+              className="flex flex-wrap gap-x-6 gap-y-3 text-sm"
+              style={{
+                color:
+                  mutedText,
+              }}
+            >
+              <a href="#servicos">
+                Serviços
+              </a>
+
+              <a href="#sobre">
+                Sobre
+              </a>
 
               {instagramHref ? (
                 <a
@@ -1547,42 +1786,38 @@ export default async function BusinessPage({
                   }
                   target="_blank"
                   rel="noreferrer"
-                  className="transition hover:opacity-100"
                 >
                   Instagram
                 </a>
               ) : null}
 
-              <a
-                href="#servicos"
-                className="transition hover:opacity-100"
-              >
-                Serviços
-              </a>
-
-              <a
-                href={
-                  bookingHref
-                }
-                className="transition hover:opacity-100"
-              >
-                Agendar
-              </a>
+              {whatsappHref ? (
+                <a
+                  href={
+                    whatsappHref
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  WhatsApp
+                </a>
+              ) : null}
             </div>
           </div>
 
           <div
-            className="mt-9 flex flex-col gap-3 border-t pt-7 text-xs opacity-30 sm:flex-row sm:justify-between"
+            className="mt-8 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between"
             style={{
-              borderColor:
-                `${textColor}08`,
+              borderColor,
+
+              color:
+                softerText,
             }}
           >
             <p>
               ©{" "}
               {new Date().getFullYear()}{" "}
-              {business.name}. Todos os
-              direitos reservados.
+              {business.name}.
             </p>
 
             <p>
@@ -1593,7 +1828,7 @@ export default async function BusinessPage({
       </footer>
 
       {/* ==================================================
-          WHATSAPP FLUTUANTE
+          WHATSAPP DESKTOP
       ================================================== */}
 
       {whatsappHref ? (
@@ -1604,39 +1839,41 @@ export default async function BusinessPage({
           target="_blank"
           rel="noreferrer"
           aria-label="Falar pelo WhatsApp"
-          className="fixed bottom-24 right-5 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-xl font-black text-white shadow-2xl transition hover:scale-105 sm:flex sm:bottom-6"
+          className="fixed bottom-6 right-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-lg font-black text-white shadow-2xl transition hover:scale-105 sm:flex"
         >
           W
         </a>
       ) : null}
 
       {/* ==================================================
-          CTA FIXO MOBILE
+          CTA MOBILE
       ================================================== */}
 
       <div
         className="fixed inset-x-0 bottom-0 z-50 border-t p-3 backdrop-blur-xl sm:hidden"
         style={{
-          borderColor:
-            `${textColor}10`,
+          borderColor,
 
           backgroundColor:
-            `${backgroundColor}ee`,
+            rgba(
+              hexToRgb(
+                backgroundColor
+              ),
+              0.94
+            ),
         }}
       >
         <a
           href={
             bookingHref
           }
-          className="flex min-h-[54px] w-full items-center justify-center rounded-2xl font-black"
+          className="flex min-h-[52px] w-full items-center justify-center rounded-2xl font-black"
           style={{
             backgroundColor:
               primaryColor,
 
             color:
-              getContrastColor(
-                primaryColor
-              ),
+              onPrimary,
           }}
         >
           Agendar meu horário
@@ -1652,79 +1889,134 @@ COMPONENTES
 =========================================================
 */
 
-function SectionLabel({
+function NavLink({
+  href,
   children,
-  color,
 }: {
-  children: React.ReactNode;
-  color: string;
+  href: string;
+  children: ReactNode;
 }) {
   return (
-    <p
-      className="text-xs font-black uppercase tracking-[0.22em]"
-      style={{
-        color,
-      }}
+    <a
+      href={
+        href
+      }
+      className="text-sm font-semibold opacity-55 transition hover:opacity-100"
     >
       {children}
-    </p>
+    </a>
   );
 }
 
-function QuickInfo({
+function TrustItem({
+  children,
+  accent,
+}: {
+  children: ReactNode;
+  accent: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black"
+        style={{
+          backgroundColor:
+            `${accent}18`,
+
+          color:
+            accent,
+        }}
+      >
+        ✓
+      </span>
+
+      {children}
+    </div>
+  );
+}
+
+function SectionHeading({
   eyebrow,
   title,
   description,
-  href,
-  external,
   accent,
+  muted,
 }: {
   eyebrow: string;
   title: string;
   description: string;
-  href?: string;
-  external?: boolean;
   accent: string;
+  muted: string;
 }) {
-  const content = (
-    <div className="group h-full p-6 sm:p-7">
+  return (
+    <div className="max-w-2xl">
       <p
         className="text-[10px] font-black uppercase tracking-[0.2em]"
         style={{
-          color: accent,
+          color:
+            accent,
         }}
       >
         {eyebrow}
       </p>
 
-      <div className="mt-3 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="font-bold">
-            {title}
-          </p>
+      <h2 className="mt-3 text-3xl font-black leading-tight tracking-[-0.03em] sm:text-4xl lg:text-5xl">
+        {title}
+      </h2>
 
-          <p className="mt-2 line-clamp-2 text-sm leading-5 opacity-40">
-            {description}
-          </p>
-        </div>
+      <p
+        className="mt-4 max-w-xl text-sm leading-6 sm:text-base sm:leading-7"
+        style={{
+          color:
+            muted,
+        }}
+      >
+        {description}
+      </p>
+    </div>
+  );
+}
 
-        {href ? (
-          <span
-            className="mt-1 shrink-0 transition group-hover:translate-x-1"
-            style={{
-              color: accent,
-            }}
-          >
-            →
-          </span>
-        ) : null}
-      </div>
+function InfoCard({
+  label,
+  title,
+  description,
+  accent,
+  href,
+  external,
+}: {
+  label: string;
+  title: string;
+  description: string;
+  accent: string;
+  href?: string;
+  external?: boolean;
+}) {
+  const content = (
+    <div className="h-full p-5 sm:p-6">
+      <p
+        className="text-[9px] font-black uppercase tracking-[0.18em]"
+        style={{
+          color:
+            accent,
+        }}
+      >
+        {label}
+      </p>
+
+      <p className="mt-2 font-extrabold">
+        {title}
+      </p>
+
+      <p className="mt-1.5 line-clamp-2 text-xs leading-5 opacity-50">
+        {description}
+      </p>
     </div>
   );
 
   if (!href) {
     return (
-      <div className="border-b border-white/[0.07] last:border-0 sm:border-r lg:border-b-0">
+      <div className="border-b border-white/[0.06] last:border-0 sm:border-r lg:border-b-0">
         {content}
       </div>
     );
@@ -1732,7 +2024,9 @@ function QuickInfo({
 
   return (
     <a
-      href={href}
+      href={
+        href
+      }
       target={
         external
           ? "_blank"
@@ -1743,7 +2037,7 @@ function QuickInfo({
           ? "noreferrer"
           : undefined
       }
-      className="border-b border-white/[0.07] transition hover:bg-white/[0.025] sm:border-r lg:border-b-0"
+      className="border-b border-white/[0.06] transition hover:bg-white/[0.025] sm:border-r lg:border-b-0"
     >
       {content}
     </a>
@@ -1754,31 +2048,53 @@ function Feature({
   title,
   description,
   accent,
+  muted,
+  surface,
+  border,
 }: {
   title: string;
   description: string;
   accent: string;
+  muted: string;
+  surface: string;
+  border: string;
 }) {
   return (
-    <div className="flex gap-4">
+    <div
+      className="flex gap-4 rounded-2xl border p-4"
+      style={{
+        borderColor:
+          border,
+
+        backgroundColor:
+          surface,
+      }}
+    >
       <span
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black"
         style={{
           backgroundColor:
-            `${accent}15`,
+            `${accent}18`,
 
-          color: accent,
+          color:
+            accent,
         }}
       >
         ✓
       </span>
 
       <div>
-        <p className="font-bold">
+        <p className="font-extrabold">
           {title}
         </p>
 
-        <p className="mt-2 text-sm leading-6 opacity-45">
+        <p
+          className="mt-1.5 text-sm leading-6"
+          style={{
+            color:
+              muted,
+          }}
+        >
           {description}
         </p>
       </div>
@@ -1788,7 +2104,278 @@ function Feature({
 
 /*
 =========================================================
-HELPERS
+CORES
+=========================================================
+*/
+
+type RGB = {
+  r: number;
+  g: number;
+  b: number;
+};
+
+function normalizeHex(
+  value: unknown,
+  fallback: string
+) {
+  const color =
+    String(
+      value ||
+        ""
+    ).trim();
+
+  if (
+    /^#[0-9a-fA-F]{6}$/.test(
+      color
+    )
+  ) {
+    return color.toLowerCase();
+  }
+
+  if (
+    /^#[0-9a-fA-F]{3}$/.test(
+      color
+    )
+  ) {
+    return (
+      "#" +
+      color
+        .slice(1)
+        .split("")
+        .map(
+          (char) =>
+            char + char
+        )
+        .join("")
+        .toLowerCase()
+    );
+  }
+
+  return fallback;
+}
+
+function hexToRgb(
+  hex: string
+): RGB {
+  const normalized =
+    normalizeHex(
+      hex,
+      "#000000"
+    ).slice(1);
+
+  return {
+    r:
+      parseInt(
+        normalized.slice(
+          0,
+          2
+        ),
+        16
+      ),
+
+    g:
+      parseInt(
+        normalized.slice(
+          2,
+          4
+        ),
+        16
+      ),
+
+    b:
+      parseInt(
+        normalized.slice(
+          4,
+          6
+        ),
+        16
+      ),
+  };
+}
+
+function rgbToHex(
+  rgb: RGB
+) {
+  const part = (
+    value: number
+  ) =>
+    Math.round(
+      Math.max(
+        0,
+        Math.min(
+          255,
+          value
+        )
+      )
+    )
+      .toString(16)
+      .padStart(
+        2,
+        "0"
+      );
+
+  return `#${part(
+    rgb.r
+  )}${part(
+    rgb.g
+  )}${part(
+    rgb.b
+  )}`;
+}
+
+function mixHex(
+  first: string,
+  second: string,
+  amount: number
+) {
+  const a =
+    hexToRgb(
+      first
+    );
+
+  const b =
+    hexToRgb(
+      second
+    );
+
+  const weight =
+    Math.max(
+      0,
+      Math.min(
+        1,
+        amount
+      )
+    );
+
+  return rgbToHex({
+    r:
+      a.r +
+      (
+        b.r -
+        a.r
+      ) *
+        weight,
+
+    g:
+      a.g +
+      (
+        b.g -
+        a.g
+      ) *
+        weight,
+
+    b:
+      a.b +
+      (
+        b.b -
+        a.b
+      ) *
+        weight,
+  });
+}
+
+function rgba(
+  rgb: RGB,
+  alpha: number
+) {
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+function channel(
+  value: number
+) {
+  const normalized =
+    value /
+    255;
+
+  return normalized <=
+    0.03928
+    ? normalized /
+        12.92
+    : Math.pow(
+        (
+          normalized +
+          0.055
+        ) /
+          1.055,
+        2.4
+      );
+}
+
+function luminance(
+  color: string
+) {
+  const rgb =
+    hexToRgb(
+      color
+    );
+
+  return (
+    0.2126 *
+      channel(
+        rgb.r
+      ) +
+    0.7152 *
+      channel(
+        rgb.g
+      ) +
+    0.0722 *
+      channel(
+        rgb.b
+      )
+  );
+}
+
+function contrastRatio(
+  first: string,
+  second: string
+) {
+  const a =
+    luminance(
+      first
+    );
+
+  const b =
+    luminance(
+      second
+    );
+
+  return (
+    (
+      Math.max(
+        a,
+        b
+      ) +
+      0.05
+    ) /
+    (
+      Math.min(
+        a,
+        b
+      ) +
+      0.05
+    )
+  );
+}
+
+function bestContrastColor(
+  background: string
+) {
+  return contrastRatio(
+    "#ffffff",
+    background
+  ) >=
+    contrastRatio(
+      "#111111",
+      background
+    )
+    ? "#ffffff"
+    : "#111111";
+}
+
+/*
+=========================================================
+GERAIS
 =========================================================
 */
 
@@ -1802,9 +2389,15 @@ function getInitials(
   return name
     .trim()
     .split(/\s+/)
-    .slice(0, 2)
-    .map((word) =>
-      word.charAt(0)
+    .slice(
+      0,
+      2
+    )
+    .map(
+      (word) =>
+        word.charAt(
+          0
+        )
     )
     .join("")
     .toUpperCase();
@@ -1816,25 +2409,38 @@ function formatPrice(
   return new Intl.NumberFormat(
     "pt-BR",
     {
-      style: "currency",
-      currency: "BRL",
+      style:
+        "currency",
+
+      currency:
+        "BRL",
     }
-  ).format(price || 0);
+  ).format(
+    price ||
+      0
+  );
 }
 
 function getWhatsAppHref(
   whatsapp: unknown
 ) {
-  const digits = String(
-    whatsapp || ""
-  ).replace(/\D/g, "");
+  const digits =
+    String(
+      whatsapp ||
+        ""
+    ).replace(
+      /\D/g,
+      ""
+    );
 
   if (!digits) {
     return "";
   }
 
   const number =
-    digits.startsWith("55")
+    digits.startsWith(
+      "55"
+    )
       ? digits
       : `55${digits}`;
 
@@ -1844,9 +2450,11 @@ function getWhatsAppHref(
 function getInstagramHref(
   instagram: unknown
 ) {
-  const value = String(
-    instagram || ""
-  ).trim();
+  const value =
+    String(
+      instagram ||
+        ""
+    ).trim();
 
   if (!value) {
     return "";
@@ -1863,13 +2471,20 @@ function getInstagramHref(
     return value;
   }
 
-  const username = value
-    .replace(/^@/, "")
-    .replace(
-      /^instagram\.com\//,
-      ""
-    )
-    .replace(/\/+$/, "");
+  const username =
+    value
+      .replace(
+        /^@/,
+        ""
+      )
+      .replace(
+        /^instagram\.com\//,
+        ""
+      )
+      .replace(
+        /\/+$/,
+        ""
+      );
 
   return `https://www.instagram.com/${username}`;
 }
@@ -1877,9 +2492,11 @@ function getInstagramHref(
 function cleanInstagram(
   instagram: unknown
 ) {
-  const value = String(
-    instagram || ""
-  ).trim();
+  const value =
+    String(
+      instagram ||
+        ""
+    ).trim();
 
   if (!value) {
     return "Instagram";
@@ -1895,11 +2512,16 @@ function cleanInstagram(
   ) {
     try {
       const url =
-        new URL(value);
+        new URL(
+          value
+        );
 
       const username =
         url.pathname
-          .replace(/\//g, "");
+          .replace(
+            /\//g,
+            ""
+          );
 
       return username
         ? `@${username}`
@@ -1909,61 +2531,8 @@ function cleanInstagram(
     }
   }
 
-  const username =
-    value.replace(
-      /^@/,
-      ""
-    );
-
-  return `@${username}`;
-}
-
-function getContrastColor(
-  hex: string
-) {
-  const normalized =
-    hex.replace("#", "");
-
-  if (
-    normalized.length !== 6
-  ) {
-    return "#050505";
-  }
-
-  const red =
-    parseInt(
-      normalized.substring(
-        0,
-        2
-      ),
-      16
-    );
-
-  const green =
-    parseInt(
-      normalized.substring(
-        2,
-        4
-      ),
-      16
-    );
-
-  const blue =
-    parseInt(
-      normalized.substring(
-        4,
-        6
-      ),
-      16
-    );
-
-  const luminance =
-    (red * 299 +
-      green * 587 +
-      blue * 114) /
-    1000;
-
-  return luminance > 150
-    ? "#050505"
-    : "#ffffff";
+  return `@${value.replace(
+    /^@/,
+    ""
+  )}`;
 }
