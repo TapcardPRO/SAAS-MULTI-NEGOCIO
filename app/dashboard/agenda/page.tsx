@@ -108,6 +108,13 @@ export default function AgendaPage() {
     null
   );
 
+  const [
+    selectedAppointmentAction,
+    setSelectedAppointmentAction,
+  ] = useState<Appointment | null>(
+    null
+  );
+
   const [search, setSearch] =
     useState("");
 
@@ -923,7 +930,7 @@ export default function AgendaPage() {
   async function updateStatus(
     appointmentId: string,
     status: string
-  ) {
+  ): Promise<boolean> {
     try {
       setUpdatingId(
         appointmentId
@@ -965,7 +972,7 @@ export default function AgendaPage() {
             "Erro ao atualizar agendamento"
         );
 
-        return;
+        return false;
       }
 
       setSuccess(
@@ -996,6 +1003,8 @@ export default function AgendaPage() {
       }
 
       await loadAppointments();
+
+      return true;
     } catch (error) {
       console.error(
         "UPDATE APPOINTMENT ERROR:",
@@ -1008,11 +1017,248 @@ export default function AgendaPage() {
           "Erro ao atualizar agendamento"
         )
       );
+
+      return false;
     } finally {
       setUpdatingId(
         null
       );
     }
+  }
+
+  async function changeStatusFromSheet(
+    appointment: Appointment,
+    status: string
+  ) {
+    const success =
+      await updateStatus(
+        appointment._id,
+        status
+      );
+
+    if (success) {
+      setSelectedAppointmentAction(
+        null
+      );
+    }
+
+    return success;
+  }
+
+  async function confirmAndSendWhatsApp(
+    appointment: Appointment
+  ) {
+    const success =
+      await updateStatus(
+        appointment._id,
+        "confirmado"
+      );
+
+    if (!success) {
+      return;
+    }
+
+    setSelectedAppointmentAction(
+      null
+    );
+
+    openWhatsAppConfirmation({
+      ...appointment,
+      status:
+        "confirmado",
+    });
+  }
+
+  function generateReceipt(
+    appointment: Appointment
+  ) {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return;
+    }
+
+    const receipt =
+      window.open(
+        "",
+        "_blank",
+        "width=520,height=720"
+      );
+
+    if (!receipt) {
+      setMessage(
+        "O navegador bloqueou a abertura do recibo."
+      );
+
+      return;
+    }
+
+    const value =
+      typeof appointment.price ===
+      "number"
+        ? formatPrice(
+            appointment.price
+          )
+        : "-";
+
+    const receiptHtml = `
+      <!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Recibo de atendimento</title>
+
+          <style>
+            * {
+              box-sizing: border-box;
+            }
+
+            body {
+              margin: 0;
+              padding: 32px;
+              color: #111;
+              font-family: Arial, Helvetica, sans-serif;
+              background: #fff;
+            }
+
+            .receipt {
+              max-width: 440px;
+              margin: 0 auto;
+              border: 1px solid #ddd;
+              border-radius: 16px;
+              padding: 28px;
+            }
+
+            h1 {
+              margin: 0;
+              font-size: 24px;
+            }
+
+            .muted {
+              color: #666;
+              font-size: 13px;
+            }
+
+            .line {
+              display: flex;
+              justify-content: space-between;
+              gap: 20px;
+              border-bottom: 1px solid #eee;
+              padding: 12px 0;
+              font-size: 14px;
+            }
+
+            .line strong {
+              text-align: right;
+            }
+
+            .total {
+              margin-top: 18px;
+              font-size: 20px;
+              font-weight: bold;
+            }
+
+            .footer {
+              margin-top: 26px;
+              text-align: center;
+              color: #777;
+              font-size: 12px;
+            }
+
+            @media print {
+              body {
+                padding: 0;
+              }
+
+              .receipt {
+                border: 0;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+          <div class="receipt">
+            <h1>VELLTO</h1>
+
+            <p class="muted">
+              Recibo de atendimento
+            </p>
+
+            <div class="line">
+              <span>Cliente</span>
+              <strong>${escapeReceiptHtml(
+                appointment.clientName ||
+                  "Cliente"
+              )}</strong>
+            </div>
+
+            <div class="line">
+              <span>Serviço</span>
+              <strong>${escapeReceiptHtml(
+                appointment.serviceName ||
+                  "-"
+              )}</strong>
+            </div>
+
+            <div class="line">
+              <span>Profissional</span>
+              <strong>${escapeReceiptHtml(
+                appointment.professionalName ||
+                  "-"
+              )}</strong>
+            </div>
+
+            <div class="line">
+              <span>Data</span>
+              <strong>${escapeReceiptHtml(
+                appointment.date
+                  ? formatDate(
+                      appointment.date
+                    )
+                  : "-"
+              )}</strong>
+            </div>
+
+            <div class="line">
+              <span>Horário</span>
+              <strong>${escapeReceiptHtml(
+                appointment.time ||
+                  appointment.startTime ||
+                  "-"
+              )}</strong>
+            </div>
+
+            <div class="total">
+              Valor: ${escapeReceiptHtml(
+                value
+              )}
+            </div>
+
+            <div class="footer">
+              Comprovante gerado pela Vellto Agenda
+            </div>
+          </div>
+
+          <script>
+            window.onload = function () {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    receipt.document.open();
+    receipt.document.write(
+      receiptHtml
+    );
+    receipt.document.close();
+
+    setSelectedAppointmentAction(
+      null
+    );
   }
 
   function previousDay() {
@@ -1569,8 +1815,10 @@ export default function AgendaPage() {
                       updatingId ===
                       appointment._id
                     }
-                    onStatus={
-                      updateStatus
+                    onOpen={() =>
+                      setSelectedAppointmentAction(
+                        appointment
+                      )
                     }
                   />
                 )
@@ -2133,6 +2381,62 @@ export default function AgendaPage() {
           </div>
         </div>
       ) : null}
+
+      {selectedAppointmentAction ? (
+        <AppointmentActionSheet
+          appointment={
+            selectedAppointmentAction
+          }
+          updating={
+            updatingId ===
+            selectedAppointmentAction._id
+          }
+          onClose={() =>
+            setSelectedAppointmentAction(
+              null
+            )
+          }
+          onConfirm={() =>
+            changeStatusFromSheet(
+              selectedAppointmentAction,
+              "confirmado"
+            )
+          }
+          onConfirmWhatsApp={() =>
+            confirmAndSendWhatsApp(
+              selectedAppointmentAction
+            )
+          }
+          onWhatsApp={() => {
+            openWhatsAppConfirmation(
+              selectedAppointmentAction
+            );
+          }}
+          onComplete={() =>
+            changeStatusFromSheet(
+              selectedAppointmentAction,
+              "concluido"
+            )
+          }
+          onNoShow={() =>
+            changeStatusFromSheet(
+              selectedAppointmentAction,
+              "faltou"
+            )
+          }
+          onCancel={() =>
+            changeStatusFromSheet(
+              selectedAppointmentAction,
+              "cancelado"
+            )
+          }
+          onReceipt={() =>
+            generateReceipt(
+              selectedAppointmentAction
+            )
+          }
+        />
+      ) : null}
     </main>
   );
 }
@@ -2140,16 +2444,11 @@ export default function AgendaPage() {
 function AppointmentCard({
   appointment,
   updating,
-  onStatus,
+  onOpen,
 }: {
   appointment: Appointment;
-
   updating: boolean;
-
-  onStatus: (
-    id: string,
-    status: string
-  ) => void;
+  onOpen: () => void;
 }) {
   const status =
     normalizeStatus(
@@ -2162,142 +2461,274 @@ function AppointmentCard({
       : appointment.membershipRemainingBefore;
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-black/10 p-5">
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-center">
-        <div className="flex min-w-0 flex-1 gap-4">
-          <div className="flex h-14 min-w-20 items-center justify-center rounded-xl border border-white/10 bg-[#071018] px-3 font-bold">
+    <button
+      type="button"
+      onClick={
+        onOpen
+      }
+      disabled={
+        updating
+      }
+      className="w-full rounded-2xl border border-white/10 bg-black/10 p-4 text-left transition hover:border-emerald-500/30 hover:bg-white/[0.035] disabled:opacity-60 sm:p-5"
+    >
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex min-w-[76px] shrink-0 flex-col items-center justify-center rounded-xl border border-white/10 bg-[#071018] px-3 py-3">
+          <span className="text-base font-black text-white">
             {appointment.time ||
               appointment.startTime ||
               "-"}
+          </span>
+
+          {appointment.endTime ? (
+            <span className="mt-0.5 text-[11px] text-zinc-600">
+              até {
+                appointment.endTime
+              }
+            </span>
+          ) : null}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate text-base font-bold sm:text-lg">
+              {appointment.clientName ||
+                "Cliente"}
+            </h3>
+
+            <StatusBadge
+              status={
+                status
+              }
+            />
+
+            {appointment.hasActiveMembership ||
+            appointment.membershipUsageConsumed ? (
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400">
+                Mensalista
+                {typeof membershipBalance ===
+                "number"
+                  ? ` • ${membershipBalance}`
+                  : ""}
+              </span>
+            ) : null}
           </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-bold">
+          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 sm:text-sm">
+            <span>
+              {appointment.serviceName ||
+                "Serviço"}
+            </span>
+
+            <span>
+              {appointment.professionalName ||
+                "Profissional"}
+            </span>
+          </div>
+
+          {appointment.clientPhone ? (
+            <p className="mt-1 text-xs text-zinc-600">
+              {formatPhone(
+                appointment.clientPhone
+              )}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-lg text-zinc-500">
+          ⋯
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function AppointmentActionSheet({
+  appointment,
+  updating,
+  onClose,
+  onConfirm,
+  onConfirmWhatsApp,
+  onWhatsApp,
+  onComplete,
+  onNoShow,
+  onCancel,
+  onReceipt,
+}: {
+  appointment: Appointment;
+  updating: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  onConfirmWhatsApp: () => void;
+  onWhatsApp: () => void;
+  onComplete: () => void;
+  onNoShow: () => void;
+  onCancel: () => void;
+  onReceipt: () => void;
+}) {
+  const status =
+    normalizeStatus(
+      appointment.status
+    );
+
+  const canChange =
+    status !==
+      "concluido" &&
+    status !==
+      "cancelado";
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end justify-center">
+      <button
+        type="button"
+        aria-label="Fechar menu"
+        onClick={
+          onClose
+        }
+        className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+      />
+
+      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-t-[28px] border border-white/10 bg-[#0c151e] shadow-2xl sm:mb-5 sm:rounded-3xl">
+        <div className="flex justify-center pt-3">
+          <div className="h-1.5 w-12 rounded-full bg-zinc-700" />
+        </div>
+
+        <div className="border-b border-white/10 px-5 pb-5 pt-4 sm:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="truncate text-lg font-black">
+                {appointment.professionalName ||
+                  "Profissional"}{" "}
+                •{" "}
+                {appointment.time ||
+                  appointment.startTime ||
+                  "-"}
+                {appointment.endTime
+                  ? `-${appointment.endTime}`
+                  : ""}
+              </p>
+
+              <p className="mt-1 truncate text-sm text-zinc-500">
                 {appointment.clientName ||
-                  "Cliente"}
-              </h3>
-
-              <StatusBadge
-                status={
-                  status
-                }
-              />
-
-              {appointment.hasActiveMembership ||
-              appointment.membershipUsageConsumed ? (
-                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
-                  Mensalista
-                  {typeof membershipBalance ===
-                  "number"
-                    ? ` • ${membershipBalance} restante(s)`
-                    : ""}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-zinc-500">
-              <span>
+                  "Cliente"}{" "}
+                •{" "}
                 {appointment.serviceName ||
                   "Serviço"}
-              </span>
-
-              <span>
-                {appointment.professionalName ||
-                  "Profissional"}
-              </span>
-
-              {appointment.clientPhone ? (
-                <span>
-                  {formatPhone(
-                    appointment.clientPhone
-                  )}
-                </span>
-              ) : null}
+              </p>
             </div>
 
-            {appointment.membershipUsageConsumed ? (
-              <p className="mt-2 text-xs text-emerald-400">
-                1 uso do plano descontado neste atendimento.
-              </p>
-            ) : null}
+            <StatusBadge
+              status={
+                status
+              }
+            />
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {(status ===
-            "pendente" ||
-            status ===
-              "confirmado") &&
-          canSendWhatsApp(
-            appointment.clientPhone
-          ) ? (
-            <button
-              type="button"
-              onClick={() =>
-                openWhatsAppConfirmation(
-                  appointment
-                )
-              }
-              className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
-            >
-              WhatsApp
-            </button>
+        <div className="max-h-[70vh] overflow-y-auto px-3 py-3 sm:px-4">
+          {status ===
+          "pendente" ? (
+            <>
+              <SheetAction
+                icon="✓"
+                title="Confirmar e enviar WhatsApp"
+                description="Confirma o horário e abre a mensagem pronta."
+                accent="emerald"
+                disabled={
+                  updating ||
+                  !canSendWhatsApp(
+                    appointment.clientPhone
+                  )
+                }
+                onClick={
+                  onConfirmWhatsApp
+                }
+              />
+
+              <SheetAction
+                icon="✓"
+                title="Somente confirmar"
+                description="Atualiza o status sem abrir o WhatsApp."
+                disabled={
+                  updating
+                }
+                onClick={
+                  onConfirm
+                }
+              />
+            </>
           ) : null}
 
           {status ===
-          "pendente" ? (
-            <ActionButton
-              label="Confirmar"
+          "confirmado" ? (
+            <div className="mb-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+              <p className="text-sm font-bold text-emerald-400">
+                ✓ Agendamento confirmado
+              </p>
+            </div>
+          ) : null}
+
+          {canSendWhatsApp(
+            appointment.clientPhone
+          ) ? (
+            <SheetAction
+              icon="◉"
+              title="Enviar mensagem no WhatsApp"
+              description={
+                appointment.clientPhone
+                  ? formatPhone(
+                      appointment.clientPhone
+                    )
+                  : undefined
+              }
+              accent="emerald"
               disabled={
                 updating
               }
-              onClick={() =>
-                onStatus(
-                  appointment._id,
-                  "confirmado"
-                )
+              onClick={
+                onWhatsApp
               }
             />
           ) : null}
 
-          {status !==
-            "concluido" &&
-          status !==
-            "cancelado" &&
-          status !==
-            "faltou" ? (
-            <ActionButton
-              label="Concluir"
-              primary
+          <SheetAction
+            icon="▤"
+            title="Gerar recibo"
+            description="Abre um recibo pronto para imprimir ou salvar em PDF."
+            disabled={
+              updating
+            }
+            onClick={
+              onReceipt
+            }
+          />
+
+          {canChange ? (
+            <SheetAction
+              icon="✓"
+              title="Concluir atendimento"
+              description="Marca o serviço como realizado."
+              accent="emerald"
               disabled={
                 updating
               }
-              onClick={() =>
-                onStatus(
-                  appointment._id,
-                  "concluido"
-                )
+              onClick={
+                onComplete
               }
             />
           ) : null}
 
-          {status !==
-            "concluido" &&
-          status !==
-            "cancelado" &&
+          {canChange &&
           status !==
             "faltou" ? (
-            <ActionButton
-              label="Faltou"
+            <SheetAction
+              icon="!"
+              title="Cliente faltou"
+              description="Registra que o cliente não compareceu."
               disabled={
                 updating
               }
-              onClick={() =>
-                onStatus(
-                  appointment._id,
-                  "faltou"
-                )
+              onClick={
+                onNoShow
               }
             />
           ) : null}
@@ -2306,29 +2737,121 @@ function AppointmentCard({
             "concluido" &&
           status !==
             "cancelado" ? (
-            <ActionButton
-              label="Cancelar"
-              danger
+            <SheetAction
+              icon="×"
+              title="Cancelar agendamento"
+              description="Cancela este horário."
+              accent="red"
               disabled={
                 updating
               }
-              onClick={() =>
-                onStatus(
-                  appointment._id,
-                  "cancelado"
-                )
+              onClick={
+                onCancel
               }
             />
           ) : null}
 
           {updating ? (
-            <span className="flex items-center px-3 text-xs text-zinc-500">
-              Salvando...
-            </span>
+            <div className="px-4 py-4 text-center text-sm text-zinc-500">
+              Salvando alteração...
+            </div>
           ) : null}
         </div>
+
+        <div className="border-t border-white/10 p-4">
+          <button
+            type="button"
+            onClick={
+              onClose
+            }
+            disabled={
+              updating
+            }
+            className="min-h-[48px] w-full rounded-xl border border-white/10 font-semibold text-zinc-300 transition hover:bg-white/5 disabled:opacity-40"
+          >
+            Fechar
+          </button>
+        </div>
       </div>
-    </article>
+    </div>
+  );
+}
+
+function SheetAction({
+  icon,
+  title,
+  description,
+  accent,
+  disabled,
+  onClick,
+}: {
+  icon: string;
+  title: string;
+  description?: string;
+  accent?: "emerald" | "red";
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  let iconStyle =
+    "border-white/10 bg-white/5 text-zinc-300";
+
+  let titleStyle =
+    "text-white";
+
+  if (
+    accent ===
+    "emerald"
+  ) {
+    iconStyle =
+      "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
+  }
+
+  if (
+    accent ===
+    "red"
+  ) {
+    iconStyle =
+      "border-red-500/20 bg-red-500/10 text-red-400";
+
+    titleStyle =
+      "text-red-400";
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={
+        onClick
+      }
+      disabled={
+        disabled
+      }
+      className="flex min-h-[68px] w-full items-center gap-4 rounded-2xl px-3 py-3 text-left transition hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-40 sm:px-4"
+    >
+      <div
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-xl font-bold ${iconStyle}`}
+      >
+        {icon}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p
+          className={`font-semibold ${titleStyle}`}
+        >
+          {title}
+        </p>
+
+        {description ? (
+          <p className="mt-1 text-xs leading-5 text-zinc-500">
+            {description}
+          </p>
+        ) : null}
+      </div>
+
+      <span className="text-xl text-zinc-700">
+        ›
+      </span>
+    </button>
   );
 }
 
@@ -2573,6 +3096,34 @@ function EmptyState({
       </p>
     </div>
   );
+}
+
+function escapeReceiptHtml(
+  value: string
+) {
+  return String(
+    value || ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
 }
 
 function getWhatsAppNumber(
