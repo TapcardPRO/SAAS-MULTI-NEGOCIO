@@ -72,6 +72,11 @@ export default function ProfissionaisPage() {
     null
   );
 
+  const [
+    creatingProfessional,
+    setCreatingProfessional,
+  ] = useState(false);
+
   const [form, setForm] =
     useState<EditForm>(emptyForm);
 
@@ -129,6 +134,24 @@ export default function ProfissionaisPage() {
     }
   }
 
+  function openCreate() {
+    setCreatingProfessional(
+      true
+    );
+
+    setEditingProfessional(
+      null
+    );
+
+    setModalMessage(
+      ""
+    );
+
+    setForm({
+      ...emptyForm,
+    });
+  }
+
   function openEdit(
     professional: Professional
   ) {
@@ -174,6 +197,7 @@ export default function ProfissionaisPage() {
     }
 
     setEditingProfessional(null);
+    setCreatingProfessional(false);
     setForm(emptyForm);
     setModalMessage("");
   }
@@ -249,7 +273,36 @@ export default function ProfissionaisPage() {
   }
 
   async function saveProfessional() {
-    if (!editingProfessional) {
+    const isCreate =
+      creatingProfessional;
+
+    if (
+      !isCreate &&
+      !editingProfessional
+    ) {
+      return;
+    }
+
+    if (
+      form.name.trim().length <
+      2
+    ) {
+      setModalMessage(
+        "Informe o nome do profissional."
+      );
+
+      return;
+    }
+
+    if (
+      form.allowPanelAccess &&
+      form.password.length < 6 &&
+      isCreate
+    ) {
+      setModalMessage(
+        "Para liberar acesso ao painel, crie uma senha com pelo menos 6 caracteres."
+      );
+
       return;
     }
 
@@ -257,75 +310,143 @@ export default function ProfissionaisPage() {
       setSaving(true);
       setModalMessage("");
 
-      const response = await fetch(
-        `/api/dashboard/professionals/${editingProfessional._id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            name: form.name,
-            role: form.role,
-            description:
-              form.description,
-            phone: form.phone,
-            email: form.email,
-            photoUrl:
-              form.photoUrl,
-            commission:
-              form.commission === ""
-                ? 0
-                : Number(
-                    form.commission
-                  ),
-            allowPanelAccess:
-              form.allowPanelAccess,
-            accessEmail:
-              form.accessEmail,
-            password:
-              form.password,
-            active: form.active,
-          }),
-        }
-      );
+      const url =
+        isCreate
+          ? "/api/dashboard/professionals"
+          : `/api/dashboard/professionals/${editingProfessional!._id}`;
+
+      const response =
+        await fetch(
+          url,
+          {
+            method:
+              isCreate
+                ? "POST"
+                : "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                name:
+                  form.name,
+
+                role:
+                  form.role,
+
+                description:
+                  form.description,
+
+                phone:
+                  form.phone,
+
+                email:
+                  form.email,
+
+                photoUrl:
+                  form.photoUrl,
+
+                commission:
+                  form.commission ===
+                  ""
+                    ? 0
+                    : Number(
+                        form.commission
+                      ),
+
+                allowPanelAccess:
+                  form.allowPanelAccess,
+
+                accessEmail:
+                  form.accessEmail,
+
+                password:
+                  form.password,
+
+                active:
+                  form.active,
+              }),
+          }
+        );
 
       const data =
         await response.json();
 
-      if (!response.ok) {
+      if (
+        !response.ok
+      ) {
         setModalMessage(
           data.message ||
             "Erro ao salvar profissional"
         );
+
         return;
       }
 
-      setProfessionals(
-        (current) =>
-          current.map(
-            (professional) =>
-              professional._id ===
-              editingProfessional._id
-                ? {
-                    ...professional,
-                    ...data.professional,
-                  }
-                : professional
-          )
-      );
+      if (
+        isCreate
+      ) {
+        setProfessionals(
+          (current) =>
+            [
+              ...current,
+              data.professional,
+            ].sort(
+              (a, b) =>
+                a.name.localeCompare(
+                  b.name,
+                  "pt-BR"
+                )
+            )
+        );
+      } else {
+        setProfessionals(
+          (current) =>
+            current.map(
+              (
+                professional
+              ) =>
+                professional._id ===
+                editingProfessional!._id
+                  ? {
+                      ...professional,
+                      ...data.professional,
+                    }
+                  : professional
+            )
+        );
+      }
 
       setModalMessage(
-        "Profissional atualizado com sucesso."
+        isCreate
+          ? "Profissional criado com sucesso."
+          : "Profissional atualizado com sucesso."
       );
 
       setTimeout(() => {
-        setEditingProfessional(null);
-        setModalMessage("");
+        setEditingProfessional(
+          null
+        );
+
+        setCreatingProfessional(
+          false
+        );
+
+        setForm(
+          emptyForm
+        );
+
+        setModalMessage(
+          ""
+        );
       }, 700);
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       setModalMessage(
         "Erro ao salvar profissional"
@@ -393,12 +514,15 @@ export default function ProfissionaisPage() {
             </p>
           </div>
 
-          <a
-            href="/dashboard/minha-pagina"
+          <button
+            type="button"
+            onClick={
+              openCreate
+            }
             className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 sm:w-auto sm:px-5"
           >
             + Novo profissional
-          </a>
+          </button>
         </div>
       </div>
 
@@ -501,7 +625,8 @@ export default function ProfissionaisPage() {
         </section>
       </div>
 
-      {editingProfessional ? (
+      {editingProfessional ||
+      creatingProfessional ? (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6">
           <div className="flex max-h-[95vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#09131d] shadow-2xl sm:rounded-3xl">
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
@@ -511,7 +636,9 @@ export default function ProfissionaisPage() {
                 </p>
 
                 <h2 className="mt-1 text-xl font-bold">
-                  Editar profissional
+                  {creatingProfessional
+                    ? "Novo profissional"
+                    : "Editar profissional"}
                 </h2>
               </div>
 
@@ -792,7 +919,7 @@ export default function ProfissionaisPage() {
 
                     <Field
                       label={
-                        editingProfessional.hasPanelUser
+                        editingProfessional?.hasPanelUser
                           ? "Nova senha (opcional)"
                           : "Senha inicial"
                       }
@@ -804,7 +931,7 @@ export default function ProfissionaisPage() {
                         )
                       }
                       placeholder={
-                        editingProfessional.hasPanelUser
+                        editingProfessional?.hasPanelUser
                           ? "Deixe vazio para manter"
                           : "Mínimo 6 caracteres"
                       }
@@ -812,7 +939,7 @@ export default function ProfissionaisPage() {
                     />
                   </div>
 
-                  {editingProfessional.hasPanelUser ? (
+                  {editingProfessional?.hasPanelUser ? (
                     <p className="mt-3 text-xs text-zinc-500">
                       O acesso já existe. Preencha uma nova senha somente se quiser alterá-la.
                     </p>

@@ -109,6 +109,18 @@ export default function AgendaPage() {
   );
 
   const [
+    receiptAppointment,
+    setReceiptAppointment,
+  ] = useState<Appointment | null>(
+    null
+  );
+
+  const [
+    receiptPaymentMethod,
+    setReceiptPaymentMethod,
+  ] = useState("pix");
+
+  const [
     selectedAppointmentAction,
     setSelectedAppointmentAction,
   ] = useState<Appointment | null>(
@@ -1134,8 +1146,10 @@ export default function AgendaPage() {
     });
   }
 
-  function generateReceipt(
-    appointment: Appointment
+  async function generateReceipt(
+    appointment: Appointment,
+    paymentMethod:
+      string
   ) {
     if (
       typeof window ===
@@ -1144,186 +1158,321 @@ export default function AgendaPage() {
       return;
     }
 
-    const receipt =
-      window.open(
-        "",
-        "_blank",
-        "width=520,height=720"
-      );
+    try {
+      const contextResponse =
+        await fetch(
+          "/api/dashboard/receipt-context",
+          {
+            cache:
+              "no-store",
+          }
+        );
 
-    if (!receipt) {
-      setMessage(
-        "O navegador bloqueou a abertura do recibo."
-      );
+      const contextData =
+        await readJsonResponse(
+          contextResponse
+        );
 
-      return;
-    }
+      const business =
+        contextResponse.ok
+          ? contextData.business ||
+            {}
+          : {};
 
-    const value =
-      typeof appointment.price ===
-      "number"
-        ? formatPrice(
-            appointment.price
-          )
-        : "-";
+      const receipt =
+        window.open(
+          "",
+          "_blank",
+          "width=560,height=760"
+        );
 
-    const receiptHtml = `
-      <!doctype html>
-      <html lang="pt-BR">
-        <head>
-          <meta charset="utf-8" />
-          <title>Recibo de atendimento</title>
+      if (!receipt) {
+        setMessage(
+          "O navegador bloqueou a abertura do recibo."
+        );
 
-          <style>
-            * {
-              box-sizing: border-box;
-            }
+        return;
+      }
 
-            body {
-              margin: 0;
-              padding: 32px;
-              color: #111;
-              font-family: Arial, Helvetica, sans-serif;
-              background: #fff;
-            }
+      const value =
+        typeof appointment.price ===
+        "number"
+          ? formatPrice(
+              appointment.price
+            )
+          : "-";
 
-            .receipt {
-              max-width: 440px;
-              margin: 0 auto;
-              border: 1px solid #ddd;
-              border-radius: 16px;
-              padding: 28px;
-            }
+      const paymentLabel =
+        formatPaymentMethod(
+          paymentMethod
+        );
 
-            h1 {
-              margin: 0;
-              font-size: 24px;
-            }
+      const logo =
+        business.logoUrl
+          ? `<img
+              src="${escapeReceiptHtml(
+                String(
+                  business.logoUrl
+                )
+              )}"
+              alt="Logo"
+              style="
+                width:72px;
+                height:72px;
+                object-fit:cover;
+                border-radius:16px;
+                margin-bottom:14px;
+              "
+            />`
+          : "";
 
-            .muted {
-              color: #666;
-              font-size: 13px;
-            }
+      const receiptHtml = `
+        <!doctype html>
+        <html lang="pt-BR">
+          <head>
+            <meta charset="utf-8" />
+            <title>Recibo de atendimento</title>
 
-            .line {
-              display: flex;
-              justify-content: space-between;
-              gap: 20px;
-              border-bottom: 1px solid #eee;
-              padding: 12px 0;
-              font-size: 14px;
-            }
+            <style>
+              * {
+                box-sizing: border-box;
+              }
 
-            .line strong {
-              text-align: right;
-            }
-
-            .total {
-              margin-top: 18px;
-              font-size: 20px;
-              font-weight: bold;
-            }
-
-            .footer {
-              margin-top: 26px;
-              text-align: center;
-              color: #777;
-              font-size: 12px;
-            }
-
-            @media print {
               body {
-                padding: 0;
+                margin: 0;
+                padding: 28px;
+                background: #fff;
+                color: #111;
+                font-family: Arial, Helvetica, sans-serif;
               }
 
               .receipt {
-                border: 0;
+                max-width: 460px;
+                margin: 0 auto;
+                border: 1px solid #ddd;
+                border-radius: 18px;
+                padding: 28px;
               }
-            }
-          </style>
-        </head>
 
-        <body>
-          <div class="receipt">
-            <h1>VELLTO</h1>
+              .brand {
+                text-align: center;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 20px;
+                margin-bottom: 18px;
+              }
 
-            <p class="muted">
-              Recibo de atendimento
-            </p>
+              h1 {
+                margin: 0;
+                font-size: 25px;
+              }
 
-            <div class="line">
-              <span>Cliente</span>
-              <strong>${escapeReceiptHtml(
-                appointment.clientName ||
-                  "Cliente"
-              )}</strong>
-            </div>
+              .muted {
+                color: #666;
+                font-size: 13px;
+                margin-top: 6px;
+              }
 
-            <div class="line">
-              <span>Serviço</span>
-              <strong>${escapeReceiptHtml(
-                appointment.serviceName ||
-                  "-"
-              )}</strong>
-            </div>
+              .line {
+                display: flex;
+                justify-content: space-between;
+                gap: 20px;
+                border-bottom: 1px solid #eee;
+                padding: 12px 0;
+                font-size: 14px;
+              }
 
-            <div class="line">
-              <span>Profissional</span>
-              <strong>${escapeReceiptHtml(
-                appointment.professionalName ||
-                  "-"
-              )}</strong>
-            </div>
+              .line strong {
+                text-align: right;
+              }
 
-            <div class="line">
-              <span>Data</span>
-              <strong>${escapeReceiptHtml(
-                appointment.date
-                  ? formatDate(
-                      appointment.date
+              .total {
+                display: flex;
+                justify-content: space-between;
+                gap: 16px;
+                margin-top: 20px;
+                padding-top: 18px;
+                border-top: 2px solid #111;
+                font-size: 20px;
+                font-weight: 800;
+              }
+
+              .footer {
+                margin-top: 26px;
+                text-align: center;
+                color: #777;
+                font-size: 11px;
+                line-height: 1.5;
+              }
+
+              @media print {
+                body {
+                  padding: 0;
+                }
+
+                .receipt {
+                  border: 0;
+                }
+              }
+            </style>
+          </head>
+
+          <body>
+            <div class="receipt">
+              <div class="brand">
+                ${logo}
+
+                <h1>
+                  ${escapeReceiptHtml(
+                    String(
+                      business.name ||
+                        "Vellto Agenda"
                     )
-                  : "-"
-              )}</strong>
+                  )}
+                </h1>
+
+                ${
+                  business.phone
+                    ? `<p class="muted">${escapeReceiptHtml(
+                        String(
+                          business.phone
+                        )
+                      )}</p>`
+                    : ""
+                }
+
+                ${
+                  business.address
+                    ? `<p class="muted">${escapeReceiptHtml(
+                        String(
+                          business.address
+                        )
+                      )}</p>`
+                    : ""
+                }
+
+                <p class="muted">
+                  Recibo de atendimento
+                </p>
+              </div>
+
+              <div class="line">
+                <span>Cliente</span>
+
+                <strong>
+                  ${escapeReceiptHtml(
+                    appointment.clientName ||
+                      "Cliente"
+                  )}
+                </strong>
+              </div>
+
+              <div class="line">
+                <span>Serviço</span>
+
+                <strong>
+                  ${escapeReceiptHtml(
+                    appointment.serviceName ||
+                      "-"
+                  )}
+                </strong>
+              </div>
+
+              <div class="line">
+                <span>Profissional</span>
+
+                <strong>
+                  ${escapeReceiptHtml(
+                    appointment.professionalName ||
+                      "-"
+                  )}
+                </strong>
+              </div>
+
+              <div class="line">
+                <span>Data</span>
+
+                <strong>
+                  ${escapeReceiptHtml(
+                    appointment.date
+                      ? formatDate(
+                          appointment.date
+                        )
+                      : "-"
+                  )}
+                </strong>
+              </div>
+
+              <div class="line">
+                <span>Horário</span>
+
+                <strong>
+                  ${escapeReceiptHtml(
+                    appointment.time ||
+                      appointment.startTime ||
+                      "-"
+                  )}
+                </strong>
+              </div>
+
+              <div class="line">
+                <span>Pagamento</span>
+
+                <strong>
+                  ${escapeReceiptHtml(
+                    paymentLabel
+                  )}
+                </strong>
+              </div>
+
+              <div class="total">
+                <span>Total</span>
+
+                <span>
+                  ${escapeReceiptHtml(
+                    value
+                  )}
+                </span>
+              </div>
+
+              <div class="footer">
+                Recibo gerado pela Vellto Agenda
+              </div>
             </div>
 
-            <div class="line">
-              <span>Horário</span>
-              <strong>${escapeReceiptHtml(
-                appointment.time ||
-                  appointment.startTime ||
-                  "-"
-              )}</strong>
-            </div>
+            <script>
+              window.onload = function () {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `;
 
-            <div class="total">
-              Valor: ${escapeReceiptHtml(
-                value
-              )}
-            </div>
+      receipt.document.open();
 
-            <div class="footer">
-              Comprovante gerado pela Vellto Agenda
-            </div>
-          </div>
+      receipt.document.write(
+        receiptHtml
+      );
 
-          <script>
-            window.onload = function () {
-              window.print();
-            };
-          </script>
-        </body>
-      </html>
-    `;
+      receipt.document.close();
 
-    receipt.document.open();
-    receipt.document.write(
-      receiptHtml
-    );
-    receipt.document.close();
+      setReceiptAppointment(
+        null
+      );
 
-    setSelectedAppointmentAction(
-      null
-    );
+      setSelectedAppointmentAction(
+        null
+      );
+    } catch (error) {
+      console.error(
+        "GENERATE RECEIPT ERROR:",
+        error
+      );
+
+      setMessage(
+        "Erro ao gerar recibo."
+      );
+    }
   }
 
   async function openEditAppointment(
@@ -3081,6 +3230,101 @@ export default function AgendaPage() {
         </div>
       ) : null}
 
+      {receiptAppointment ? (
+        <div className="fixed inset-0 z-[230] flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center sm:p-5">
+          <div className="w-full max-w-md rounded-t-3xl border border-white/10 bg-[#0b151f] p-5 shadow-2xl sm:rounded-3xl sm:p-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">
+                Recibo
+              </p>
+
+              <h2 className="mt-1 text-xl font-black">
+                Forma de pagamento
+              </h2>
+
+              <p className="mt-1 text-sm text-zinc-500">
+                {receiptAppointment.clientName ||
+                  "Cliente"}{" "}
+                •{" "}
+                {receiptAppointment.serviceName ||
+                  "Serviço"}
+              </p>
+            </div>
+
+            <div className="mt-5">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Pagamento
+              </label>
+
+              <select
+                value={
+                  receiptPaymentMethod
+                }
+                onChange={(
+                  event
+                ) =>
+                  setReceiptPaymentMethod(
+                    event.target.value
+                  )
+                }
+                className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+              >
+                <option value="pix">
+                  PIX
+                </option>
+
+                <option value="dinheiro">
+                  Dinheiro
+                </option>
+
+                <option value="debito">
+                  Cartão de débito
+                </option>
+
+                <option value="credito">
+                  Cartão de crédito
+                </option>
+
+                <option value="mensalidade">
+                  Mensalidade / Plano
+                </option>
+
+                <option value="outro">
+                  Outro
+                </option>
+              </select>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() =>
+                  setReceiptAppointment(
+                    null
+                  )
+                }
+                className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold transition hover:bg-white/5"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  generateReceipt(
+                    receiptAppointment,
+                    receiptPaymentMethod
+                  )
+                }
+                className="rounded-xl bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-400"
+              >
+                Gerar recibo
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {selectedAppointmentAction ? (
         <AppointmentActionSheet
           appointment={
@@ -3134,11 +3378,19 @@ export default function AgendaPage() {
               selectedAppointmentAction
             )
           }
-          onReceipt={() =>
-            generateReceipt(
+          onReceipt={() => {
+            setReceiptPaymentMethod(
+              "pix"
+            );
+
+            setReceiptAppointment(
               selectedAppointmentAction
-            )
-          }
+            );
+
+            setSelectedAppointmentAction(
+              null
+            );
+          }}
         />
       ) : null}
     </main>
@@ -3818,6 +4070,38 @@ function EmptyState({
         {description}
       </p>
     </div>
+  );
+}
+
+function formatPaymentMethod(
+  value: string
+) {
+  const labels: Record<
+    string,
+    string
+  > = {
+    pix:
+      "PIX",
+
+    dinheiro:
+      "Dinheiro",
+
+    debito:
+      "Cartão de débito",
+
+    credito:
+      "Cartão de crédito",
+
+    mensalidade:
+      "Mensalidade / Plano",
+
+    outro:
+      "Outro",
+  };
+
+  return (
+    labels[value] ||
+    "Não informado"
   );
 }
 
