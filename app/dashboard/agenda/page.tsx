@@ -101,6 +101,13 @@ export default function AgendaPage() {
   const [success, setSuccess] =
     useState("");
 
+  const [
+    whatsAppAppointment,
+    setWhatsAppAppointment,
+  ] = useState<Appointment | null>(
+    null
+  );
+
   const [search, setSearch] =
     useState("");
 
@@ -300,6 +307,9 @@ export default function AgendaPage() {
     try {
       setMessage("");
       setSuccess("");
+      setWhatsAppAppointment(
+        null
+      );
 
       const [
         clientsResponse,
@@ -884,6 +894,14 @@ export default function AgendaPage() {
           "Agendamento criado com sucesso."
       );
 
+      if (
+        data.appointment?._id
+      ) {
+        setWhatsAppAppointment(
+          data.appointment as Appointment
+        );
+      }
+
       await loadAppointments();
     } catch (error) {
       console.error(
@@ -913,6 +931,9 @@ export default function AgendaPage() {
 
       setMessage("");
       setSuccess("");
+      setWhatsAppAppointment(
+        null
+      );
 
       const response =
         await fetch(
@@ -951,6 +972,28 @@ export default function AgendaPage() {
         data.message ||
           "Agendamento atualizado."
       );
+
+      if (
+        status ===
+        "confirmado"
+      ) {
+        const confirmedAppointment =
+          appointments.find(
+            (appointment) =>
+              appointment._id ===
+              appointmentId
+          );
+
+        if (
+          confirmedAppointment
+        ) {
+          setWhatsAppAppointment({
+            ...confirmedAppointment,
+            status:
+              "confirmado",
+          });
+        }
+      }
 
       await loadAppointments();
     } catch (error) {
@@ -1449,8 +1492,29 @@ export default function AgendaPage() {
         ) : null}
 
         {success ? (
-          <div className="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-300">
-            {success}
+          <div className="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-emerald-300">
+                {success}
+              </p>
+
+              {whatsAppAppointment &&
+              canSendWhatsApp(
+                whatsAppAppointment.clientPhone
+              ) ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    openWhatsAppConfirmation(
+                      whatsAppAppointment
+                    )
+                  }
+                  className="flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400"
+                >
+                  Enviar confirmação no WhatsApp
+                </button>
+              ) : null}
+            </div>
           </div>
         ) : null}
 
@@ -2161,6 +2225,26 @@ function AppointmentCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {(status ===
+            "pendente" ||
+            status ===
+              "confirmado") &&
+          canSendWhatsApp(
+            appointment.clientPhone
+          ) ? (
+            <button
+              type="button"
+              onClick={() =>
+                openWhatsAppConfirmation(
+                  appointment
+                )
+              }
+              className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
+            >
+              WhatsApp
+            </button>
+          ) : null}
+
           {status ===
           "pendente" ? (
             <ActionButton
@@ -2488,6 +2572,147 @@ function EmptyState({
         {description}
       </p>
     </div>
+  );
+}
+
+function getWhatsAppNumber(
+  value?: string
+) {
+  const digits =
+    String(
+      value || ""
+    ).replace(
+      /\D/g,
+      ""
+    );
+
+  /*
+  Número brasileiro já com 55
+  */
+  if (
+    digits.startsWith(
+      "55"
+    ) &&
+    (
+      digits.length ===
+        12 ||
+      digits.length ===
+        13
+    )
+  ) {
+    return digits;
+  }
+
+  /*
+  DDD + número
+  */
+  if (
+    digits.length ===
+      10 ||
+    digits.length ===
+      11
+  ) {
+    return `55${digits}`;
+  }
+
+  return "";
+}
+
+function canSendWhatsApp(
+  value?: string
+) {
+  return Boolean(
+    getWhatsAppNumber(
+      value
+    )
+  );
+}
+
+function openWhatsAppConfirmation(
+  appointment: Appointment
+) {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
+
+  const number =
+    getWhatsAppNumber(
+      appointment.clientPhone
+    );
+
+  if (!number) {
+    return;
+  }
+
+  const status =
+    normalizeStatus(
+      appointment.status
+    );
+
+  const confirmationText =
+    status ===
+    "confirmado"
+      ? "Seu agendamento está confirmado ✅"
+      : "Seu agendamento foi registrado ✅";
+
+  const clientName =
+    String(
+      appointment.clientName ||
+        ""
+    ).trim();
+
+  const greeting =
+    clientName
+      ? `Olá, ${clientName}!`
+      : "Olá!";
+
+  const serviceName =
+    appointment.serviceName ||
+    "Serviço";
+
+  const professionalName =
+    appointment.professionalName ||
+    "Profissional";
+
+  const date =
+    appointment.date
+      ? formatDate(
+          appointment.date
+        )
+      : "-";
+
+  const time =
+    appointment.time ||
+    appointment.startTime ||
+    "-";
+
+  const message = [
+    greeting,
+    "",
+    confirmationText,
+    "",
+    `Serviço: ${serviceName}`,
+    `Profissional: ${professionalName}`,
+    `Data: ${date}`,
+    `Horário: ${time}`,
+    "",
+    "Se precisar alterar seu horário, entre em contato conosco.",
+  ].join(
+    "\n"
+  );
+
+  const url =
+    `https://wa.me/${number}?text=${encodeURIComponent(
+      message
+    )}`;
+
+  window.open(
+    url,
+    "_blank",
+    "noopener,noreferrer"
   );
 }
 
