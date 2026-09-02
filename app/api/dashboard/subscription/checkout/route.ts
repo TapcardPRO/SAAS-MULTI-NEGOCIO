@@ -100,7 +100,27 @@ export async function POST(
       );
     }
 
+    /*
+    Para testes de assinatura no Mercado Pago,
+    vendedor e pagador precisam estar no mesmo
+    ambiente (ambos teste ou ambos reais).
+
+    Se VELLTO_MP_TEST_PAYER_EMAIL estiver definido,
+    usamos o comprador de teste configurado no Vercel.
+    Em produção, sem essa variável, usamos normalmente
+    o e-mail do proprietário da empresa.
+    */
+    const testPayerEmail =
+      String(
+        process.env
+          .VELLTO_MP_TEST_PAYER_EMAIL ||
+          ""
+      )
+        .trim()
+        .toLowerCase();
+
     const ownerEmail =
+      testPayerEmail ||
       String(
         auth.user.email ||
           ""
@@ -113,7 +133,7 @@ export async function POST(
         {
           ok: false,
           message:
-            "O usuário proprietário está sem e-mail.",
+            "Nenhum e-mail de pagador foi configurado.",
         },
         {
           status: 400,
