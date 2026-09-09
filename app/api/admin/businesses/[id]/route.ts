@@ -264,6 +264,159 @@ export async function PUT(
       updatedAt: new Date(),
     };
 
+    if (body.slug !== undefined) {
+      const slug =
+        normalizeSlug(
+          String(
+            body.slug ||
+              ""
+          )
+        );
+
+      if (!slug) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Informe um slug válido.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      const reservedSlugs = [
+        "admin",
+        "api",
+        "dashboard",
+        "login",
+        "entrar",
+        "signup",
+        "cadastro",
+        "register",
+        "_next",
+        "favicon",
+      ];
+
+      if (
+        reservedSlugs.includes(
+          slug
+        )
+      ) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Este slug é reservado pelo sistema.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      const duplicate =
+        await auth.db
+          .collection(
+            "businesses"
+          )
+          .findOne({
+            _id: {
+              $ne:
+                business._id,
+            },
+
+            slug,
+          });
+
+      if (duplicate) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              "Este slug já está sendo usado por outra empresa.",
+          },
+          {
+            status: 409,
+          }
+        );
+      }
+
+      const oldSlug =
+        String(
+          business.slug ||
+            ""
+        );
+
+      updateData.slug =
+        slug;
+
+      /*
+      Atualiza referências desnormalizadas
+      que utilizem businessSlug.
+      */
+      if (
+        oldSlug &&
+        oldSlug !== slug
+      ) {
+        const collections =
+          await auth.db
+            .listCollections(
+              {},
+              {
+                nameOnly:
+                  true,
+              }
+            )
+            .toArray();
+
+        for (
+          const collectionInfo
+          of collections
+        ) {
+          if (
+            collectionInfo.name ===
+              "businesses" ||
+            collectionInfo.name.startsWith(
+              "system."
+            )
+          ) {
+            continue;
+          }
+
+          try {
+            await auth.db
+              .collection(
+                collectionInfo.name
+              )
+              .updateMany(
+                {
+                  businessSlug:
+                    oldSlug,
+                },
+                {
+                  $set: {
+                    businessSlug:
+                      slug,
+
+                    updatedAt:
+                      new Date(),
+                  },
+                }
+              );
+          } catch (
+            updateSlugError
+          ) {
+            console.error(
+              `Erro ao atualizar businessSlug em ${collectionInfo.name}:`,
+              updateSlugError
+            );
+          }
+        }
+      }
+    }
+
     if (body.plan !== undefined) {
       const plan = String(body.plan);
 
@@ -507,6 +660,319 @@ export async function PUT(
       }
     );
   }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: RouteProps
+) {
+  try {
+    const auth =
+      await requireSuperAdmin();
+
+    if (!auth.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            auth.message,
+        },
+        {
+          status:
+            auth.status,
+        }
+      );
+    }
+
+    const { id } =
+      await params;
+
+    if (
+      !ObjectId.isValid(id)
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Empresa inválida",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const businessId =
+      new ObjectId(id);
+
+    const business =
+      await auth.db
+        .collection(
+          "businesses"
+        )
+        .findOne({
+          _id:
+            businessId,
+        });
+
+    if (!business) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "Empresa não encontrada",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const body =
+      await request
+        .json()
+        .catch(
+          () => ({})
+        );
+
+    const confirmation =
+      String(
+        body.confirmation ||
+          ""
+      )
+        .trim()
+        .toLowerCase();
+
+    const expected =
+      String(
+        business.slug ||
+          business.name ||
+          ""
+      )
+        .trim()
+        .toLowerCase();
+
+    if (
+      !expected ||
+      confirmation !== expected
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            `Para excluir, confirme digitando "${expected}".`,
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const businessSlug =
+      String(
+        business.slug ||
+          ""
+      );
+
+    const businessIdString =
+      businessId.toString();
+
+    /*
+    =====================================================
+    EXCLUSÃO DOS DADOS DO TENANT
+    =====================================================
+
+    Percorremos as coleções e removemos somente
+    documentos vinculados à empresa pelo businessId
+    ou businessSlug.
+
+    customer_accounts normalmente é uma conta global
+    do cliente e por isso é preservada.
+    */
+
+    const protectedCollections =
+      new Set([
+        "businesses",
+        "customer_accounts",
+        "saas_plans",
+      ]);
+
+    const collections =
+      await auth.db
+        .listCollections(
+          {},
+          {
+            nameOnly: true,
+          }
+        )
+        .toArray();
+
+    const deletedByCollection:
+      Record<
+        string,
+        number
+      > = {};
+
+    for (
+      const collectionInfo
+      of collections
+    ) {
+      const name =
+        collectionInfo.name;
+
+      if (
+        protectedCollections.has(
+          name
+        ) ||
+        name.startsWith(
+          "system."
+        )
+      ) {
+        continue;
+      }
+
+      try {
+        const conditions:
+          Record<
+            string,
+            unknown
+          >[] = [
+            {
+              businessId,
+            },
+            {
+              businessId:
+                businessIdString,
+            },
+          ];
+
+        if (businessSlug) {
+          conditions.push({
+            businessSlug,
+          });
+        }
+
+        /*
+        Usuário proprietário antigo pode estar
+        ligado apenas por ownerUserId.
+        */
+        if (
+          name === "users" &&
+          business.ownerUserId
+        ) {
+          conditions.push({
+            _id:
+              ObjectId.isValid(
+                String(
+                  business.ownerUserId
+                )
+              )
+                ? new ObjectId(
+                    String(
+                      business.ownerUserId
+                    )
+                  )
+                : business.ownerUserId,
+          });
+        }
+
+        const result =
+          await auth.db
+            .collection(name)
+            .deleteMany({
+              $or:
+                conditions,
+            });
+
+        if (
+          result.deletedCount >
+          0
+        ) {
+          deletedByCollection[
+            name
+          ] =
+            result.deletedCount;
+        }
+      } catch (
+        deleteError
+      ) {
+        console.error(
+          `Erro ao excluir dados da coleção ${name}:`,
+          deleteError
+        );
+
+        return NextResponse.json(
+          {
+            ok: false,
+            message:
+              `Não foi possível concluir a exclusão. Falha na coleção ${name}.`,
+          },
+          {
+            status: 500,
+          }
+        );
+      }
+    }
+
+    await auth.db
+      .collection(
+        "businesses"
+      )
+      .deleteOne({
+        _id:
+          businessId,
+      });
+
+    return NextResponse.json({
+      ok: true,
+
+      message:
+        "Empresa excluída com sucesso.",
+
+      deletedByCollection,
+    });
+  } catch (error) {
+    console.error(
+      "Erro ao excluir empresa:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        ok: false,
+        message:
+          "Erro ao excluir empresa",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+function normalizeSlug(
+  value: string
+) {
+  return value
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .toLowerCase()
+    .trim()
+    .replace(
+      /[^a-z0-9]+/g,
+      "-"
+    )
+    .replace(
+      /^-+|-+$/g,
+      ""
+    )
+    .slice(
+      0,
+      80
+    );
 }
 
 function normalizeBillingStatus(

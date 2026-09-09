@@ -611,11 +611,48 @@ export default function CustomerAreaClient({
       }
     >
       <style>{`
+        html,
+        body {
+          background:
+            var(--customer-background) !important;
+        }
+
+        body {
+          margin: 0;
+        }
+
         .vellto-customer-theme {
           background:
-            var(--customer-background);
+            var(--customer-background) !important;
+
           color:
             var(--customer-text);
+
+          min-height:
+            100vh;
+
+          width:
+            100%;
+
+          isolation:
+            isolate;
+        }
+
+        .vellto-customer-theme::before {
+          content:
+            "";
+
+          position:
+            fixed;
+
+          inset:
+            0;
+
+          z-index:
+            -1;
+
+          background:
+            var(--customer-background);
         }
 
         .vellto-customer-theme .bg-zinc-950 {
@@ -643,7 +680,19 @@ export default function CustomerAreaClient({
         .vellto-customer-theme .bg-zinc-950\/90,
         .vellto-customer-theme .bg-zinc-950\/95 {
           background-color:
-            var(--customer-surface) !important;
+            var(--customer-background) !important;
+        }
+
+        .vellto-customer-theme header {
+          background:
+            color-mix(
+              in srgb,
+              var(--customer-background) 94%,
+              transparent
+            ) !important;
+
+          color:
+            var(--customer-text);
         }
 
         .vellto-customer-theme .text-white {
@@ -2221,32 +2270,28 @@ function createCustomerTheme({
     surface:
       mix(
         safeBackground,
-        safeSecondary,
+        safeText,
         backgroundLight
-          ? 0.08
-          : 0.30
+          ? 0.035
+          : 0.055
       ),
 
     surface2:
       mix(
         safeBackground,
+        safeText,
         backgroundLight
-          ? "#000000"
-          : "#ffffff",
-        backgroundLight
-          ? 0.045
-          : 0.055
+          ? 0.06
+          : 0.085
       ),
 
     surface3:
       mix(
         safeBackground,
+        safeText,
         backgroundLight
-          ? "#000000"
-          : "#ffffff",
-        backgroundLight
-          ? 0.08
-          : 0.09
+          ? 0.09
+          : 0.12
       ),
 
     text:

@@ -62,6 +62,15 @@ export default function GerenciarEmpresaPage() {
 
   const [message, setMessage] = useState("");
 
+  const [deleting, setDeleting] =
+    useState(false);
+
+  const [deleteConfirmation, setDeleteConfirmation] =
+    useState("");
+
+  const [deleteMessage, setDeleteMessage] =
+    useState("");
+
   const [newPassword, setNewPassword] =
     useState("");
 
@@ -155,6 +164,9 @@ export default function GerenciarEmpresaPage() {
           },
 
           body: JSON.stringify({
+            slug:
+              business.slug,
+
             plan:
               business.plan,
 
@@ -196,6 +208,90 @@ export default function GerenciarEmpresaPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteBusiness() {
+    if (!business) {
+      return;
+    }
+
+    const expected =
+      business.slug;
+
+    if (
+      deleteConfirmation
+        .trim()
+        .toLowerCase() !==
+      expected
+        .trim()
+        .toLowerCase()
+    ) {
+      setDeleteMessage(
+        `Digite exatamente "${expected}" para confirmar.`
+      );
+
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `ATENÇÃO: excluir definitivamente a empresa "${business.name}" e todos os dados vinculados a ela? Esta ação não poderá ser desfeita.`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      setDeleteMessage("");
+
+      const response =
+        await fetch(
+          `/api/admin/businesses/${business.id}`,
+          {
+            method:
+              "DELETE",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                confirmation:
+                  deleteConfirmation,
+              }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        setDeleteMessage(
+          data.message ||
+            "Erro ao excluir empresa."
+        );
+
+        return;
+      }
+
+      router.replace(
+        "/admin/empresas"
+      );
+
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+
+      setDeleteMessage(
+        "Erro ao excluir empresa."
+      );
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -356,6 +452,42 @@ export default function GerenciarEmpresaPage() {
                   business.whatsapp || "-"
                 }
               />
+
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-wider text-zinc-500">
+                  Slug / endereço público
+                </label>
+
+                <div className="flex items-center rounded-xl border border-white/10 bg-zinc-900 px-4">
+                  <span className="shrink-0 text-zinc-500">
+                    /
+                  </span>
+
+                  <input
+                    type="text"
+                    value={business.slug}
+                    onChange={(event) =>
+                      setBusiness(
+                        (current) =>
+                          current
+                            ? {
+                                ...current,
+                                slug:
+                                  event.target.value,
+                              }
+                            : current
+                      )
+                    }
+                    placeholder="nome-da-empresa"
+                    autoComplete="off"
+                    className="min-h-12 w-full bg-transparent px-1 outline-none"
+                  />
+                </div>
+
+                <p className="mt-2 text-xs text-zinc-500">
+                  Ao salvar, espaços e caracteres especiais serão convertidos automaticamente.
+                </p>
+              </div>
 
               <Info
                 label="Página pública"
@@ -712,6 +844,65 @@ export default function GerenciarEmpresaPage() {
               Não existe um responsável vinculado a esta empresa.
             </div>
           )}
+        </section>
+
+        <section className="mt-10 rounded-2xl border border-red-500/30 bg-red-500/5 p-6">
+          <p className="text-sm font-semibold uppercase tracking-widest text-red-400">
+            Zona de perigo
+          </p>
+
+          <h2 className="mt-2 text-xl font-bold">
+            Excluir empresa
+          </h2>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+            Esta ação exclui permanentemente a empresa, usuários vinculados, agendamentos, clientes internos, serviços, profissionais, mensalistas, despesas e demais dados pertencentes a ela.
+          </p>
+
+          <p className="mt-5 text-sm text-zinc-300">
+            Para confirmar, digite:
+            <strong className="ml-1 text-white">
+              {business.slug}
+            </strong>
+          </p>
+
+          <input
+            type="text"
+            value={deleteConfirmation}
+            onChange={(event) =>
+              setDeleteConfirmation(
+                event.target.value
+              )
+            }
+            placeholder={business.slug}
+            autoComplete="off"
+            className="mt-3 min-h-12 w-full rounded-xl border border-red-500/20 bg-zinc-900 px-4 outline-none focus:border-red-500"
+          />
+
+          <button
+            type="button"
+            onClick={deleteBusiness}
+            disabled={
+              deleting ||
+              deleteConfirmation
+                .trim()
+                .toLowerCase() !==
+                business.slug
+                  .trim()
+                  .toLowerCase()
+            }
+            className="mt-4 w-full rounded-xl border border-red-500/40 bg-red-500/10 px-6 py-4 font-bold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {deleting
+              ? "Excluindo empresa..."
+              : "Excluir empresa definitivamente"}
+          </button>
+
+          {deleteMessage ? (
+            <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+              {deleteMessage}
+            </div>
+          ) : null}
         </section>
       </div>
     </main>
