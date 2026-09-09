@@ -76,6 +76,11 @@ const menu = [
     icon: "◈",
   },
   {
+    label: "Meu link",
+    href: "/dashboard/meu-link",
+    icon: "↗",
+  },
+  {
     label: "Financeiro",
     href: "/dashboard/financeiro",
     icon: "◉",
@@ -659,6 +664,42 @@ export default function DashboardShell({
           color:
             var(--vellto-on-primary);
         }
+
+        /*
+        ===================================================
+        MOBILE FIRST
+        ===================================================
+        */
+        @media (max-width: 1023px) {
+          .vellto-dashboard-theme main {
+            min-height:
+              calc(
+                100dvh -
+                4rem
+              );
+          }
+
+          .vellto-dashboard-theme main button,
+          .vellto-dashboard-theme main a {
+            -webkit-tap-highlight-color:
+              transparent;
+          }
+
+          .vellto-dashboard-theme main
+          [class*="rounded-xl"],
+          .vellto-dashboard-theme main
+          [class*="rounded-2xl"] {
+            scroll-margin-top:
+              5rem;
+          }
+
+          .vellto-dashboard-theme input,
+          .vellto-dashboard-theme select,
+          .vellto-dashboard-theme textarea {
+            font-size:
+              16px;
+          }
+        }
       `}</style>
       {/* TOPO MOBILE */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-white/10 bg-[#09131d]/95 px-3 backdrop-blur sm:px-4 lg:hidden">
@@ -838,11 +879,155 @@ export default function DashboardShell({
         ) : null}
 
         {/* CONTEÚDO */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pb-24 lg:pb-0">
           {children}
         </div>
       </div>
+
+      {/* NAVEGAÇÃO PRINCIPAL MOBILE */}
+      <nav
+        className="
+          fixed bottom-0 left-0 right-0 z-40
+          border-t border-white/10
+          bg-[#09131d]/95
+          px-2 pb-[max(env(safe-area-inset-bottom),0.4rem)]
+          pt-2 backdrop-blur-xl
+          lg:hidden
+        "
+        style={{
+          backgroundColor:
+            "color-mix(in srgb, var(--vellto-sidebar) 94%, transparent)",
+          borderColor:
+            "var(--vellto-border)",
+        }}
+      >
+        <div className="mx-auto grid max-w-lg grid-cols-5 items-end gap-1">
+          <MobileNavItem
+            href="/dashboard/agenda"
+            label="Agenda"
+            icon="▣"
+            active={pathname.startsWith("/dashboard/agenda")}
+          />
+
+          {!isEmployee ? (
+            <MobileNavItem
+              href="/dashboard/meu-link"
+              label="Meu link"
+              icon="↗"
+              active={pathname.startsWith("/dashboard/meu-link")}
+            />
+          ) : (
+            <MobileNavItem
+              href="/dashboard/mensalistas"
+              label="Planos"
+              icon="◇"
+              active={pathname.startsWith("/dashboard/mensalistas")}
+            />
+          )}
+
+          <Link
+            href="/dashboard/agenda?novo=1"
+            className="
+              -mt-7 flex flex-col items-center justify-center
+              gap-1
+            "
+          >
+            <span
+              className="
+                flex h-14 w-14 items-center justify-center
+                rounded-full bg-emerald-500
+                text-2xl font-light text-zinc-950
+                shadow-xl
+              "
+              style={{
+                boxShadow:
+                  "0 10px 30px var(--vellto-primary-soft-strong)",
+              }}
+            >
+              +
+            </span>
+
+            <span className="text-[10px] font-semibold text-zinc-400">
+              Novo
+            </span>
+          </Link>
+
+          <MobileNavItem
+            href={
+              isEmployee
+                ? "/dashboard/financeiro"
+                : "/dashboard/clientes"
+            }
+            label={
+              isEmployee
+                ? "Financeiro"
+                : "Clientes"
+            }
+            icon={
+              isEmployee
+                ? "◉"
+                : "♙"
+            }
+            active={
+              isEmployee
+                ? pathname.startsWith("/dashboard/financeiro")
+                : pathname.startsWith("/dashboard/clientes")
+            }
+          />
+
+          <button
+            type="button"
+            onClick={() =>
+              setMobileMenu(true)
+            }
+            className="
+              flex min-h-[54px] flex-col items-center
+              justify-center gap-1 rounded-xl
+              px-1 text-zinc-400
+            "
+          >
+            <span className="text-lg leading-none">
+              ☰
+            </span>
+
+            <span className="text-[10px] font-medium">
+              Menu
+            </span>
+          </button>
+        </div>
+      </nav>
     </div>
+  );
+}
+
+function MobileNavItem({
+  href,
+  label,
+  icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-xl px-1 transition ${
+        active
+          ? "text-emerald-400"
+          : "text-zinc-400"
+      }`}
+    >
+      <span className="text-lg leading-none">
+        {icon}
+      </span>
+
+      <span className="max-w-full truncate text-[10px] font-medium">
+        {label}
+      </span>
+    </Link>
   );
 }
 

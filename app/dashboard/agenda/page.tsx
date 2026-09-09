@@ -194,6 +194,11 @@ export default function AgendaPage() {
     setShowNewAppointment,
   ] = useState(false);
 
+  const [
+    quickNewHandled,
+    setQuickNewHandled,
+  ] = useState(false);
+
   const [clientId, setClientId] =
     useState("");
 
@@ -297,6 +302,46 @@ export default function AgendaPage() {
   }, [
     mounted,
     date,
+  ]);
+
+  /*
+  ======================================================
+  ATALHO MOBILE: /dashboard/agenda?novo=1
+  ======================================================
+  */
+  useEffect(() => {
+    if (
+      !mounted ||
+      quickNewHandled
+    ) {
+      return;
+    }
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    if (
+      params.get("novo") !==
+      "1"
+    ) {
+      setQuickNewHandled(true);
+      return;
+    }
+
+    setQuickNewHandled(true);
+
+    void openNewAppointment();
+
+    window.history.replaceState(
+      {},
+      "",
+      "/dashboard/agenda"
+    );
+  }, [
+    mounted,
+    quickNewHandled,
   ]);
 
   useEffect(() => {
