@@ -3,6 +3,12 @@ import { ObjectId } from "mongodb";
 import { requireBusinessSession } from "@/lib/tenant-auth";
 import { isMonthClosed } from "@/lib/monthly-closing";
 
+import {
+  appointmentDurationMinutes,
+  currentMinutesSaoPaulo,
+  minutesToTime,
+} from "@/lib/live-queue";
+
 export const dynamic = "force-dynamic";
 
 type Props = {
@@ -12,6 +18,7 @@ type Props = {
 const allowedStatuses = [
   "pendente",
   "confirmado",
+  "aguardando",
   "em_atendimento",
   "concluido",
   "cancelado",
@@ -138,6 +145,113 @@ export async function PUT(
 
     const now = new Date();
 
+    const nowMinutes =
+      currentMinutesSaoPaulo();
+
+    const nowTime =
+      minutesToTime(
+        nowMinutes
+      );
+
+    const runtimeFields:
+      Record<
+        string,
+        unknown
+      > = {};
+
+    /*
+    =============================================
+    CLIENTE CHEGOU
+    =============================================
+    */
+    if (
+      status ===
+      "aguardando"
+    ) {
+      runtimeFields.arrivedAt =
+        appointment.arrivedAt ||
+        now;
+
+      runtimeFields.arrivedMinutes =
+        appointment.arrivedMinutes ??
+        nowMinutes;
+
+      runtimeFields.arrivedTime =
+        appointment.arrivedTime ||
+        nowTime;
+    }
+
+    /*
+    =============================================
+    INÍCIO REAL
+    =============================================
+    */
+    if (
+      status ===
+      "em_atendimento"
+    ) {
+      const actualStartMinutes =
+        Number.isFinite(
+          Number(
+            appointment.actualStartMinutes
+          )
+        )
+          ? Number(
+              appointment.actualStartMinutes
+            )
+          : nowMinutes;
+
+      const duration =
+        appointmentDurationMinutes(
+          appointment
+        );
+
+      runtimeFields.actualStartAt =
+        appointment.actualStartAt ||
+        now;
+
+      runtimeFields.actualStartMinutes =
+        actualStartMinutes;
+
+      runtimeFields.actualStartTime =
+        appointment.actualStartTime ||
+        minutesToTime(
+          actualStartMinutes
+        );
+
+      runtimeFields.estimatedEndMinutes =
+        actualStartMinutes +
+        duration;
+
+      runtimeFields.estimatedEndTime =
+        minutesToTime(
+          actualStartMinutes +
+            duration
+        );
+    }
+
+    /*
+    =============================================
+    TÉRMINO REAL
+    =============================================
+    */
+    if (
+      status ===
+      "concluido"
+    ) {
+      runtimeFields.actualEndAt =
+        appointment.actualEndAt ||
+        now;
+
+      runtimeFields.actualEndMinutes =
+        appointment.actualEndMinutes ??
+        nowMinutes;
+
+      runtimeFields.actualEndTime =
+        appointment.actualEndTime ||
+        nowTime;
+    }
+
     await auth.db
       .collection("appointments")
       .updateOne(
@@ -146,6 +260,7 @@ export async function PUT(
           $set: {
             status,
             updatedAt: now,
+            ...runtimeFields,
             ...(status === "concluido"
               ? {
                   completedAt:

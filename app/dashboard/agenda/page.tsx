@@ -31,6 +31,42 @@ type Appointment = {
   status?: string;
   price?: number;
 
+  arrivedAt?: string;
+  arrivedTime?: string;
+  arrivedMinutes?: number;
+
+  actualStartAt?: string;
+  actualStartTime?: string;
+  actualStartMinutes?: number;
+
+  estimatedEndTime?: string;
+  estimatedEndMinutes?: number;
+
+  actualEndAt?: string;
+  actualEndTime?: string;
+  actualEndMinutes?: number;
+
+  scheduledStartTime?: string;
+  scheduledEndTime?: string;
+  scheduledStartMinutes?: number;
+  scheduledEndMinutes?: number;
+
+  liveEstimatedStartTime?: string;
+  liveEstimatedEndTime?: string;
+  liveEstimatedStartMinutes?: number;
+  liveEstimatedEndMinutes?: number;
+
+  liveNoticeType?:
+    | "delay"
+    | "advance"
+    | null;
+
+  liveOffsetMinutes?: number;
+  liveNoticeMinutes?: number;
+
+  liveAvailableFromTime?: string;
+  liveAvailableFromMinutes?: number;
+
   hasActiveMembership?: boolean;
   membershipPlanName?: string;
   membershipRemainingBefore?: number | null;
@@ -2512,6 +2548,14 @@ export default function AgendaPage() {
                 Confirmados
               </option>
 
+              <option value="aguardando">
+                Cliente chegou
+              </option>
+
+              <option value="em_atendimento">
+                Em atendimento
+              </option>
+
               <option value="concluido">
                 Concluídos
               </option>
@@ -3717,6 +3761,23 @@ export default function AgendaPage() {
               selectedAppointmentAction
             );
           }}
+          onNotifySchedule={() => {
+            openWhatsAppScheduleUpdate(
+              selectedAppointmentAction
+            );
+          }}
+          onArrived={() =>
+            changeStatusFromSheet(
+              selectedAppointmentAction,
+              "aguardando"
+            )
+          }
+          onStart={() =>
+            changeStatusFromSheet(
+              selectedAppointmentAction,
+              "em_atendimento"
+            )
+          }
           onComplete={() =>
             changeStatusFromSheet(
               selectedAppointmentAction,
@@ -3850,6 +3911,41 @@ function AppointmentCard({
               )}
             </p>
           ) : null}
+
+          {appointment.liveNoticeType ===
+            "delay" &&
+          Number(
+            appointment.liveNoticeMinutes ||
+              0
+          ) >= 5 ? (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-400">
+              ⚠ Previsão{" "}
+              {appointment.liveEstimatedStartTime} • +
+              {appointment.liveNoticeMinutes} min
+            </div>
+          ) : null}
+
+          {appointment.liveNoticeType ===
+            "advance" &&
+          Number(
+            appointment.liveNoticeMinutes ||
+              0
+          ) >= 5 ? (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1.5 text-xs font-semibold text-blue-400">
+              ↗ Pode chegar às{" "}
+              {appointment.liveAvailableFromTime} •{" "}
+              {appointment.liveNoticeMinutes} min antes
+            </div>
+          ) : null}
+
+          {status ===
+            "em_atendimento" &&
+          appointment.liveEstimatedEndTime ? (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-400">
+              ▶ Em atendimento • previsão até{" "}
+              {appointment.liveEstimatedEndTime}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-lg text-zinc-500">
@@ -3867,6 +3963,9 @@ function AppointmentActionSheet({
   onConfirm,
   onConfirmWhatsApp,
   onWhatsApp,
+  onNotifySchedule,
+  onArrived,
+  onStart,
   onComplete,
   onNoShow,
   onCancel,
@@ -3879,6 +3978,9 @@ function AppointmentActionSheet({
   onConfirm: () => void;
   onConfirmWhatsApp: () => void;
   onWhatsApp: () => void;
+  onNotifySchedule: () => void;
+  onArrived: () => void;
+  onStart: () => void;
   onComplete: () => void;
   onNoShow: () => void;
   onCancel: () => void;
@@ -3945,6 +4047,78 @@ function AppointmentActionSheet({
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto px-3 py-3 sm:px-4">
+          {appointment.liveNoticeType ===
+            "delay" &&
+          Number(
+            appointment.liveNoticeMinutes ||
+              0
+          ) >= 5 ? (
+            <div className="mb-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4">
+              <p className="font-black text-amber-400">
+                ⚠ Atendimento com atraso previsto
+              </p>
+
+              <p className="mt-1 text-sm leading-6 text-zinc-400">
+                Horário marcado:{" "}
+                {appointment.scheduledStartTime ||
+                  appointment.time ||
+                  appointment.startTime}
+                . Previsão atual:{" "}
+                <strong className="text-white">
+                  {appointment.liveEstimatedStartTime}
+                </strong>
+                . Atraso estimado de{" "}
+                <strong className="text-amber-400">
+                  {appointment.liveNoticeMinutes} minutos
+                </strong>
+                .
+              </p>
+            </div>
+          ) : null}
+
+          {appointment.liveNoticeType ===
+            "advance" &&
+          Number(
+            appointment.liveNoticeMinutes ||
+              0
+          ) >= 5 ? (
+            <div className="mb-3 rounded-2xl border border-blue-500/25 bg-blue-500/10 p-4">
+              <p className="font-black text-blue-400">
+                ↗ Possibilidade de antecipação
+              </p>
+
+              <p className="mt-1 text-sm leading-6 text-zinc-400">
+                O horário continua reservado para{" "}
+                {appointment.scheduledStartTime ||
+                  appointment.time ||
+                  appointment.startTime}
+                , mas o profissional pode ficar disponível a partir de{" "}
+                <strong className="text-white">
+                  {appointment.liveAvailableFromTime}
+                </strong>
+                .
+              </p>
+            </div>
+          ) : null}
+
+          {status ===
+            "em_atendimento" &&
+          appointment.liveEstimatedEndTime ? (
+            <div className="mb-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <p className="font-black text-emerald-400">
+                ▶ Atendimento em andamento
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Início real:{" "}
+                {appointment.actualStartTime ||
+                  "-"}{" "}
+                • previsão de término:{" "}
+                {appointment.liveEstimatedEndTime}
+              </p>
+            </div>
+          ) : null}
+
           {status !==
             "concluido" &&
           status !==
@@ -4004,6 +4178,82 @@ function AppointmentActionSheet({
             </div>
           ) : null}
 
+          {(
+            appointment.liveNoticeType ===
+              "delay" ||
+            appointment.liveNoticeType ===
+              "advance"
+          ) &&
+          Number(
+            appointment.liveNoticeMinutes ||
+              0
+          ) >= 5 &&
+          canSendWhatsApp(
+            appointment.clientPhone
+          ) ? (
+            <SheetAction
+              icon="◉"
+              title={
+                appointment.liveNoticeType ===
+                "delay"
+                  ? "Avisar cliente sobre atraso"
+                  : "Avisar cliente sobre antecipação"
+              }
+              description={
+                appointment.liveNoticeType ===
+                "delay"
+                  ? `Abre o WhatsApp com a nova previsão: ${appointment.liveEstimatedStartTime}.`
+                  : `Informa que pode chegar a partir de ${appointment.liveAvailableFromTime}.`
+              }
+              accent="emerald"
+              disabled={
+                updating
+              }
+              onClick={
+                onNotifySchedule
+              }
+            />
+          ) : null}
+
+          {(
+            status ===
+              "pendente" ||
+            status ===
+              "confirmado"
+          ) ? (
+            <SheetAction
+              icon="●"
+              title="Cliente chegou"
+              description="Registra a hora real de chegada do cliente."
+              disabled={
+                updating
+              }
+              onClick={
+                onArrived
+              }
+            />
+          ) : null}
+
+          {(
+            status ===
+              "aguardando" ||
+            status ===
+              "confirmado"
+          ) ? (
+            <SheetAction
+              icon="▶"
+              title="Iniciar atendimento"
+              description="Registra o início real e recalcula a fila."
+              accent="emerald"
+              disabled={
+                updating
+              }
+              onClick={
+                onStart
+              }
+            />
+          ) : null}
+
           {canSendWhatsApp(
             appointment.clientPhone
           ) ? (
@@ -4039,11 +4289,12 @@ function AppointmentActionSheet({
             }
           />
 
-          {canChange ? (
+          {status ===
+          "em_atendimento" ? (
             <SheetAction
-              icon="✓"
-              title="Concluir atendimento"
-              description="Marca o serviço como realizado."
+              icon="■"
+              title="Finalizar atendimento"
+              description="Registra o término real e recalcula os próximos horários."
               accent="emerald"
               disabled={
                 updating
@@ -4331,6 +4582,8 @@ function StatusBadge({
       "Pendente",
     confirmado:
       "Confirmado",
+    aguardando:
+      "Cliente chegou",
     em_atendimento:
       "Em atendimento",
     concluido:
@@ -4350,6 +4603,14 @@ function StatusBadge({
   ) {
     style =
       "bg-blue-500/10 text-blue-400";
+  }
+
+  if (
+    status ===
+    "aguardando"
+  ) {
+    style =
+      "bg-violet-500/10 text-violet-400";
   }
 
   if (
@@ -4623,6 +4884,112 @@ function openWhatsAppConfirmation(
   ].join(
     "\n"
   );
+
+  const url =
+    `https://wa.me/${number}?text=${encodeURIComponent(
+      message
+    )}`;
+
+  window.open(
+    url,
+    "_blank",
+    "noopener,noreferrer"
+  );
+}
+
+function openWhatsAppScheduleUpdate(
+  appointment: Appointment
+) {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
+
+  const number =
+    getWhatsAppNumber(
+      appointment.clientPhone
+    );
+
+  if (!number) {
+    return;
+  }
+
+  const clientName =
+    String(
+      appointment.clientName ||
+        ""
+    ).trim();
+
+  const greeting =
+    clientName
+      ? `Olá, ${clientName}! 👋`
+      : "Olá! 👋";
+
+  const originalTime =
+    appointment.scheduledStartTime ||
+    appointment.time ||
+    appointment.startTime ||
+    "-";
+
+  let message =
+    "";
+
+  if (
+    appointment.liveNoticeType ===
+    "delay"
+  ) {
+    const newTime =
+      appointment.liveEstimatedStartTime ||
+      originalTime;
+
+    const delay =
+      Number(
+        appointment.liveNoticeMinutes ||
+          0
+      );
+
+    message = [
+      greeting,
+      "",
+      "Passando para avisar sobre uma pequena atualização no seu horário. ⏰",
+      "",
+      `Seu atendimento estava marcado para *${originalTime}*.`,
+      `Nossa previsão atual é começar por volta de *${newTime}*.`,
+      delay > 0
+        ? `Atraso estimado: *${delay} minutos*.`
+        : "",
+      "",
+      "Pedimos desculpas pelo imprevisto e agradecemos pela compreensão! 🙏",
+    ]
+      .filter(Boolean)
+      .join(
+        "\n"
+      );
+  } else if (
+    appointment.liveNoticeType ===
+    "advance"
+  ) {
+    const availableFrom =
+      appointment.liveAvailableFromTime ||
+      originalTime;
+
+    message = [
+      greeting,
+      "",
+      "Conseguimos adiantar um pouco nossa agenda. ✨",
+      "",
+      `Seu horário continua reservado normalmente para *${originalTime}*.`,
+      `Mas, se for conveniente para você, o profissional poderá atendê-lo a partir de *${availableFrom}*.`,
+      "",
+      "Não se preocupe caso não consiga chegar antes: seu horário original continua reservado. 😊",
+    ].join(
+      "\n"
+    );
+  } else {
+    return;
+  }
 
   const url =
     `https://wa.me/${number}?text=${encodeURIComponent(

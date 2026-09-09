@@ -7,6 +7,10 @@ import {
   randomUUID,
 } from "node:crypto";
 
+import {
+  applyLiveQueue,
+} from "@/lib/live-queue";
+
 type DaySchedule = {
   enabled: boolean;
   start: string;
@@ -602,6 +606,16 @@ export async function getPublicBookingAvailability(
       } as any)
       .toArray();
 
+  const liveAppointments =
+    applyLiveQueue(
+      appointments,
+      {
+        date,
+        minimumNoticeMinutes:
+          5,
+      }
+    );
+
   /*
   =======================================================
   GERAR HORÁRIOS
@@ -729,7 +743,7 @@ export async function getPublicBookingAvailability(
     */
 
     const occupied =
-      appointments.some(
+      liveAppointments.some(
         (
           appointment
         ) => {
@@ -983,6 +997,32 @@ HELPERS
 function getAppointmentStart(
   appointment: any
 ): number | null {
+  const live =
+    Number(
+      appointment.liveEstimatedStartMinutes
+    );
+
+  if (
+    Number.isFinite(
+      live
+    )
+  ) {
+    return live;
+  }
+
+  const actual =
+    Number(
+      appointment.actualStartMinutes
+    );
+
+  if (
+    Number.isFinite(
+      actual
+    )
+  ) {
+    return actual;
+  }
+
   const stored =
     Number(
       appointment.startMinutes
@@ -1009,6 +1049,32 @@ function getAppointmentEnd(
   appointment: any,
   start: number
 ) {
+  const live =
+    Number(
+      appointment.liveEstimatedEndMinutes
+    );
+
+  if (
+    Number.isFinite(
+      live
+    )
+  ) {
+    return live;
+  }
+
+  const actual =
+    Number(
+      appointment.actualEndMinutes
+    );
+
+  if (
+    Number.isFinite(
+      actual
+    )
+  ) {
+    return actual;
+  }
+
   const stored =
     Number(
       appointment.endMinutes

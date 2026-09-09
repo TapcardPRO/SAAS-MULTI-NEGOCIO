@@ -16,6 +16,10 @@ import {
   ensureVelltoIndexes,
 } from "@/lib/vellto-indexes";
 
+import {
+  applyLiveQueue,
+} from "@/lib/live-queue";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -95,6 +99,16 @@ export async function GET(request: NextRequest) {
       })
       .toArray();
 
+    const liveAppointments =
+      applyLiveQueue(
+        appointments,
+        {
+          date,
+          minimumNoticeMinutes:
+            5,
+        }
+      );
+
     return NextResponse.json({
       ok: true,
 
@@ -105,7 +119,7 @@ export async function GET(request: NextRequest) {
           : null,
       },
 
-      appointments: appointments.map(
+      appointments: liveAppointments.map(
         serializeAppointment
       ),
     });
