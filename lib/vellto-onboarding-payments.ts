@@ -7,7 +7,8 @@ import { addMonths, amountCents, isMethod, isPeriod } from "@/lib/vellto-onboard
 export async function reconcileOnboardingOrder(orderId: ObjectId) {
   const db = await getDb();
   const order = await db.collection("vellto_onboarding_orders").findOne({ _id: orderId });
-  if (!order || order.activatedAt) return Boolean(order?.activatedAt);
+  if (!order) return false;
+  if (order.activatedAt && order.status === "approved") return true;
   if (!isPeriod(order.period) || !isMethod(order.method)) return false;
   let payment: Record<string, unknown> | null = null;
   if (order.method === "pix" && order.paymentId) {
@@ -32,7 +33,14 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
   const now = new Date();
   const endsAt = addMonths(now, { monthly: 1, semiannual: 6, annual: 12 }[order.period]);
   const claimed = await db.collection("businesses").updateOne(
-    { _id: businessId, signupSource: "public", activatedOrderId: { $exists: false }, active: false },
+    {
+      _id: businessId,
+      signupSource: "public",
+      $or: [
+        { activatedOrderId: { $exists: false }, active: false },
+        { activatedOrderId: order._id },
+      ],
+    },
     { $set: { active: true, billingStatus: "active", subscriptionEndsAt: endsAt, billingUpdatedAt: now, updatedAt: now, activatedOrderId: order._id, selectedPeriod: order.period } }
   );
   if (claimed.modifiedCount === 1 || String(business.activatedOrderId || "") === String(order._id)) {

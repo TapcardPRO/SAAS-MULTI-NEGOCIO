@@ -24,13 +24,13 @@ export async function POST(request: NextRequest) {
   if (!validSignature(request, id)) return NextResponse.json({ message: "Assinatura inválida" }, { status: 401 });
   try {
     const db = await getDb();
-    const order = await db.collection("vellto_onboarding_orders").findOne({ paymentId: id, status: "pending" });
+    const order = await db.collection("vellto_onboarding_orders").findOne({ paymentId: id });
     if (order) await reconcileOnboardingOrder(order._id);
     else {
       // Para cartão, pagamento pode chegar antes da preferência ser associada ao pedido.
       const payment = await (await import("@/lib/mercado-pago")).mercadoPagoRequest(`/v1/payments/${encodeURIComponent(id)}`);
       const reference = String(payment.external_reference || "");
-      const cardOrder = await db.collection("vellto_onboarding_orders").findOne({ reference, method: "card", status: "pending" });
+      const cardOrder = await db.collection("vellto_onboarding_orders").findOne({ reference, method: "card" });
       if (cardOrder) await reconcileOnboardingOrder(cardOrder._id);
     }
     return NextResponse.json({ ok: true });

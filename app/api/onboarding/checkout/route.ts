@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const token = process.env.MERCADO_PAGO_ACCESS_TOKEN || "";
   if (!token) return NextResponse.json({ message: "Mercado Pago não configurado." }, { status: 503 });
   // Somente credenciais de teste enquanto o fluxo não for homologado.
-  if (process.env.VELLTO_ONBOARDING_LIVE_ENABLED !== "true" && !token.startsWith("TEST-"))
+  if (process.env.VELLTO_ONBOARDING_LIVE_ENABLED !== "true" && process.env.VELLTO_MP_TEST_CREDENTIAL_VERIFIED !== "true")
     return NextResponse.json({ message: "Use credenciais TEST do Mercado Pago neste ambiente." }, { status: 503 });
   const auth = await requireOnboardingOwner();
   if (!auth) return NextResponse.json({ message: "Faça login para continuar." }, { status: 401 });
@@ -20,16 +20,31 @@ export async function POST(request: Request) {
   const method = body.method;
   if (!isPeriod(period) || !isMethod(method) || body.autoRenew === true)
     return NextResponse.json({ message: "Seleção inválida. Renovação automática ainda indisponível." }, { status: 400 });
+  if (method === "pix" && process.env.VELLTO_ONBOARDING_LIVE_ENABLED !== "true")
+    return NextResponse.json({ message: "Neste teste, utilize cartão de teste." }, { status: 400 });
   const cents = amountCents(period, method);
   const baseUrl = String(process.env.VELLTO_PUBLIC_URL || "").replace(/\/$/, "");
   if (!baseUrl.startsWith("https://")) return NextResponse.json({ message: "Configure VELLTO_PUBLIC_URL com uma URL pública HTTPS." }, { status: 503 });
+  if (process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true" &&
+      (process.env.DB_NAME === "vellto_homologacao" ||
+       new URL(baseUrl).hostname !== "velltoagenda.vercel.app")) {
+    return NextResponse.json(
+      { message: "Pagamento real permitido somente no ambiente oficial da Vellto." },
+      { status: 503 }
+    );
+  }
   const recent = await auth.db.collection("vellto_onboarding_orders").findOne({ businessId: auth.businessId, method, status: "pending", createdAt: { $gt: new Date(Date.now() - 10 * 60_000) } }, { sort: { createdAt: -1 } });
   if (recent?.checkoutUrl || recent?.qrCode) return NextResponse.json({ ok: true, method, checkoutUrl: recent.checkoutUrl || "", qrCode: recent.qrCode || "", qrCodeBase64: recent.qrCodeBase64 || "", orderId: String(recent._id) });
   const reference = `vellto-onboard:${String(auth.businessId)}:${randomUUID()}`;
   const orderResult = await auth.db.collection("vellto_onboarding_orders").insertOne({ businessId: auth.businessId, reference, method, period, amountCents: cents, status: "pending", createdAt: new Date() });
   const orderId = orderResult.insertedId;
   try {
-    const email = String(process.env.VELLTO_MP_TEST_PAYER_EMAIL || auth.user.email);
+    const email = String(auth.user.email || "").trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error("O proprietário precisa cadastrar um e-mail válido.");
+    }
+
     if (method === "pix") {
       const payment = await mercadoPagoRequest("/v1/payments", { method: "POST", headers: { "X-Idempotency-Key": randomUUID() }, body: {
         transaction_amount: cents / 100, description: `Vellto Agenda - ${PERIODS[period].label}`,
@@ -50,13 +65,19 @@ export async function POST(request: Request) {
       back_urls: { success: `${baseUrl}/ativar`, failure: `${baseUrl}/ativar`, pending: `${baseUrl}/ativar` },
       auto_return: "approved",
     } });
-    const checkoutUrl = token.startsWith("TEST-") ? String(preference.sandbox_init_point || preference.init_point || "") : String(preference.init_point || "");
+    const checkoutUrl =
+      process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true"
+        ? String(preference.init_point || "")
+        : String(preference.sandbox_init_point || "");
+
     if (!preference.id || !checkoutUrl) throw new Error("Mercado Pago não retornou o checkout.");
     await auth.db.collection("vellto_onboarding_orders").updateOne({ _id: orderId }, { $set: { preferenceId: String(preference.id), checkoutUrl } });
     return NextResponse.json({ ok: true, method, orderId: String(orderId), checkoutUrl });
   } catch (error) {
     console.error("VELLTO ONBOARDING CHECKOUT", error);
     await auth.db.collection("vellto_onboarding_orders").updateOne({ _id: orderId }, { $set: { status: "error" } });
-    return NextResponse.json({ message: "Não foi possível gerar a cobrança. Confira as credenciais e tente novamente." }, { status: 502 });
+    return NextResponse.json({ message: process.env.DB_NAME === "vellto_homologacao"
+      ? `Erro Mercado Pago: ${error instanceof Error ? error.message : "desconhecido"}`
+      : "Não foi possível gerar a cobrança. Confira as credenciais e tente novamente." }, { status: 502 });
   }
 }
