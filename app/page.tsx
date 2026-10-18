@@ -1597,16 +1597,11 @@ function Header() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-[#060807]/85 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <a href="/" className="flex items-center gap-3">
-          <LogoMark />
-
-          <div>
-            <p className="text-lg font-black leading-none tracking-tight">
-              VELLTO
-            </p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-              Agenda & Gestão
-            </p>
-          </div>
+          <img
+            src="/vellto-logo-dark.png"
+            alt="Vellto - Agenda & Gestão"
+            className="h-12 w-auto max-w-[210px] object-contain sm:h-14"
+          />
         </a>
 
         <nav className="hidden items-center gap-7 text-sm font-medium text-zinc-400 lg:flex">
@@ -1661,9 +1656,11 @@ function Header() {
 
 function LogoMark() {
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400 text-lg font-black text-zinc-950 shadow-lg shadow-emerald-500/10">
-      V
-    </div>
+    <img
+      src="/vellto-favicon.png"
+      alt="Vellto"
+      className="h-10 w-10 rounded-xl object-contain"
+    />
   );
 }
 
@@ -2205,17 +2202,11 @@ function Footer() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3">
-              <LogoMark />
-
-              <div>
-                <p className="font-black">
-                  VELLTO
-                </p>
-
-                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
-                  Agenda & Gestão
-                </p>
-              </div>
+              <img
+                src="/vellto-logo-dark.png"
+                alt="Vellto - Agenda & Gestão"
+                className="h-14 w-auto max-w-[230px] object-contain"
+              />
             </div>
 
             <p className="mt-5 max-w-md text-sm leading-6 text-zinc-500">

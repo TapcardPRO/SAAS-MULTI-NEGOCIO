@@ -25,6 +25,11 @@ export const metadata: Metadata = {
 
   applicationName: "Vellto",
 
+  icons: {
+    icon: "/vellto-favicon.png",
+    apple: "/vellto-favicon.png",
+  },
+
   keywords: [
     "agenda online",
     "sistema de agendamento",

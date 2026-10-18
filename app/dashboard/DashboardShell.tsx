@@ -842,9 +842,11 @@ export default function DashboardShell({
                   setMobileMenu(false)
                 }
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500 font-black text-zinc-950">
-                  V
-                </div>
+                <img
+                  src="/vellto-favicon.png"
+                  alt="Vellto"
+                  className="h-11 w-11 rounded-xl object-contain"
+                />
 
                 <div>
                   <h1 className="text-lg font-black tracking-wide sm:text-xl">

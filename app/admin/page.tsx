@@ -171,7 +171,13 @@ export default function AdminPage() {
     <main className="min-h-screen bg-zinc-950 text-white">
       <header className="border-b border-white/10 bg-zinc-950/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-5 py-5 sm:px-8">
-          <div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/vellto-favicon.png"
+              alt="Vellto"
+              className="h-12 w-12 rounded-xl object-contain"
+            />
+            <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">
               Vellto Agenda
             </p>
@@ -179,6 +185,7 @@ export default function AdminPage() {
             <h1 className="mt-1 text-2xl font-black">
               Central administrativa
             </h1>
+            </div>
           </div>
 
           <button

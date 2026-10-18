@@ -65,6 +65,11 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-6 text-white">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
+          <img
+            src="/vellto-logo-dark.png"
+            alt="Vellto - Agenda & Gestão"
+            className="mx-auto mb-8 h-auto w-full max-w-[280px] object-contain"
+          />
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-400">
             Área de acesso
           </p>
