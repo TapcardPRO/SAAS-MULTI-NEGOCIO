@@ -32,18 +32,31 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
   if (business.activatedOrderId && String(business.activatedOrderId) !== String(order._id)) return false;
   const now = new Date();
   const endsAt = addMonths(now, { monthly: 1, semiannual: 6, annual: 12 }[order.period]);
-  const claimed = await db.collection("businesses").updateOne(
-    {
-      _id: businessId,
-      signupSource: "public",
-      $or: [
-        { activatedOrderId: { $exists: false }, active: false },
-        { activatedOrderId: order._id },
-      ],
-    },
-    { $set: { active: true, billingStatus: "active", subscriptionEndsAt: endsAt, billingUpdatedAt: now, updatedAt: now, activatedOrderId: order._id, selectedPeriod: order.period } }
-  );
-  if (claimed.modifiedCount === 1 || String(business.activatedOrderId || "") === String(order._id)) {
+  const alreadyClaimed =
+    String(business.activatedOrderId || "") === String(order._id);
+
+  const claimed = alreadyClaimed ? null :
+    await db.collection("businesses").updateOne(
+      {
+        _id: businessId,
+        signupSource: "public",
+        activatedOrderId: { $exists: false },
+        active: false,
+      },
+      {
+        $set: {
+          active: true,
+          billingStatus: "active",
+          subscriptionEndsAt: endsAt,
+          billingUpdatedAt: now,
+          updatedAt: now,
+          activatedOrderId: order._id,
+          selectedPeriod: order.period,
+        },
+      }
+    );
+
+  if (claimed?.modifiedCount === 1 || alreadyClaimed) {
     await db.collection("vellto_onboarding_orders").updateOne({ _id: order._id }, { $set: { status: "approved", paymentId: String(payment.id), activatedAt: now } });
     await db.collection("saas_billing_payments").updateOne(
       { externalId: `onboarding:${String(payment.id)}` },

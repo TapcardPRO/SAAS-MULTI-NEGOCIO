@@ -38,6 +38,24 @@ export async function requireBusinessSession() {
     return { ok: false as const, status: 403, message: "Empresa bloqueada" };
   }
 
+  if (business.signupSource === "public") {
+    const expiration = business.subscriptionEndsAt
+      ? new Date(business.subscriptionEndsAt).getTime()
+      : NaN;
+
+    if (
+      business.billingStatus !== "active" ||
+      !Number.isFinite(expiration) ||
+      expiration <= Date.now()
+    ) {
+      return {
+        ok: false as const,
+        status: 403,
+        message: "Assinatura vencida ou não confirmada.",
+      };
+    }
+  }
+
   return { ok: true as const, db, user, business, businessId };
 }
 
