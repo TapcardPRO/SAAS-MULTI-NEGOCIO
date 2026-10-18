@@ -701,6 +701,56 @@ export default function DashboardShell({
         }
 
 
+
+        /*
+        ===================================================
+        CONTRASTE FINAL DO MENU DE AGENDAMENTO
+        Cores de status independentes do tema da empresa.
+        ===================================================
+        */
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-emerald-400,
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-emerald-300 {
+          color: #34d399 !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet [class*="border-emerald-500"] {
+          border-color: rgba(52, 211, 153, 0.35) !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet [class*="bg-emerald-500/"] {
+          background-color: rgba(16, 185, 129, 0.12) !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-blue-400 {
+          color: #60a5fa !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-red-400 {
+          color: #f87171 !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-amber-400 {
+          color: #fbbf24 !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet button {
+          color: #f8fafc;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet button[class*="text-zinc-300"] {
+          color: #e4e4e7 !important;
+        }
+
         /*
         ===================================================
         MOBILE FIRST
