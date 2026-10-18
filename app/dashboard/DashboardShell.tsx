@@ -667,6 +667,42 @@ export default function DashboardShell({
 
         /*
         ===================================================
+        MENU DE AÇÕES DA AGENDA
+        Mantém contraste independente das cores da empresa.
+        ===================================================
+        */
+
+        .vellto-dashboard-theme .vellto-action-sheet {
+          background-color: #0c151e !important;
+          color: #f8fafc !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-white,
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-zinc-200,
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-zinc-300 {
+          color: #f8fafc !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-zinc-400 {
+          color: #d4d4d8 !important;
+        }
+
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-zinc-500,
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-zinc-600,
+        .vellto-dashboard-theme
+        .vellto-action-sheet .text-zinc-700 {
+          color: #a1a1aa !important;
+        }
+
+
+        /*
+        ===================================================
         MOBILE FIRST
         ===================================================
         */

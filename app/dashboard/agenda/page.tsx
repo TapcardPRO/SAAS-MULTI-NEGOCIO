@@ -4009,7 +4009,7 @@ function AppointmentActionSheet({
         className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
       />
 
-      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-t-[28px] border border-white/10 bg-[#0c151e] shadow-2xl sm:mb-5 sm:rounded-3xl">
+      <div className="vellto-action-sheet relative z-10 w-full max-w-2xl overflow-hidden rounded-t-[28px] border border-white/10 bg-[#0c151e] shadow-2xl sm:mb-5 sm:rounded-3xl">
         <div className="flex justify-center pt-3">
           <div className="h-1.5 w-12 rounded-full bg-zinc-700" />
         </div>
