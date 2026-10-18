@@ -1,41 +1,4 @@
-import { getDb } from "@/lib/db";
-
-export const dynamic = "force-dynamic";
-
-type SaasPlan = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  price: number;
-  billingCycle: string;
-  maxProfessionals: number;
-  maxServices: number;
-};
-
-async function getPlans(): Promise<SaasPlan[]> {
-  try {
-    const db = await getDb();
-    const plans = await db.collection("saas_plans")
-      .find({ active: { $ne: false } })
-      .sort({ price: 1, createdAt: 1 })
-      .toArray();
-    return plans.map((p) => ({
-      id: p._id.toString(), name: String(p.name || ""),
-      slug: String(p.slug || ""), description: String(p.description || ""),
-      price: Number(p.price || 0), billingCycle: String(p.billingCycle || "monthly"),
-      maxProfessionals: Number(p.maxProfessionals || 0),
-      maxServices: Number(p.maxServices || 0),
-    }));
-  } catch (error) {
-    console.error("Erro ao carregar planos da landing:", error);
-    return [];
-  }
-}
-
-const money = (value: number) => new Intl.NumberFormat("pt-BR", {
-  style: "currency", currency: "BRL",
-}).format(value);
+import VelltoPricing from "./components/VelltoPricing";
 
 const features = [
   { icon: "▦", title: "Agenda inteligente", text: "Organize horários, profissionais e atendimentos em uma visão simples e rápida." },
@@ -115,8 +78,7 @@ function Preview() {
   </div>;
 }
 
-export default async function Home() {
-  const plans = await getPlans();
+export default function Home() {
   return <main className="min-h-screen overflow-x-hidden bg-white text-[#17231e]">
     <header className="sticky top-0 z-50 border-b border-[#e8eeea] bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -189,19 +151,12 @@ export default async function Home() {
         </div></div><p className="mt-4 text-center text-xs text-[#6a8878]">Exemplo ilustrativo de página pública</p></div>
     </div></section>
 
-    <section id="planos" className="scroll-mt-24 bg-[#f6faf8] px-4 py-24 sm:px-6 sm:py-28 lg:px-8"><div className="mx-auto max-w-7xl"><Heading eyebrow="Planos" title="Escolha o plano ideal para o seu momento." text="Recursos e limites pensados para diferentes tamanhos de negócio." />
-      {plans.length > 0 ? <div className={`mx-auto mt-14 grid max-w-6xl gap-5 ${plans.length === 1 ? "max-w-md" : plans.length === 2 ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3"}`}>
-        {plans.map((plan, index) => <article key={plan.id} className={`relative flex flex-col rounded-[28px] border p-7 ${index === 1 && plans.length > 1 ? "border-[#00b988] bg-[#f0fff7] shadow-xl shadow-[#00b988]/10" : "border-[#e0e9e3] bg-white"}`}>
-          {index === 1 && plans.length > 1 && <span className="absolute right-5 top-5 rounded-full bg-[#00c896] px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#07402f]">Destaque</span>}
-          <h3 className="pr-20 text-xl font-black text-[#1b2b20]">{plan.name}</h3><p className="mt-3 min-h-14 text-sm leading-6 text-[#68776e]">{plan.description || "Uma solução para organizar seus atendimentos."}</p>
-          <div className="mt-6"><strong className="text-3xl font-black text-[#19271d] sm:text-4xl">{money(plan.price)}</strong><span className="ml-2 text-sm text-[#77867d]">/{plan.billingCycle === "yearly" ? "ano" : "mês"}</span></div>
-          <div className="my-6 h-px bg-[#e5ede7]"/><div className="flex-1 space-y-3 text-sm font-semibold text-[#48584e]">
-            {[["Agenda online"], ["Gestão de clientes"], ["Página pública personalizada"], [plan.maxProfessionals > 0 ? `Até ${plan.maxProfessionals} profissionais` : "Profissionais ilimitados"], [plan.maxServices > 0 ? `Até ${plan.maxServices} serviços` : "Serviços ilimitados"]].map(([item]) => <p key={item}><span className="mr-2 text-[#00a77b]">✓</span>{item}</p>)}
-          </div><a href="#contato" className="mt-8 flex min-h-12 items-center justify-center rounded-xl bg-[#00c896] px-5 text-sm font-extrabold text-[#073b2d] transition hover:bg-[#00b888]">Quero este plano <span className="ml-2">↗</span></a>
-        </article>)}
-      </div> : <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-[#deebe3] bg-white p-8 text-center"><h3 className="text-xl font-black text-[#19291f]">Planos personalizados</h3><p className="mt-3 text-sm leading-7 text-[#68766d]">Entre em contato com a equipe Vellto para conhecer as opções disponíveis.</p></div>}
-      <p className="mt-8 text-center text-xs text-[#7c8b81]">Os recursos e limites podem variar conforme o plano contratado.</p>
-    </div></section>
+    <section id="planos" className="scroll-mt-24 bg-[#f6faf8] px-4 py-24 sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <Heading eyebrow="Planos" title="Escolha como prefere investir no seu negócio." text="Pague menos no Pix ou parcele no cartão. Você escolhe o período e decide sobre a renovação." />
+        <VelltoPricing />
+      </div>
+    </section>
 
     <section id="faq" className="scroll-mt-24 px-4 py-24 sm:px-6 sm:py-28 lg:px-8"><div className="mx-auto max-w-4xl"><Heading eyebrow="Dúvidas frequentes" title="Tudo o que você precisa saber." />
       <div className="mt-12 space-y-3">{faqs.map(([question, answer]) => <details key={question} className="group rounded-2xl border border-[#e1eae4] bg-white p-5 transition open:border-[#a5e6cb] sm:p-6"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-bold text-[#24362a]">{question}<span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-[#eef8f1] text-xl text-[#009a74] transition group-open:rotate-45">+</span></summary><p className="mt-4 max-w-2xl text-sm leading-7 text-[#65756a]">{answer}</p></details>)}</div>

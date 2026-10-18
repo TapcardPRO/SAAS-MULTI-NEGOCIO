@@ -48,6 +48,8 @@ export default function LoginPage() {
 
       if (data.user?.role === "superadmin") {
         router.push("/admin");
+      } else if (data.pendingOnboarding) {
+        router.push("/ativar");
       } else {
         router.push("/dashboard/minha-pagina");
       }
@@ -135,6 +137,7 @@ export default function LoginPage() {
             </div>
           ) : null}
         </form>
+        <p className="mt-5 text-center text-sm text-zinc-400">Ainda não tem conta? <a className="font-bold text-emerald-400" href="/cadastro">Cadastre seu negócio</a></p>
       </div>
     </main>
   );

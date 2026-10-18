@@ -190,7 +190,8 @@ export async function POST(request: Request) {
       );
     }
 
-    if (business.active === false) {
+    const pendingOnboarding = business.signupSource === "public" && business.active === false && business.billingStatus === "pending";
+    if (business.active === false && !pendingOnboarding) {
       return NextResponse.json(
         {
           ok: false,
@@ -221,6 +222,7 @@ export async function POST(request: Request) {
           role: user.role || "owner",
         },
 
+        pendingOnboarding,
         business: {
           id: business._id.toString(),
           name: business.name || "",

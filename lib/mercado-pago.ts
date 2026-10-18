@@ -17,6 +17,7 @@ export async function mercadoPagoRequest(
       | "PUT";
 
     body?: unknown;
+    headers?: Record<string, string>;
   } = {}
 ) {
   const token =
@@ -43,6 +44,7 @@ export async function mercadoPagoRequest(
 
           "Content-Type":
             "application/json",
+          ...options.headers,
         },
 
         body:
