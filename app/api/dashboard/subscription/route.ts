@@ -206,6 +206,7 @@ export async function GET() {
         hasMercadoPagoConfig(),
 
       subscription: {
+        publicOnboarding: auth.business.signupSource === "public",
         businessId:
           String(
             auth.businessId

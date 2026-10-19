@@ -37,7 +37,11 @@ export async function GET() {
     period: isPeriod(period) ? period : "monthly",
     periodLabel: isPeriod(period) ? PERIODS[period].label : "Mensal",
     paymentStatus: latestOrder?.status || "none",
+    latestOrderId: latestOrder ? String(latestOrder._id) : "",
+    subscriptionEndsAt: updated?.subscriptionEndsAt
+      ? new Date(updated.subscriptionEndsAt).toISOString() : null,
     payment: pending ? {
+      orderId: String(pending._id),
       method: pending.method === "pix" ? "pix" : "card",
       checkoutUrl: String(pending.checkoutUrl || ""),
       qrCode: String(pending.qrCode || ""),

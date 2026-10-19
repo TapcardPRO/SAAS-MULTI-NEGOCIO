@@ -15,6 +15,7 @@ type Subscription = {
   trialEndsAt: string;
   subscriptionEndsAt: string;
   mercadoPagoSubscriptionId: string;
+  publicOnboarding: boolean;
 };
 
 type Payment = {
@@ -131,6 +132,10 @@ export default function AssinaturaPage() {
   }
 
   async function subscribe() {
+    if (subscription?.publicOnboarding) {
+      window.location.assign("/renovar");
+      return;
+    }
     try {
       setPaying(true);
       setMessage("");
@@ -306,10 +311,11 @@ export default function AssinaturaPage() {
                 >
                   {paying
                     ? "Abrindo pagamento..."
-                    : subscription.billingStatus ===
-                        "active"
-                      ? "Gerar nova assinatura"
-                      : "Regularizar assinatura"}
+                    : subscription.publicOnboarding
+                      ? "Renovar assinatura"
+                      : subscription.billingStatus === "active"
+                        ? "Gerar nova assinatura"
+                        : "Regularizar assinatura"}
                 </button>
               )}
             </div>

@@ -78,7 +78,6 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
   if (!business) return false;
   const now = new Date();
   const months = { monthly: 1, semiannual: 6, annual: 12 }[order.period];
-  const endsAt = addMonths(now, months);
 
   const alreadyClaimed =
     String(business.activatedOrderId || "") === String(order._id);
@@ -95,10 +94,15 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
   const renewal =
     business.active === true &&
     ["active", "past_due"].includes(String(business.billingStatus)) &&
-    Number.isFinite(expiration) &&
-    expiration <= now.getTime();
+    Number.isFinite(expiration);
 
   if (!alreadyClaimed && !initial && !renewal) return false;
+
+  // Nao consumir os dias restantes da assinatura atual em renovacoes antecipadas.
+  const extensionBase = renewal && expiration > now.getTime()
+    ? new Date(expiration)
+    : now;
+  const endsAt = addMonths(extensionBase, months);
 
   if (!alreadyClaimed) {
     const filter = initial

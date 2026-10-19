@@ -34,8 +34,7 @@ export async function POST(request: Request) {
   const renewal =
     auth.business.active === true &&
     ["active", "past_due"].includes(String(auth.business.billingStatus)) &&
-    Number.isFinite(expiration) &&
-    expiration <= Date.now();
+    Number.isFinite(expiration);
 
   if (!initial && !renewal)
     return NextResponse.json(
@@ -153,12 +152,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, method, orderId: String(orderId),
         qrCode, qrCodeBase64, paymentStatus: String(mpOrder.status || "action_required") });
     }
+    const returnUrl = renewal
+      ? `${baseUrl}/renovar?pedido=${encodeURIComponent(String(orderId))}`
+      : `${baseUrl}/ativar`;
     const preference = await mercadoPagoRequest("/checkout/preferences", { method: "POST", body: {
       items: [{ id: `vellto-${period}`, title: `Vellto Agenda - ${PERIODS[period].label}`, quantity: 1, unit_price: cents / 100, currency_id: "BRL" }],
       payer: { email }, external_reference: reference,
       payment_methods: { excluded_payment_methods: [{ id: "pix" }], excluded_payment_types: [{ id: "ticket" }, { id: "bank_transfer" }, { id: "debit_card" }], installments: PERIODS[period].installments },
       notification_url: `${baseUrl}/api/onboarding/webhook`,
-      back_urls: { success: `${baseUrl}/ativar`, failure: `${baseUrl}/ativar`, pending: `${baseUrl}/ativar` },
+      back_urls: { success: returnUrl, failure: returnUrl, pending: returnUrl },
       auto_return: "approved",
     } });
     const checkoutUrl = String(preference.init_point || "");

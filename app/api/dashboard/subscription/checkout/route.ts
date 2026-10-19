@@ -35,6 +35,13 @@ export async function POST(
       );
     }
 
+    if (auth.business.signupSource === "public") {
+      return NextResponse.json(
+        { ok: false, message: "Para renovar esta assinatura, use a nova pagina de renovacao da Vellto.", redirectUrl: "/renovar" },
+        { status: 409 }
+      );
+    }
+
     const body =
       await request
         .json()
@@ -119,14 +126,10 @@ export async function POST(
         .trim()
         .toLowerCase();
 
-    const ownerEmail =
-      testPayerEmail ||
-      String(
-        auth.user.email ||
-          ""
-      )
-        .trim()
-        .toLowerCase();
+    // Nunca usar conta compradora de TESTE com token real de producao.
+    const ownerEmail = process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true"
+      ? String(auth.user.email || "").trim().toLowerCase()
+      : (testPayerEmail || String(auth.user.email || "").trim().toLowerCase());
 
     if (!ownerEmail) {
       return NextResponse.json(
