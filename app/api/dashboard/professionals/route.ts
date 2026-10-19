@@ -1,3 +1,4 @@
+import { normalizeBookingCapacity, parseBookingCapacity } from "@/lib/vellto-booking-capacity";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
@@ -89,6 +90,8 @@ export async function GET() {
             Boolean(
               professional.panelUserId
             ),
+
+          bookingCapacity: normalizeBookingCapacity(professional.bookingCapacity),
 
           active:
             professional.active !== false,
@@ -197,6 +200,11 @@ export async function POST(
 
     const active =
       body.active !== false;
+
+    const bookingCapacity = parseBookingCapacity(body.bookingCapacity);
+    if (bookingCapacity === null) return NextResponse.json(
+      { message: "Informe de 1 a 30 vagas simultaneas por profissional." }, { status: 400 }
+    );
 
     if (
       name.length < 2
@@ -341,6 +349,8 @@ export async function POST(
 
       commission,
 
+      bookingCapacity,
+
       allowPanelAccess,
 
       accessEmail:
@@ -452,6 +462,8 @@ export async function POST(
           photoUrl,
 
           commission,
+
+          bookingCapacity,
 
           allowPanelAccess,
 

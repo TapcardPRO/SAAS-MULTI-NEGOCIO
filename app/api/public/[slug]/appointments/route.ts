@@ -1,3 +1,4 @@
+import { hasCapacityForInterval, normalizeBookingCapacity } from "@/lib/vellto-booking-capacity";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
@@ -673,37 +674,16 @@ export async function POST(
         } as any)
         .toArray();
 
-    const collision =
-      appointments.some(
-        (
-          appointment
-        ) => {
-          const existingStart =
-            getAppointmentStart(
-              appointment
-            );
-
-          if (
-            existingStart ===
-            null
-          ) {
-            return false;
-          }
-
-          const existingEnd =
-            getAppointmentEnd(
-              appointment,
-              existingStart
-            );
-
-          return overlaps(
-            startMinutes,
-            endMinutes,
-            existingStart,
-            existingEnd
-          );
-        }
-      );
+    const collision = !hasCapacityForInterval(
+      appointments.flatMap((appointment: any) => {
+        const existingStart = getAppointmentStart(appointment);
+        if (existingStart === null) return [];
+        return [{ start: existingStart, end: getAppointmentEnd(appointment, existingStart) }];
+      }),
+      startMinutes,
+      endMinutes,
+      normalizeBookingCapacity(professional.bookingCapacity)
+    );
 
     if (collision) {
       return NextResponse.json(

@@ -1,3 +1,4 @@
+import { hasCapacityForInterval, normalizeBookingCapacity } from "@/lib/vellto-booking-capacity";
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireBusinessSession } from "@/lib/tenant-auth";
@@ -452,6 +453,7 @@ export async function GET(
           status: {
             $nin: [
               "cancelado",
+              "cancelled",
               "faltou",
             ],
           },
@@ -598,37 +600,16 @@ export async function GET(
       AGENDAMENTOS OCUPADOS
       */
 
-      const occupied =
-        appointments.some(
-          (
-            appointment
-          ) => {
-            const appointmentStart =
-              getAppointmentStartMinutes(
-                appointment
-              );
-
-            if (
-              appointmentStart ===
-              null
-            ) {
-              return false;
-            }
-
-            const appointmentEnd =
-              getAppointmentEndMinutes(
-                appointment,
-                appointmentStart
-              );
-
-            return overlaps(
-              start,
-              end,
-              appointmentStart,
-              appointmentEnd
-            );
-          }
-        );
+      const occupied = !hasCapacityForInterval(
+        appointments.flatMap((appointment: any) => {
+          const existingStart = getAppointmentStartMinutes(appointment);
+          if (existingStart === null) return [];
+          return [{ start: existingStart, end: getAppointmentEndMinutes(appointment, existingStart) }];
+        }),
+        start,
+        end,
+        normalizeBookingCapacity(professional.bookingCapacity)
+      );
 
       if (occupied) {
         continue;

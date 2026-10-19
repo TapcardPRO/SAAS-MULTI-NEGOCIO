@@ -1,3 +1,5 @@
+import { hasCapacityForInterval, normalizeBookingCapacity } from "@/lib/vellto-booking-capacity";
+import { acquireBookingLock, releaseBookingLock } from "@/lib/public-booking-availability";
 import {
   NextRequest,
   NextResponse,
@@ -610,6 +612,16 @@ export async function PUT(
     =====================================================
     */
 
+    const capacityLock = await acquireBookingLock(auth.db, {
+      businessId: auth.businessId,
+      professionalId: professionalObjectId,
+      date,
+    });
+    if (!capacityLock) return NextResponse.json(
+      { ok: false, message: "A agenda esta sendo atualizada. Tente novamente." },
+      { status: 409 }
+    );
+    try {
     const otherAppointments =
       await auth.db
         .collection(
@@ -655,37 +667,16 @@ export async function PUT(
         } as any)
         .toArray();
 
-    const hasConflict =
-      otherAppointments.some(
-        (
-          appointment
-        ) => {
-          const otherStart =
-            getAppointmentStart(
-              appointment
-            );
-
-          if (
-            otherStart ===
-            null
-          ) {
-            return false;
-          }
-
-          const otherEnd =
-            getAppointmentEnd(
-              appointment,
-              otherStart
-            );
-
-          return overlaps(
-            startMinutes,
-            endMinutes,
-            otherStart,
-            otherEnd
-          );
-        }
-      );
+    const hasConflict = !hasCapacityForInterval(
+      otherAppointments.flatMap((appointment: any) => {
+        const existingStart = getAppointmentStart(appointment);
+        if (existingStart === null) return [];
+        return [{ start: existingStart, end: getAppointmentEnd(appointment, existingStart) }];
+      }),
+      startMinutes,
+      endMinutes,
+      normalizeBookingCapacity(professional.bookingCapacity)
+    );
 
     if (
       hasConflict
@@ -863,6 +854,9 @@ export async function PUT(
           updated
         ),
     });
+    } finally {
+      await releaseBookingLock(auth.db, capacityLock);
+    }
   } catch (error) {
     console.error(
       "EDIT APPOINTMENT ERROR:",

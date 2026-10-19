@@ -45,6 +45,8 @@ type Customer = {
 type Slot = {
   time: string;
   endTime: string;
+  capacity?: number;
+  remainingSeats?: number;
 };
 
 type CalendarDay = {
@@ -1538,7 +1540,12 @@ export default function BookingClient({
                               : theme.text,
                         }}
                       >
-                        {slot.time}
+                        <span className="block">{slot.time}</span>
+                        {Number(slot.capacity || 1) > 1 ? (
+                          <span className="mt-1 block text-[10px] font-semibold opacity-80">
+                            {slot.remainingSeats} {slot.remainingSeats === 1 ? "vaga" : "vagas"}
+                          </span>
+                        ) : null}
                       </button>
                     );
                   }

@@ -1,3 +1,4 @@
+import { remainingCapacityForInterval, normalizeBookingCapacity } from "@/lib/vellto-booking-capacity";
 import {
   Db,
   ObjectId,
@@ -45,6 +46,8 @@ export type PublicAvailabilityResult = {
   slots?: {
     time: string;
     endTime: string;
+    capacity: number;
+    remainingSeats: number;
   }[];
 };
 
@@ -625,6 +628,8 @@ export async function getPublicBookingAvailability(
   const slots: {
     time: string;
     endTime: string;
+    capacity: number;
+    remainingSeats: number;
   }[] = [];
 
   for (
@@ -742,37 +747,16 @@ export async function getPublicBookingAvailability(
     Outros clientes/agendamentos.
     */
 
-    const occupied =
-      liveAppointments.some(
-        (
-          appointment
-        ) => {
-          const existingStart =
-            getAppointmentStart(
-              appointment
-            );
-
-          if (
-            existingStart ===
-            null
-          ) {
-            return false;
-          }
-
-          const existingEnd =
-            getAppointmentEnd(
-              appointment,
-              existingStart
-            );
-
-          return overlaps(
-            start,
-            end,
-            existingStart,
-            existingEnd
-          );
-        }
-      );
+    const capacity = normalizeBookingCapacity(professional.bookingCapacity);
+    const remainingSeats = remainingCapacityForInterval(
+      liveAppointments.flatMap((appointment: any) => {
+        const existingStart = getAppointmentStart(appointment);
+        if (existingStart === null) return [];
+        return [{ start: existingStart, end: getAppointmentEnd(appointment, existingStart) }];
+      }),
+      start, end, capacity
+    );
+    const occupied = remainingSeats === 0;
 
     if (occupied) {
       continue;
@@ -795,6 +779,8 @@ export async function getPublicBookingAvailability(
     }
 
     slots.push({
+      capacity,
+      remainingSeats,
       time:
         minutesToTime(
           start

@@ -42,6 +42,7 @@ const menu = [
     href: "/dashboard/agenda",
     icon: "▣",
   },
+  { label: "Minhas vagas", href: "/dashboard/minhas-vagas", icon: "◎" },
   {
     label: "Clientes",
     href: "/dashboard/clientes",
@@ -160,6 +161,7 @@ export default function DashboardShell({
           (item) =>
             item.href ===
               "/dashboard/agenda" ||
+            item.href === "/dashboard/minhas-vagas" ||
             item.href ===
               "/dashboard/mensalistas" ||
             item.href ===
@@ -167,7 +169,7 @@ export default function DashboardShell({
             item.href ===
               "/dashboard/perfil"
         )
-      : menu;
+      : menu.filter((item) => item.href !== "/dashboard/minhas-vagas");
 
   useEffect(() => {
     if (!isEmployee) {
@@ -178,6 +180,7 @@ export default function DashboardShell({
       pathname.startsWith(
         "/dashboard/agenda"
       ) ||
+      pathname.startsWith("/dashboard/minhas-vagas") ||
       pathname.startsWith(
         "/dashboard/mensalistas"
       ) ||

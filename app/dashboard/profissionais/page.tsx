@@ -15,6 +15,7 @@ type Professional = {
   phone?: string;
   email?: string;
   commission?: number;
+  bookingCapacity?: number;
   allowPanelAccess?: boolean;
   accessEmail?: string;
   hasPanelUser?: boolean;
@@ -30,6 +31,7 @@ type EditForm = {
   email: string;
   photoUrl: string;
   commission: string;
+  bookingCapacity: string;
   allowPanelAccess: boolean;
   accessEmail: string;
   password: string;
@@ -44,6 +46,7 @@ const emptyForm: EditForm = {
   email: "",
   photoUrl: "",
   commission: "0",
+  bookingCapacity: "1",
   allowPanelAccess: false,
   accessEmail: "",
   password: "",
@@ -175,6 +178,7 @@ export default function ProfissionaisPage() {
       commission: String(
         professional.commission || 0
       ),
+      bookingCapacity: String(professional.bookingCapacity || 1),
       allowPanelAccess:
         professional.allowPanelAccess ===
         true,
@@ -356,6 +360,8 @@ export default function ProfissionaisPage() {
                     : Number(
                         form.commission
                       ),
+
+                bookingCapacity: Number(form.bookingCapacity),
 
                 allowPanelAccess:
                   form.allowPanelAccess,
@@ -783,6 +789,20 @@ export default function ProfissionaisPage() {
                   placeholder="profissional@email.com"
                   type="email"
                 />
+
+                <div>
+                  <label htmlFor="booking-capacity" className="mb-2 block text-sm font-semibold text-zinc-300">
+                    Vagas simultâneas por horário
+                  </label>
+                  <input id="booking-capacity" type="number" min="1" max="30" step="1"
+                    value={form.bookingCapacity}
+                    onChange={(event) => updateForm("bookingCapacity", event.target.value)}
+                    className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-sm outline-none focus:border-emerald-500" />
+                  <p className="mt-2 text-xs leading-5 text-zinc-400">
+                    Quantidade de clientes que este profissional atende ao mesmo tempo.
+                    Ex.: bronzeamento com 6 clientes = 6 vagas. Padrão: 1.
+                  </p>
+                </div>
 
                 <Field
                   label="Comissão (%)"
