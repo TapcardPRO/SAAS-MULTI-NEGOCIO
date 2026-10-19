@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { getDb } from "@/lib/db";
 import { createSessionToken, hashPassword } from "@/lib/auth";
 import { isPeriod } from "@/lib/vellto-onboarding";
@@ -8,9 +9,23 @@ const slugify = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036
 const responseError = (message: string, status: number) => NextResponse.json({ message }, { status });
 
 export async function POST(request: Request) {
-  if (process.env.VELLTO_PUBLIC_SIGNUP_ENABLED !== "true") return responseError("Cadastro público ainda não foi habilitado.", 503);
   try {
     const body = await request.json();
+    // Acesso privado à compra real para UMA conta de validação, sem abrir o cadastro público.
+    // Nunca registrar o código ou colocá-lo no endereço (URL).
+    const expectedTestCode = String(process.env.VELLTO_LIVE_TEST_CODE || "");
+    const providedTestCode = String(body.liveTestCode || "");
+    const privateTestAllowed =
+      process.env.NODE_ENV === "production" &&
+      process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true" &&
+      expectedTestCode.length >= 32 &&
+      providedTestCode.length <= 256 &&
+      timingSafeEqual(
+        createHash("sha256").update(providedTestCode).digest(),
+        createHash("sha256").update(expectedTestCode).digest()
+      );
+    if (process.env.VELLTO_PUBLIC_SIGNUP_ENABLED !== "true" && !privateTestAllowed)
+      return responseError("Cadastro público ainda não foi habilitado.", 503);
     const businessName = String(body.businessName || "").trim().slice(0, 100);
     const ownerName = String(body.ownerName || "").trim().slice(0, 100);
     const email = String(body.email || "").trim().toLowerCase().slice(0, 254);
@@ -41,7 +56,7 @@ export async function POST(request: Request) {
       bookingSectionLabel: "Agendamento", bookingSectionTitle: "Escolha seu horário",
       bookingSectionDescription: "Escolha o serviço e encontre o melhor horário para você.",
       plan: String(plan.slug), selectedPeriod: period, active: false, signupSource: "public",
-      billingStatus: "pending", trialStartedAt: null, trialEndsAt: null, subscriptionEndsAt: null,
+      billingStatus: "pending", liveTestOnly: privateTestAllowed, trialStartedAt: null, trialEndsAt: null, subscriptionEndsAt: null,
       billingUpdatedAt: now, ownerUserId: null,
       workingHours: {
         sunday: { open: false, start: "09:00", end: "14:00" }, monday: { open: true, start: "09:00", end: "19:00" },

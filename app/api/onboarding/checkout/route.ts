@@ -7,7 +7,6 @@ import { mercadoPagoRequest } from "@/lib/mercado-pago";
 
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
-  if (process.env.VELLTO_ONBOARDING_PAYMENTS_ENABLED !== "true") return NextResponse.json({ message: "Pagamentos em preparação. Nenhuma cobrança foi realizada." }, { status: 503 });
   const token = process.env.MERCADO_PAGO_ACCESS_TOKEN || "";
   if (!token) return NextResponse.json({ message: "Mercado Pago não configurado." }, { status: 503 });
   // Somente credenciais de teste enquanto o fluxo não for homologado.
@@ -15,6 +14,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Use credenciais TEST do Mercado Pago neste ambiente." }, { status: 503 });
   const auth = await requireOnboardingOwner();
   if (!auth) return NextResponse.json({ message: "Faça login para continuar." }, { status: 401 });
+  // Permite cobrar apenas uma empresa criada com código privado, mesmo
+  // enquanto os pagamentos públicos permanecem desligados em produção.
+  const privateLivePayment =
+    process.env.NODE_ENV === "production" &&
+    process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true" &&
+    String(process.env.VELLTO_LIVE_TEST_CODE || "").length >= 32 &&
+    auth.business.liveTestOnly === true;
+  if (process.env.VELLTO_ONBOARDING_PAYMENTS_ENABLED !== "true" && !privateLivePayment)
+    return NextResponse.json({ message: "Pagamentos em preparação. Nenhuma cobrança foi realizada." }, { status: 503 });
   const expiration = auth.business.subscriptionEndsAt
     ? new Date(auth.business.subscriptionEndsAt).getTime()
     : NaN;
