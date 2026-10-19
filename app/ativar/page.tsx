@@ -7,7 +7,7 @@ type Payment = { method: "pix" | "card"; checkoutUrl?: string; qrCode?: string; 
 const prices: Record<Period, { pix: string; card: string; installments: string }> = {
   monthly: { pix: formatBRL(amountCents("monthly", "pix")), card: formatBRL(amountCents("monthly", "card")), installments: "1x" },
   semiannual: { pix: formatBRL(amountCents("semiannual", "pix")), card: formatBRL(amountCents("semiannual", "card")), installments: "até 6x" },
-  annual: { pix: formatBRL(amountCents("annual", "pix")), card: formatBRL(amountCents("annual", "card")), installments: "até 12x" },
+  annual: { pix: formatBRL(amountCents("annual", "pix")), card: "R$ 268,98", installments: "total em 12x" },
 };
 export default function AtivarPage() {
   const [status, setStatus] = useState<Status | null>(null);

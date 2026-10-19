@@ -35,7 +35,7 @@ export default function VelltoPricing() {
               <p className="text-base font-black text-[#1b2c21]">{item.label}</p>
               <p className="mt-4 text-3xl font-black text-[#17271d]">{item.price}</p>
               <p className="mt-2 text-xs font-medium text-[#66796d]">{item.months === 1 ? "por mês" : `por ${item.months} meses`}</p>
-              <p className="mt-3 text-sm font-semibold text-[#435c4c]">{formatBRL(amountCents(key, "card"))} no cartão (até {PERIODS[key].installments}x)</p>
+              <p className="mt-3 text-sm font-semibold text-[#435c4c]">{key === "annual" ? "Cartão em 12x: total R$ 268,98" : `${formatBRL(amountCents(key, "card"))} no cartão (até ${PERIODS[key].installments}x)`}</p>
               <p className="mt-5 text-sm font-bold text-[#008e69]">{item.note}</p>
               <span className={`mt-5 inline-flex rounded-lg px-3 py-2 text-xs font-bold ${active ? "bg-[#00c896] text-[#063f2c]" : "bg-[#f0f6f2] text-[#425749]"}`}>{active ? "✓ Selecionado" : "Selecionar plano"}</span>
             </button>
@@ -45,7 +45,7 @@ export default function VelltoPricing() {
       <div className="mt-5 rounded-[24px] border border-[#dce9e1] bg-white p-6 text-center shadow-lg shadow-[#143a28]/5 sm:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[0.17em] text-[#008e69]">Seu plano escolhido</p>
         <h3 className="mt-2 text-2xl font-black text-[#192a20]">Plano {selected.label}</h3>
-        <p className="mt-2 text-sm text-[#63766a]">{selected.price} no Pix ou {formatBRL(amountCents(period, "card"))} no cartão. Condições de parcelamento confirmadas no checkout.</p>
+        <p className="mt-2 text-sm text-[#63766a]">{selected.price} no Pix ou {period === "annual" ? "R$ 268,98 no cartão em 12x" : `${formatBRL(amountCents(period, "card"))} no cartão`}. Condições de parcelamento confirmadas no checkout.</p>
         <button type="button" onClick={continueWithPlan}
           className="mt-6 inline-flex min-h-13 w-full max-w-sm items-center justify-center rounded-xl bg-[#00c896] px-6 py-4 text-sm font-black text-[#063f2c] transition hover:bg-[#00b888]">Continuar com este plano ↗</button>
         <p className="mt-3 text-xs text-[#728477]">Nenhuma cobrança será realizada nesta etapa.</p>
