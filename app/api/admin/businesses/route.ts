@@ -80,10 +80,7 @@ export async function GET() {
               false,
 
             billingStatus:
-              String(
-                business.billingStatus ||
-                  "active"
-              ),
+              effectiveBillingStatus(business),
 
             trialEndsAt:
               formatDateValue(
@@ -124,6 +121,7 @@ export async function GET() {
   }
 }
 import { NextResponse } from "next/server";
+import { effectiveBillingStatus } from "@/lib/vellto-subscription-access";
 import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 
@@ -250,8 +248,12 @@ export async function POST(
       body.plan || "basico"
     );
 
-    const active =
-      body.active !== false;
+    const accessMode = String(body.accessMode || "manual").trim();
+    if (accessMode !== "manual" && accessMode !== "trial7") {
+      return NextResponse.json({ ok: false, message: "Modo de acesso invalido." }, { status: 400 });
+    }
+    const trial7 = accessMode === "trial7";
+    const active = trial7 || body.active !== false;
 
     if (!businessName) {
       return NextResponse.json(
@@ -387,6 +389,7 @@ export async function POST(
       );
 
     const now = new Date();
+    const trialEndsAt = trial7 ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) : null;
 
     const business = {
       name: businessName,
@@ -441,6 +444,9 @@ export async function POST(
       plan,
 
       active,
+      // Trials seguem o mesmo checkout usado pelos clientes do site.
+      signupSource: trial7 ? "public" : "admin",
+      selectedPeriod: "monthly",
 
       /*
       CONTROLE COMERCIAL DO VELLTO
@@ -450,24 +456,10 @@ export async function POST(
       gateway de pagamento posteriormente.
       */
 
-      billingStatus:
-        "trial",
-
-      trialStartedAt:
-        now,
-
-      trialEndsAt:
-        new Date(
-          now.getTime() +
-            14 *
-              24 *
-              60 *
-              60 *
-              1000
-        ),
-
-      subscriptionEndsAt:
-        null,
+      billingStatus: trial7 ? "trial" : "active",
+      trialStartedAt: trial7 ? now : null,
+      trialEndsAt,
+      subscriptionEndsAt: trialEndsAt,
 
       billingUpdatedAt:
         now,

@@ -46,10 +46,16 @@ export default function LoginPage() {
         return;
       }
 
+      const next = new URLSearchParams(window.location.search).get("next") || "";
+      // Somente a rota interna de renovacao (com pedido opcional) e permitida.
+      // Nunca usar redirecionamento arbitrario recebido em query string.
+      const safeRenewalReturn = /^\/renovar(?:\?pedido=[a-f0-9]{24})?$/i.test(next);
       if (data.user?.role === "superadmin") {
         router.push("/admin");
       } else if (data.pendingOnboarding) {
         router.push("/ativar");
+      } else if (safeRenewalReturn && data.user?.role === "owner") {
+        router.push(next);
       } else if (data.expiredSubscription) {
         router.push("/dashboard/assinatura");
       } else {

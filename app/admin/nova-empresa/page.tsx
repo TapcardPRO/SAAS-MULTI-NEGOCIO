@@ -31,6 +31,7 @@ export default function NovaEmpresaPage() {
     ownerPassword: "",
 
     plan: "basico",
+    accessMode: "manual" as "manual" | "trial7",
     active: true,
   });
 
@@ -182,7 +183,9 @@ export default function NovaEmpresaPage() {
       }
 
       setMessage(
-        "Empresa e acesso criados com sucesso!"
+        form.accessMode === "trial7"
+          ? "Empresa criada com sucesso! Teste grátis de 7 dias iniciado."
+          : "Empresa e acesso criados com sucesso!"
       );
 
       setForm({
@@ -199,6 +202,7 @@ export default function NovaEmpresaPage() {
           plans.length > 0
             ? plans[0].slug
             : "",
+        accessMode: "manual",
         active: true,
       });
     } catch (error) {
@@ -382,6 +386,29 @@ export default function NovaEmpresaPage() {
                 ) : null}
               </div>
 
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <p className="font-semibold text-white">Como deseja liberar o acesso?</p>
+                <p className="mt-1 text-xs text-zinc-400">Apenas o Super Admin escolhe o teste grátis nesta tela.</p>
+                <div className="mt-4 space-y-3">
+                  <label className="flex cursor-pointer gap-3 rounded-xl border border-white/10 bg-zinc-950/70 p-3">
+                    <input type="radio" name="accessMode" value="manual"
+                      checked={form.accessMode === "manual"}
+                      onChange={() => changeField("accessMode", "manual")}
+                      className="mt-1 accent-emerald-500" />
+                    <span><strong className="block text-sm">Acesso administrado manualmente</strong>
+                      <span className="block text-xs text-zinc-400">Você controla a liberação da conta. Sem vencimento automático.</span></span>
+                  </label>
+                  <label className="flex cursor-pointer gap-3 rounded-xl border border-emerald-500/30 bg-zinc-950/70 p-3">
+                    <input type="radio" name="accessMode" value="trial7"
+                      checked={form.accessMode === "trial7"}
+                      onChange={() => setForm(current => ({ ...current, accessMode: "trial7", active: true }))}
+                      className="mt-1 accent-emerald-500" />
+                    <span><strong className="block text-sm text-emerald-300">Teste grátis de 7 dias</strong>
+                      <span className="block text-xs text-zinc-400">Acesso imediato, sem pagamento. Após 7 dias, o cliente renova por Pix ou cartão e mantém os dados.</span></span>
+                  </label>
+                </div>
+              </div>
+
               <label className="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-zinc-900 p-4">
                 <div>
                   <p className="font-medium">
@@ -396,6 +423,7 @@ export default function NovaEmpresaPage() {
                 <input
                   type="checkbox"
                   checked={form.active}
+                  disabled={form.accessMode === "trial7"}
                   onChange={(e) =>
                     changeField(
                       "active",

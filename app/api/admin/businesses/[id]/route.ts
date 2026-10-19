@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 
 import { getDb } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
+import { effectiveBillingStatus } from "@/lib/vellto-subscription-access";
 
 type RouteProps = {
   params: Promise<{
@@ -167,9 +168,7 @@ export async function GET(
           false,
 
         billingStatus:
-          normalizeBillingStatus(
-            business.billingStatus
-          ),
+          effectiveBillingStatus(business),
 
         trialEndsAt:
           formatDateValue(
@@ -626,9 +625,7 @@ export async function PUT(
           false,
 
         billingStatus:
-          normalizeBillingStatus(
-            updatedBusiness?.billingStatus
-          ),
+          effectiveBillingStatus(updatedBusiness || {}),
 
         trialEndsAt:
           formatDateValue(

@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
   const renewal =
     auth.business.active === true &&
-    ["active", "past_due"].includes(String(auth.business.billingStatus)) &&
+    ["active", "past_due", "trial"].includes(String(auth.business.billingStatus)) &&
     Number.isFinite(expiration);
 
   if (!initial && !renewal)

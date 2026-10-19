@@ -5,6 +5,7 @@ import type {
 import {
   getDb,
 } from "@/lib/db";
+import { hasSubscriptionAccess } from "@/lib/vellto-subscription-access";
 
 import {
   notFound,
@@ -39,7 +40,7 @@ export default async function BusinessPage({
         },
       });
 
-  if (!business) {
+  if (!business || !hasSubscriptionAccess(business)) {
     notFound();
   }
 

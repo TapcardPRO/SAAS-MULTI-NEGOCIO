@@ -18,6 +18,8 @@ import {
   verifySessionToken,
 } from "@/lib/auth";
 
+import { effectiveBillingStatus } from "@/lib/vellto-subscription-access";
+
 export const dynamic =
   "force-dynamic";
 
@@ -197,10 +199,7 @@ export async function GET() {
       }
 
       const billingStatus =
-        normalizeBillingStatus(
-          business
-            .billingStatus
-        );
+        effectiveBillingStatus(business);
 
       if (
         billingStatus ===
@@ -229,10 +228,8 @@ export async function GET() {
       if (
         business.active !==
           false &&
-        billingStatus !==
-          "cancelled" &&
-        billingStatus !==
-          "past_due"
+        billingStatus ===
+          "active"
       ) {
         const plan =
           planMap.get(
@@ -330,9 +327,7 @@ export async function GET() {
               false,
 
             billingStatus:
-              normalizeBillingStatus(
-                business.billingStatus
-              ),
+              effectiveBillingStatus(business),
 
             trialEndsAt:
               formatStoredDate(

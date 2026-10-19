@@ -12,6 +12,8 @@ export async function requireOnboardingOwner() {
   if (!user?.businessId || !ObjectId.isValid(String(user.businessId))) return null;
   const businessId = new ObjectId(String(user.businessId));
   const business = await db.collection("businesses").findOne({ _id: businessId, signupSource: "public" });
-  if (!business || String(business.ownerUserId) !== String(user._id)) return null;
+  // O proprietario ja esta autenticado pelo token e vinculado a businessId.
+  // ownerUserId pode estar ausente/desatualizado em contas criadas pelo admin.
+  if (!business) return null;
   return { db, user, business, businessId };
 }

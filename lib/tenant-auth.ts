@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
+import { hasSubscriptionAccess } from "@/lib/vellto-subscription-access";
 
 export async function requireBusinessSession() {
   const cookieStore = await cookies();
@@ -38,22 +39,12 @@ export async function requireBusinessSession() {
     return { ok: false as const, status: 403, message: "Empresa bloqueada" };
   }
 
-  if (business.signupSource === "public") {
-    const expiration = business.subscriptionEndsAt
-      ? new Date(business.subscriptionEndsAt).getTime()
-      : NaN;
-
-    if (
-      business.billingStatus !== "active" ||
-      !Number.isFinite(expiration) ||
-      expiration <= Date.now()
-    ) {
-      return {
-        ok: false as const,
-        status: 403,
-        message: "Assinatura vencida ou não confirmada.",
-      };
-    }
+  if (business.signupSource === "public" && !hasSubscriptionAccess(business)) {
+    return {
+      ok: false as const,
+      status: 403,
+      message: "Assinatura vencida ou não confirmada.",
+    };
   }
 
   return { ok: true as const, db, user, business, businessId };

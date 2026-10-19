@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
 import { getDb } from "@/lib/db";
+import { hasSubscriptionAccess } from "@/lib/vellto-subscription-access";
 import {
   getEligibleProfessionals,
   normalizePhone,
@@ -212,6 +213,10 @@ export async function POST(
           status: 404,
         }
       );
+    }
+
+    if (!hasSubscriptionAccess(business)) {
+      return NextResponse.json({ ok: false, message: "Agendamentos temporariamente indisponiveis." }, { status: 403 });
     }
 
     const businessId =

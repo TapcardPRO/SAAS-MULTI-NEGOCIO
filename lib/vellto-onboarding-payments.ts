@@ -93,7 +93,7 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
 
   const renewal =
     business.active === true &&
-    ["active", "past_due"].includes(String(business.billingStatus)) &&
+    ["active", "past_due", "trial"].includes(String(business.billingStatus)) &&
     Number.isFinite(expiration);
 
   if (!alreadyClaimed && !initial && !renewal) return false;
@@ -117,7 +117,8 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
           _id: businessId,
           signupSource: "public",
           active: true,
-          activatedOrderId: business.activatedOrderId,
+          activatedOrderId: business.activatedOrderId === undefined
+            ? { $exists: false } : business.activatedOrderId,
           subscriptionEndsAt: business.subscriptionEndsAt,
         };
 

@@ -6,6 +6,7 @@ import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
 import DashboardShell from "./DashboardShell";
+import { hasSubscriptionAccess } from "@/lib/vellto-subscription-access";
 
 export default async function DashboardLayout({
   children,
@@ -131,14 +132,12 @@ export default async function DashboardLayout({
     }
   }
 
-  const subscriptionExpiry = business.subscriptionEndsAt
-    ? new Date(business.subscriptionEndsAt).getTime()
-    : NaN;
+  const expiryDate = business.billingStatus === "trial"
+    ? business.trialEndsAt : business.subscriptionEndsAt;
+  const subscriptionExpiry = expiryDate
+    ? new Date(expiryDate).getTime() : NaN;
   const billingLocked =
-    business.signupSource === "public" &&
-    (business.billingStatus !== "active" ||
-      !Number.isFinite(subscriptionExpiry) ||
-      subscriptionExpiry <= Date.now());
+    business.signupSource === "public" && !hasSubscriptionAccess(business);
 
   return (
     <DashboardShell

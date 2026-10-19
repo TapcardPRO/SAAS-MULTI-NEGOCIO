@@ -43,14 +43,17 @@ function Renovacao() {
   const [currentOrderId, setCurrentOrderId] = useState(pedidoNaUrl);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
       const response = await fetch("/api/onboarding/status", { cache: "no-store" });
       if (response.status === 401) {
-        window.location.assign("/login");
+        setNeedsLogin(true);
+        setError("Para continuar a renovacao, confirme o acesso como proprietario da empresa. Seus dados e pagamentos serao preservados.");
         return;
       }
+      setNeedsLogin(false);
       const data = (await response.json()) as SubscriptionStatus & { message?: string };
       if (!response.ok) throw new Error(data.message || "Não foi possível consultar a assinatura.");
       setStatus(data);
@@ -146,6 +149,11 @@ function Renovacao() {
         </>}
       </>}
       {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {needsLogin && <a
+        href={`/login?next=${encodeURIComponent(`/renovar${pedidoNaUrl ? `?pedido=${encodeURIComponent(pedidoNaUrl)}` : ""}`)}`}
+        className="mt-4 block rounded-xl bg-emerald-500 px-5 py-4 text-center font-bold text-[#083a2c]">
+        Entrar e continuar a renovacao →
+      </a>}
     </div>
   </main>;
 }

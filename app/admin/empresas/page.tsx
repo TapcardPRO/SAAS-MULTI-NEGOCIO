@@ -17,6 +17,9 @@ type Business = {
   category: string;
   plan: string;
   active: boolean;
+  billingStatus: string;
+  trialEndsAt: string;
+  subscriptionEndsAt: string;
   owner?: {
     name: string;
     email: string;
@@ -302,6 +305,18 @@ export default function EmpresasPage() {
                         <p className="mt-2 text-sm text-zinc-400">
                           /{business.slug}
                         </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                          {business.billingStatus === "trial" ? (
+                            <span className="rounded-full bg-sky-500/10 px-3 py-1 text-sky-300">Teste grátis em andamento</span>
+                          ) : business.billingStatus === "past_due" ? (
+                            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-amber-300">Assinatura vencida</span>
+                          ) : business.billingStatus === "active" ? (
+                            <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-300">Acesso liberado</span>
+                          ) : null}
+                          {business.trialEndsAt && (
+                            <span className="text-zinc-400">Prazo do teste: {business.trialEndsAt.split("-").reverse().join("/")}</span>
+                          )}
+                        </div>
 
                         <div className="mt-4 grid gap-2 text-sm text-zinc-400 sm:grid-cols-2">
                           <p>
