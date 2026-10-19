@@ -7,6 +7,7 @@ const models: { id: DemoModel; label: string; title: string }[] = [
   { id: "barbearia", label: "Barbearia", title: "Distrito Barber Club" },
   { id: "salao", label: "Salão de beleza", title: "Ateliê Bella Studio" },
   { id: "manicure", label: "Manicure", title: "Aura Nail Studio" },
+  { id: "lash", label: "Lash designer", title: "Íris Lash Studio" },
 ];
 
 export default function VelltoPublicShowcase() {

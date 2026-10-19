@@ -120,7 +120,7 @@ export default function Home() {
 
     <section className="border-y border-[#e9f0eb] bg-[#f7faf8] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl text-center"><p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#819087]">Feita para quem trabalha com atendimento</p>
-        <div className="mt-6 flex flex-wrap justify-center gap-x-9 gap-y-4 text-sm font-bold text-[#43544a] sm:text-base"><span>Barbearias</span><span>Salões de beleza</span><span>Manicures</span><span>Clínicas</span><span>Estúdios</span><span>Outros serviços</span></div>
+        <div className="mt-6 flex flex-wrap justify-center gap-x-9 gap-y-4 text-sm font-bold text-[#43544a] sm:text-base"><span>Barbearias</span><span>Salões de beleza</span><span>Manicures</span><span>Lash designers</span><span>Clínicas</span><span>Estúdios</span><span>Outros serviços</span></div>
       </div>
     </section>
 

@@ -93,7 +93,7 @@ export default function VelltoSignupForm({ signupAvailable }: { signupAvailable:
             <label className="block text-sm font-semibold">Tipo de negócio
               <select value={values.category} onChange={event => setValues(current => ({ ...current, category: event.target.value }))}
                 className="mt-2 w-full rounded-xl border border-[#dfe7e2] bg-white px-4 py-3 font-normal">
-                <option value="barbearia">Barbearia</option><option value="salao">Salão de beleza</option><option value="manicure">Manicure</option><option value="estetica">Estética</option><option value="clinica">Clínica</option><option value="outros">Outros serviços</option>
+                <option value="barbearia">Barbearia</option><option value="salao">Salão de beleza</option><option value="manicure">Manicure</option><option value="lash_designer">Lash designer</option><option value="estetica">Estética</option><option value="clinica">Clínica</option><option value="outros">Outros serviços</option>
               </select>
             </label>
             <label className="block text-sm font-semibold">Senha de acesso (mínimo de 10 caracteres)

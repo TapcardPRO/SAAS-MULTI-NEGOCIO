@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 
-export type DemoModel = "barbearia" | "salao" | "manicure";
+export type DemoModel = "barbearia" | "salao" | "manicure" | "lash";
 
 type DemoService = {
   name: string;
@@ -82,6 +82,25 @@ const demoBusinesses: Record<DemoModel, DemoBusiness> = {
       { name: "Pedicure", description: "Cuidado e esmaltação dos pés", duration: "50 min", price: 45 },
       { name: "Banho de gel", description: "Resistência e acabamento natural", duration: "75 min", price: 95 },
       { name: "Nail art", description: "Detalhes exclusivos nas unhas", duration: "60 min", price: 70 },
+    ],
+  },
+  lash: {
+    tag: "Lash design & beleza",
+    name: "Íris Lash Studio",
+    initials: "IL",
+    headline: "Um olhar que revela sua beleza.",
+    tagline: "Extensão de cílios, manutenção e lash lifting com carinho em cada detalhe.",
+    description: "Um espaço acolhedor para valorizar a beleza do seu olhar. Conheça nossas técnicas, escolha a profissional e reserve seu horário com praticidade.",
+    cover: "https://images.unsplash.com/photo-1772235616130-b80e12f0ab7a?auto=format&fit=crop&w=1500&q=85",
+    coverAlt: "Profissional aplicando extensão de cílios em um atendimento de beleza",
+    accent: "#dcaac4", soft: "#fff1f7", onAccent: "#311e29",
+    professionals: ["Marina Ribeiro", "Bianca Alves"],
+    services: [
+      { name: "Extensão fio a fio", description: "Aplicação clássica para um olhar natural", duration: "120 min", price: 130 },
+      { name: "Volume brasileiro", description: "Mais volume e definição para os cílios", duration: "150 min", price: 160 },
+      { name: "Manutenção de cílios", description: "Reposição e acabamento dos fios", duration: "75 min", price: 90 },
+      { name: "Lash lifting", description: "Curvatura e valorização dos cílios naturais", duration: "60 min", price: 110 },
+      { name: "Remoção de extensão", description: "Retirada cuidadosa dos fios aplicados", duration: "30 min", price: 45 },
     ],
   },
 };
@@ -207,7 +226,7 @@ export function VelltoDemoSite({ model }: { model: DemoModel }) {
           <button type="button" onClick={() => openBooking()} className="rounded-xl bg-[var(--demo-accent)] px-6 py-4 text-sm font-black text-[var(--demo-on-accent)]">Simular agendamento ↗</button>
         </section>
       </main>
-      <footer className="bg-[#211d1a] px-5 py-8 text-[#e9e2dc] sm:px-10"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3"><p className="text-sm font-black">{business.name}</p><p className="text-xs text-[#b5ada4]">Página demonstrativa criada com Vellto · Nenhuma reserva real</p></div></footer>
+      <footer className="bg-[#211d1a] px-5 py-8 text-[#e9e2dc] sm:px-10"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3"><p className="text-sm font-black">{business.name}</p><div className="flex flex-wrap items-center gap-4"><p className="text-xs text-[#b5ada4]">Página demonstrativa criada com Vellto · Nenhuma reserva real</p><a href="/#planos" target="_top" className="text-xs font-extrabold text-[#d7ffeb] underline underline-offset-4">Criar minha página na Vellto ↗</a></div></div></footer>
 
       {bookingOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#17120f]/75 p-3 sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setBookingOpen(false); }}>
@@ -216,7 +235,7 @@ export function VelltoDemoSite({ model }: { model: DemoModel }) {
               <button type="button" onClick={() => setBookingOpen(false)} aria-label="Fechar" className="rounded-full bg-[#f5f2ee] px-3 py-2 font-bold">✕</button>
             </div>
             {finished ? (
-              <div className="mt-6 rounded-2xl bg-[#f3f8f1] p-6"><p className="text-3xl">✓</p><p className="mt-3 font-bold">Você experimentou o agendamento da Vellto.</p><p className="mt-2 text-sm leading-6 text-[#58685a]">Em uma página real, seu cliente confirma o pedido e o horário aparece na agenda do estabelecimento.</p><p className="mt-3 text-xs font-semibold text-[#657165]">Esta é apenas uma simulação. Nenhuma reserva foi criada.</p><button type="button" onClick={() => setBookingOpen(false)} className="mt-5 w-full rounded-xl bg-[var(--demo-accent)] py-4 text-sm font-black text-[var(--demo-on-accent)]">Voltar à demonstração</button></div>
+              <div className="mt-6 rounded-2xl bg-[#f3f8f1] p-6"><p className="text-3xl">✓</p><p className="mt-3 font-bold">Você experimentou o agendamento da Vellto.</p><p className="mt-2 text-sm leading-6 text-[#58685a]">Em uma página real, seu cliente confirma o pedido e o horário aparece na agenda do estabelecimento.</p><p className="mt-3 text-xs font-semibold text-[#657165]">Esta é apenas uma simulação. Nenhuma reserva foi criada.</p><a href="/#planos" target="_top" className="mt-5 flex w-full items-center justify-center rounded-xl bg-[var(--demo-accent)] px-4 py-4 text-center text-sm font-black text-[var(--demo-on-accent)]">Quero uma página assim para meu negócio ↗</a><button type="button" onClick={() => setBookingOpen(false)} className="mt-3 w-full rounded-xl border border-[#e2e8df] px-4 py-3 text-sm font-semibold">Voltar à demonstração</button></div>
             ) : (
               <div className="mt-6 space-y-5">
                 <div><label htmlFor="demo-service" className="mb-2 block text-sm font-extrabold">1. Serviço</label><select id="demo-service" value={service} onChange={(e) => setService(Number(e.target.value))} className="w-full rounded-xl border border-[#e3ded8] bg-white px-4 py-3 text-sm">{business.services.map((item, index) => <option value={index} key={item.name}>{item.name} — {money(item.price)}</option>)}</select></div>
