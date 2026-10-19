@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { amountCents } from "@/lib/vellto-onboarding";
 import { requireOwnerSession } from "@/lib/tenant-auth";
 import { mercadoPagoRequest } from "@/lib/mercado-pago";
 
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: { "X-Idempotency-Key": randomUUID() },
       body: {
-        transaction_amount: 19.99,
+        transaction_amount: amountCents("monthly", "pix") / 100,
         description: "Vellto Agenda - Mensal - Pix (teste)",
         payment_method_id: "pix",
         payer: { email: payerEmail },
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     const paymentId = String(payment.id || "");
     if (!paymentId) throw new Error("Mercado Pago não retornou ID da cobrança.");
     await auth.db.collection("vellto_pix_orders").insertOne({
-      businessId: auth.businessId, paymentId, reference, amount: 19.99,
+      businessId: auth.businessId, paymentId, reference, amount: amountCents("monthly", "pix") / 100,
       status: String(payment.status || "pending"), period: "monthly", autoRenew: false,
       confirmed: false, createdAt: new Date(),
     });

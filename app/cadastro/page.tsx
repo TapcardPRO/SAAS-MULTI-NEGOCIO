@@ -2,8 +2,13 @@
 import { FormEvent, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { amountCents, formatBRL } from "@/lib/vellto-onboarding";
 type Period = "monthly" | "semiannual" | "annual";
-const plans: Record<Period, string> = { monthly: "Mensal · R$ 19,99", semiannual: "Semestral · R$ 107,95", annual: "Anual · R$ 191,90" };
+const plans: Record<Period, string> = {
+  monthly: `Mensal · ${formatBRL(amountCents("monthly", "pix"))}`,
+  semiannual: `Semestral · ${formatBRL(amountCents("semiannual", "pix"))}`,
+  annual: `Anual · ${formatBRL(amountCents("annual", "pix"))}`,
+};
 function Cadastro() {
   const params = useSearchParams();
   const raw = params.get("plano") || "monthly";

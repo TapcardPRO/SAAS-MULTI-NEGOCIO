@@ -40,6 +40,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Seleção inválida. Renovação automática ainda indisponível." }, { status: 400 });
   if (method === "pix" && process.env.VELLTO_ONBOARDING_LIVE_ENABLED !== "true")
     return NextResponse.json({ message: "Neste teste, utilize cartão de teste." }, { status: 400 });
+  if (method === "card" && process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true" &&
+      process.env.VELLTO_MP_SELLER_INSTALLMENTS_CONFIRMED !== "true")
+    return NextResponse.json({ message: "Configure Parcelado Vendedor no Mercado Pago antes de habilitar cartão." }, { status: 503 });
   const cents = amountCents(period, method);
   const baseUrl = String(process.env.VELLTO_PUBLIC_URL || "").replace(/\/$/, "");
   if (!baseUrl.startsWith("https://")) return NextResponse.json({ message: "Configure VELLTO_PUBLIC_URL com uma URL pública HTTPS." }, { status: 503 });

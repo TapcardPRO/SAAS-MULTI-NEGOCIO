@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { amountCents, formatBRL } from "@/lib/vellto-onboarding";
 
 type PixData = { paymentId: string; qrCode: string; qrCodeBase64: string; status: string };
 export default function PixTestPage() {
@@ -23,7 +24,7 @@ export default function PixTestPage() {
     <div className="rounded-3xl border border-emerald-200 bg-white p-6 text-zinc-900 shadow-sm">
       <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Vellto · Ambiente de teste</p>
       <h1 className="mt-3 text-2xl font-black">Teste de cobrança Pix</h1>
-      <p className="mt-2 text-sm text-zinc-600">Mensal · R$ 19,99 · sem renovação automática.</p>
+      <p className="mt-2 text-sm text-zinc-600">Mensal · {formatBRL(amountCents("monthly", "pix"))} · sem renovação automática.</p>
       <p className="mt-2 text-xs text-amber-700">Atenção: só use credenciais de TESTE do Mercado Pago. Este teste não libera assinatura.</p>
       {!data && <button disabled={loading} onClick={createPix} className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 font-bold text-zinc-950 disabled:opacity-50">{loading ? "Gerando..." : "Gerar Pix de teste"}</button>}
       {error && <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>}
