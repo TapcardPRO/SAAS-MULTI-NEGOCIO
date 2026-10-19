@@ -50,6 +50,8 @@ export default function LoginPage() {
         router.push("/admin");
       } else if (data.pendingOnboarding) {
         router.push("/ativar");
+      } else if (data.expiredSubscription) {
+        router.push("/dashboard/assinatura");
       } else {
         router.push("/dashboard/minha-pagina");
       }

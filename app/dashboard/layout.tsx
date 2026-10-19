@@ -131,6 +131,15 @@ export default async function DashboardLayout({
     }
   }
 
+  const subscriptionExpiry = business.subscriptionEndsAt
+    ? new Date(business.subscriptionEndsAt).getTime()
+    : NaN;
+  const billingLocked =
+    business.signupSource === "public" &&
+    (business.billingStatus !== "active" ||
+      !Number.isFinite(subscriptionExpiry) ||
+      subscriptionExpiry <= Date.now());
+
   return (
     <DashboardShell
       user={{
@@ -154,6 +163,10 @@ export default async function DashboardLayout({
 
         textColor:
           business.textColor || "#ffffff",
+        billingLocked,
+        subscriptionExpiresAt: Number.isFinite(subscriptionExpiry)
+          ? new Date(subscriptionExpiry).toISOString()
+          : "",
       }}
     >
       {children}

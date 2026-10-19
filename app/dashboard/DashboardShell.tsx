@@ -26,6 +26,8 @@ type Props = {
     secondaryColor: string;
     backgroundColor: string;
     textColor: string;
+    billingLocked: boolean;
+    subscriptionExpiresAt: string;
   };
 };
 
@@ -127,6 +129,23 @@ export default function DashboardShell({
 
   const [mobileMenu, setMobileMenu] =
     useState(false);
+
+  const [billingLocked, setBillingLocked] =
+    useState(business.billingLocked);
+
+  // Mesmo sem trocar de pagina, o painel bloqueia a tela ao chegar o vencimento.
+  // A API ja restringe as operacoes; este timer protege a interface em sessao aberta.
+  useEffect(() => {
+    if (billingLocked || !business.subscriptionExpiresAt) return;
+    const expiry = new Date(business.subscriptionExpiresAt).getTime();
+    if (!Number.isFinite(expiry)) return;
+    const checkExpiry = () => {
+      if (Date.now() >= expiry) setBillingLocked(true);
+    };
+    checkExpiry();
+    const interval = window.setInterval(checkExpiry, 15000);
+    return () => window.clearInterval(interval);
+  }, [billingLocked, business.subscriptionExpiresAt]);
 
   const isEmployee =
     user.role === "employee";
@@ -968,7 +987,27 @@ export default function DashboardShell({
 
         {/* CONTEÚDO */}
         <div className="min-w-0 flex-1 pb-24 lg:pb-0">
-          {children}
+          {billingLocked ? (
+            <main className="mx-auto max-w-3xl px-4 py-12 sm:px-8 sm:py-16">
+              <section className="rounded-3xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-7 shadow-lg sm:p-10">
+                <p className="text-sm font-bold text-[var(--vellto-primary)]">Vellto Agenda & Gestão</p>
+                <h1 className="mt-3 text-3xl font-black">Assinatura vencida</h1>
+                <p className="mt-4 text-sm leading-7 text-[var(--vellto-text-secondary)]">
+                  O acesso ao seu painel está temporariamente suspenso porque a assinatura venceu.
+                  Sua empresa, profissionais, clientes e agendamentos permanecem cadastrados.
+                  Renove sua assinatura para voltar a utilizar as funcionalidades do mesmo painel.
+                </p>
+                {user.role === "owner" ? (
+                  <a href="/renovar"
+                    className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-[var(--vellto-primary)] px-6 py-3 text-center font-bold text-[var(--vellto-on-primary)]">
+                    Renovar assinatura →
+                  </a>
+                ) : (
+                  <p className="mt-6 text-sm font-semibold">Solicite a renovação ao proprietário do estabelecimento.</p>
+                )}
+              </section>
+            </main>
+          ) : children}
         </div>
       </div>
 

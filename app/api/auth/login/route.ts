@@ -197,10 +197,9 @@ export async function POST(request: Request) {
       new Date(business.subscriptionEndsAt).getTime() <= Date.now();
 
     const pendingOnboarding =
-      (business.signupSource === "public" &&
-       business.active === false &&
-       business.billingStatus === "pending") ||
-      (user.role === "owner" && Boolean(expiredSubscription));
+      business.signupSource === "public" &&
+      business.active === false &&
+      business.billingStatus === "pending";
     if (business.active === false && !pendingOnboarding) {
       return NextResponse.json(
         {
@@ -233,6 +232,7 @@ export async function POST(request: Request) {
         },
 
         pendingOnboarding,
+        expiredSubscription: user.role === "owner" && Boolean(expiredSubscription),
         business: {
           id: business._id.toString(),
           name: business.name || "",
