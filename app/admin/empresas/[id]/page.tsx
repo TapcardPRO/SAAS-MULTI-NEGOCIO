@@ -19,6 +19,8 @@ type BusinessData = {
   category: string;
   whatsapp: string;
   plan: string;
+  signupSource: string;
+  selectedPeriod: string;
 
   active: boolean;
 
@@ -61,6 +63,8 @@ export default function GerenciarEmpresaPage() {
     useState<SaasPlan[]>([]);
 
   const [message, setMessage] = useState("");
+  const [onlinePeriod, setOnlinePeriod] = useState("monthly");
+  const [enablingOnline, setEnablingOnline] = useState(false);
 
   const [deleting, setDeleting] =
     useState(false);
@@ -135,6 +139,8 @@ export default function GerenciarEmpresaPage() {
       }
 
       setBusiness(data.business);
+      setOnlinePeriod(["monthly", "semiannual", "annual"].includes(data.business?.selectedPeriod)
+        ? data.business.selectedPeriod : "monthly");
     } catch (error) {
       console.error(error);
 
@@ -208,6 +214,47 @@ export default function GerenciarEmpresaPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function enableOnlineBilling() {
+    if (!business || enablingOnline) return;
+    if (!window.confirm(
+      `Habilitar cobranca online para ${business.name}?\n\n` +
+      "Se nao houver prazo pago registrado, o painel sera bloqueado ate o pagamento. " +
+      "Os dados da empresa serao preservados. Essa mudanca nao gera cobranca agora."
+    )) return;
+
+    try {
+      setEnablingOnline(true);
+      setMessage("");
+      const response = await fetch(`/api/admin/businesses/${business.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enableOnlineBilling: true,
+          period: onlinePeriod,
+          confirmation: business.slug,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setMessage(data.message || "Nao foi possivel habilitar a cobranca online.");
+        return;
+      }
+      setBusiness((current) => current ? {
+        ...current,
+        signupSource: data.business.signupSource,
+        selectedPeriod: data.business.selectedPeriod,
+        billingStatus: data.business.billingStatus,
+        subscriptionEndsAt: data.business.subscriptionEndsAt,
+      } : current);
+      setMessage("Cobranca online ativada nesta empresa. O proprietario ja pode entrar em /renovar e contratar pelo checkout.");
+    } catch (error) {
+      console.error(error);
+      setMessage("Falha ao habilitar a cobranca online.");
+    } finally {
+      setEnablingOnline(false);
     }
   }
 
@@ -758,6 +805,45 @@ export default function GerenciarEmpresaPage() {
               </p>
             </div>
           </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-6">
+          <h2 className="text-lg font-bold">Cobranca online da Vellto</h2>
+          {business.signupSource === "public" ? (
+            <p className="mt-3 text-sm text-emerald-300">
+              Esta empresa ja utiliza o checkout online. Periodo: {business.selectedPeriod === "semiannual"
+                ? "Semestral" : business.selectedPeriod === "annual" ? "Anual" : "Mensal"}.
+            </p>
+          ) : (
+            <>
+              <p className="mt-3 text-sm leading-6 text-zinc-300">
+                Ative o pagamento por Pix ou cartao nesta conta antiga, mantendo a mesma empresa,
+                clientes, profissionais e agendamentos. Somente esta empresa sera convertida.
+              </p>
+              <p className="mt-2 text-sm font-medium text-amber-300">
+                Sem prazo pago registrado, o painel ficara bloqueado ate o proprietario pagar.
+                Esta opcao nao gera cobranca automaticamente.
+              </p>
+              <label className="mt-5 block text-sm font-semibold" htmlFor="online-billing-period">
+                Periodo de cobranca
+              </label>
+              <select id="online-billing-period" value={onlinePeriod}
+                onChange={(event) => setOnlinePeriod(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-zinc-900 px-4 py-3">
+                <option value="monthly">Mensal</option>
+                <option value="semiannual">Semestral</option>
+                <option value="annual">Anual</option>
+              </select>
+              <button type="button" onClick={enableOnlineBilling}
+                disabled={enablingOnline || !business.active || !business.owner?.active}
+                className="mt-4 rounded-xl bg-emerald-500 px-5 py-3 font-bold text-zinc-950 disabled:opacity-50">
+                {enablingOnline ? "Habilitando..." : "Ativar cobranca online para esta empresa"}
+              </button>
+              {!business.owner?.active && (
+                <p className="mt-3 text-sm text-amber-300">O proprietario precisa estar ativo.</p>
+              )}
+            </>
+          )}
         </section>
 
         <button

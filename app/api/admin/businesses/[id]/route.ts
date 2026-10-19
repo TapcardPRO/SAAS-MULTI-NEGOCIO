@@ -162,6 +162,8 @@ export async function GET(
         category: business.category || "",
         whatsapp: business.whatsapp || "",
         plan: business.plan || "basico",
+        signupSource: String(business.signupSource || "admin"),
+        selectedPeriod: String(business.selectedPeriod || "monthly"),
 
         active:
           business.active !==
@@ -255,6 +257,99 @@ export async function PUT(
     }
 
     const body = await request.json();
+
+    // Migracao pontual, iniciada exclusivamente por Super Admin.
+    // Nao habilita cobranca automaticamente para empresas antigas.
+    if (body.enableOnlineBilling === true) {
+      const period = String(body.period || "");
+      if (
+        !["monthly", "semiannual", "annual"].includes(period) ||
+        String(body.confirmation || "") !== String(business.slug)
+      ) {
+        return NextResponse.json(
+          { ok: false, message: "Confirme a empresa e escolha um periodo valido." },
+          { status: 400 }
+        );
+      }
+      if (auth.admin.active === false) {
+        return NextResponse.json(
+          { ok: false, message: "Administrador bloqueado." },
+          { status: 403 }
+        );
+      }
+      if (
+        business.active === false ||
+        ![undefined, null, "", "admin"].includes(business.signupSource) ||
+        Boolean(business.mercadoPagoSubscriptionId)
+      ) {
+        return NextResponse.json(
+          { ok: false, message: "Esta empresa nao pode ser convertida automaticamente. Confira a situacao de cobranca." },
+          { status: 409 }
+        );
+      }
+      if (!ObjectId.isValid(String(business.ownerUserId || ""))) {
+        return NextResponse.json(
+          { ok: false, message: "Vincule um proprietario valido antes de ativar a cobranca online." },
+          { status: 409 }
+        );
+      }
+      const owner = await auth.db.collection("users").findOne({
+        _id: new ObjectId(String(business.ownerUserId)),
+        role: "owner",
+        active: { $ne: false },
+      });
+      if (!owner || String(owner.businessId) !== String(business._id)) {
+        return NextResponse.json(
+          { ok: false, message: "O proprietario precisa estar ativo e vinculado a esta empresa." },
+          { status: 409 }
+        );
+      }
+      // Preservar eventual periodo pago e ainda valido que ja esteja registrado.
+      // Contas sem periodo pago passam a exigir pagamento para acesso.
+      const now = new Date();
+      const previousExpiry = business.subscriptionEndsAt
+        ? new Date(business.subscriptionEndsAt).getTime() : NaN;
+      const validPaidPeriod = business.billingStatus === "active" &&
+        Number.isFinite(previousExpiry) && previousExpiry > now.getTime();
+      const endsAt = validPaidPeriod
+        ? new Date(previousExpiry) : new Date(now.getTime() - 1000);
+      const billingStatus = validPaidPeriod ? "active" : "past_due";
+
+      const migrated = await auth.db.collection("businesses").updateOne(
+        {
+          _id: business._id,
+          active: { $ne: false },
+          signupSource: { $in: [null, "", "admin"] },
+          mercadoPagoSubscriptionId: { $in: [null, ""] },
+        },
+        { $set: {
+          signupSource: "public",
+          selectedPeriod: period,
+          billingStatus,
+          subscriptionEndsAt: endsAt,
+          billingUpdatedAt: now,
+          onlineBillingEnabledAt: now,
+          onlineBillingEnabledBy: String(auth.admin._id),
+          updatedAt: now,
+        } }
+      );
+      if (migrated.modifiedCount !== 1) {
+        return NextResponse.json(
+          { ok: false, message: "A conta foi modificada em outra operacao. Atualize e tente novamente." },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        message: "Cobranca online habilitada para esta empresa.",
+        business: {
+          signupSource: "public",
+          selectedPeriod: period,
+          billingStatus,
+          subscriptionEndsAt: endsAt.toISOString().slice(0, 10),
+        },
+      });
+    }
 
     const updateData: Record<
       string,
