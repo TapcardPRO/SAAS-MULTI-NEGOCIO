@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireBusinessSession } from "@/lib/tenant-auth";
+import { expirePendingManualPayments } from "@/lib/vellto-manual-payment";
+import { normalizeBookingCapacity } from "@/lib/vellto-booking-capacity";
 
 import {
   isMonthClosed,
@@ -88,6 +90,7 @@ export async function GET(request: NextRequest) {
       filter.date = date;
     }
 
+    await expirePendingManualPayments(auth.db, auth.businessId, date || undefined);
     const appointments = await auth.db
       .collection("appointments")
       .find(filter)
@@ -99,15 +102,35 @@ export async function GET(request: NextRequest) {
       })
       .toArray();
 
-    const liveAppointments =
-      applyLiveQueue(
-        appointments,
-        {
-          date,
-          minimumNoticeMinutes:
-            5,
-        }
-      );
+    // Nao serializar atendimentos de profissionais que recebem varias
+    // pessoas na mesma sessao. Preserve os calculos de fila antigos para 1 vaga.
+    const professionalIds = [...new Set(
+      appointments.map((item) => String(item.professionalId || ""))
+        .filter((id) => ObjectId.isValid(id))
+    )];
+    const multiProfessionalIds = new Set<string>();
+    if (professionalIds.length > 0) {
+      const professionals = await auth.db.collection("professionals").find({
+        _id: { $in: professionalIds.map((id) => new ObjectId(id)) },
+        $or: businessFilters,
+      }, { projection: { bookingCapacity: 1 } }).toArray();
+      for (const professional of professionals) {
+        if (normalizeBookingCapacity(professional.bookingCapacity) > 1)
+          multiProfessionalIds.add(String(professional._id));
+      }
+    }
+    const individualAppointments = appointments.filter(
+      (item) => !multiProfessionalIds.has(String(item.professionalId || ""))
+    );
+    const sequenced = applyLiveQueue(individualAppointments, {
+      date, minimumNoticeMinutes: 5,
+    });
+    const byId = new Map(sequenced.map((item) => [String(item._id), item]));
+    const liveAppointments = appointments.map((item) =>
+      multiProfessionalIds.has(String(item.professionalId || ""))
+        ? item
+        : (byId.get(String(item._id)) || item)
+    );
 
     return NextResponse.json({
       ok: true,

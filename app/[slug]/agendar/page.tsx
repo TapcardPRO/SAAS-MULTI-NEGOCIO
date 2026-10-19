@@ -188,6 +188,7 @@ export default async function AgendarPage({
         ),
 
         slug,
+        manualPrepaymentEnabled: business.manualPrepaymentEnabled === true,
 
         logoUrl: String(
           business.logoUrl || ""

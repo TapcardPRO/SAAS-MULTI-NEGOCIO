@@ -492,7 +492,7 @@ export async function GET(
       );
     }
 
-    const slotInterval = 15;
+    const slotInterval = normalizeBookingCapacity(professional.bookingCapacity) > 1 ? 60 : 15;
 
     const slots: Array<{
       time: string;

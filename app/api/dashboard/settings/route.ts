@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
 import { requireOwnerSession } from "@/lib/tenant-auth";
+import { DEFAULT_PAYMENT_MESSAGE, paymentHoldMinutes, PAYMENT_HOLD_OPTIONS } from "@/lib/vellto-manual-payment";
 import {
   comparePassword,
   hashPassword,
@@ -74,6 +75,11 @@ export async function GET() {
           auth.business.instagram || "",
         address:
           auth.business.address || "",
+        manualPrepaymentEnabled: auth.business.manualPrepaymentEnabled === true,
+        paymentPixKey: String(auth.business.paymentPixKey || ""),
+        paymentCardLink: String(auth.business.paymentCardLink || ""),
+        paymentMessageTemplate: String(auth.business.paymentMessageTemplate || DEFAULT_PAYMENT_MESSAGE),
+        paymentHoldMinutes: paymentHoldMinutes(auth.business.paymentHoldMinutes),
         plan:
           auth.business.plan || "",
         active:
@@ -208,6 +214,41 @@ export async function PUT(
         message:
           "Dados da empresa atualizados com sucesso",
       });
+    }
+
+    /*
+    =========================================
+    COBRANCA MANUAL DE AGENDAMENTOS
+    =========================================
+    */
+    if (section === "booking_payment") {
+      const manualPrepaymentEnabled = body.manualPrepaymentEnabled === true;
+      const paymentPixKey = String(body.paymentPixKey || "").trim();
+      const paymentCardLink = String(body.paymentCardLink || "").trim();
+      const paymentMessageTemplate = String(body.paymentMessageTemplate || DEFAULT_PAYMENT_MESSAGE).trim();
+      const paymentHoldMinutesValue = Number(body.paymentHoldMinutes);
+      if (paymentPixKey.length > 160 || paymentCardLink.length > 500 ||
+          paymentMessageTemplate.length > 1600 || !paymentMessageTemplate)
+        return fail("Revise o tamanho dos dados e da mensagem de pagamento.");
+      if (!PAYMENT_HOLD_OPTIONS.some((n) => n === paymentHoldMinutesValue))
+        return fail("Escolha 30, 60 ou 120 minutos para a reserva.");
+      if (paymentCardLink) {
+        try {
+          const url = new URL(paymentCardLink);
+          if (url.protocol !== "https:" || !url.hostname || url.username || url.password)
+            return fail("Use um link HTTPS valido para pagamento com cartao.");
+        } catch { return fail("Link de pagamento com cartao invalido."); }
+      }
+      if (manualPrepaymentEnabled && !paymentPixKey && !paymentCardLink)
+        return fail("Informe uma chave Pix ou um link de cartao para ativar a cobranca.");
+      await auth.db.collection("businesses").updateOne({ _id: auth.businessId }, {
+        $set: {
+          manualPrepaymentEnabled, paymentPixKey, paymentCardLink,
+          paymentMessageTemplate, paymentHoldMinutes: paymentHoldMinutesValue,
+          updatedAt: new Date(),
+        },
+      });
+      return NextResponse.json({ ok: true, message: "Instrucoes de pagamento atualizadas." });
     }
 
     /*

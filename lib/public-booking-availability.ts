@@ -1,4 +1,5 @@
 import { remainingCapacityForInterval, normalizeBookingCapacity } from "@/lib/vellto-booking-capacity";
+import { expirePendingManualPayments } from "@/lib/vellto-manual-payment";
 import {
   Db,
   ObjectId,
@@ -562,6 +563,9 @@ export async function getPublicBookingAvailability(
   =======================================================
   */
 
+  // Reservas pendentes de pagamento com prazo encerrado deixam de ocupar vagas.
+  await expirePendingManualPayments(db, businessId, date);
+
   const appointments =
     await db
       .collection(
@@ -609,15 +613,12 @@ export async function getPublicBookingAvailability(
       } as any)
       .toArray();
 
-  const liveAppointments =
-    applyLiveQueue(
-      appointments,
-      {
-        date,
-        minimumNoticeMinutes:
-          5,
-      }
-    );
+  const professionalCapacity = normalizeBookingCapacity(professional.bookingCapacity);
+  // Atendimento coletivo: manter a hora ORIGINAL de todas as reservas.
+  // A fila de um atendimento por vez serve apenas para a agenda individual.
+  const liveAppointments = professionalCapacity > 1
+    ? appointments
+    : applyLiveQueue(appointments, { date, minimumNoticeMinutes: 5 });
 
   /*
   =======================================================
@@ -640,7 +641,7 @@ export async function getPublicBookingAvailability(
       totalDuration <=
     endOfDay;
 
-    start += 15
+    start += professionalCapacity > 1 ? 60 : 15
   ) {
     const end =
       start +
@@ -747,10 +748,12 @@ export async function getPublicBookingAvailability(
     Outros clientes/agendamentos.
     */
 
-    const capacity = normalizeBookingCapacity(professional.bookingCapacity);
+    const capacity = professionalCapacity;
     const remainingSeats = remainingCapacityForInterval(
       liveAppointments.flatMap((appointment: any) => {
-        const existingStart = getAppointmentStart(appointment);
+        const existingStart = capacity > 1
+          ? getScheduledAppointmentStart(appointment)
+          : getAppointmentStart(appointment);
         if (existingStart === null) return [];
         return [{ start: existingStart, end: getAppointmentEnd(appointment, existingStart) }];
       }),
@@ -979,6 +982,15 @@ export async function releaseBookingLock(
 HELPERS
 =========================================================
 */
+
+// A sessao coletiva e contabilizada no horario MARCADO, nunca na hora real
+// do inicio nem no horario recalculado pela fila de atendimento.
+function getScheduledAppointmentStart(appointment: any): number | null {
+  const stored = appointment.startMinutes;
+  if (stored !== null && stored !== undefined && stored !== "" &&
+      Number.isFinite(Number(stored))) return Number(stored);
+  return timeToMinutes(String(appointment.startTime || appointment.time || ""));
+}
 
 function getAppointmentStart(
   appointment: any

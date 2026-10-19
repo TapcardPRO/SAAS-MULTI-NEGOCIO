@@ -30,6 +30,10 @@ type Appointment = {
   endTime?: string;
   status?: string;
   price?: number;
+  bookingPaymentMode?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
+  paymentDueAt?: string;
 
   arrivedAt?: string;
   arrivedTime?: string;
@@ -107,7 +111,24 @@ type CalendarDay = {
   past: boolean;
 };
 
+type PaymentSettings = {
+  enabled: boolean;
+  pixKey: string;
+  cardLink: string;
+  template: string;
+  holdMinutes: number;
+};
+
 export default function AgendaPage() {
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
+  useEffect(() => {
+    let valid = true;
+    fetch("/api/dashboard/payment-settings", { cache: "no-store" })
+      .then(async r => { if (!r.ok) throw new Error("Falha ao buscar configuracoes de cobranca"); return r.json(); })
+      .then(data => { if (valid) setPaymentSettings(data as PaymentSettings); })
+      .catch(() => { /* cobranca indisponivel ate recarregar a pagina */ });
+    return () => { valid = false; };
+  }, []);
   const [mounted, setMounted] =
     useState(false);
 
@@ -1111,7 +1132,8 @@ export default function AgendaPage() {
 
   async function updateStatus(
     appointmentId: string,
-    status: string
+    status: string,
+    paymentMethod?: "pix" | "cartao"
   ): Promise<boolean> {
     try {
       setUpdatingId(
@@ -1139,6 +1161,7 @@ export default function AgendaPage() {
             body:
               JSON.stringify({
                 status,
+                ...(paymentMethod ? { paymentReceived: true, paymentMethod } : {}),
               }),
           }
         );
@@ -1206,6 +1229,13 @@ export default function AgendaPage() {
         null
       );
     }
+  }
+
+  async function confirmPaid(appointment: Appointment, method: "pix" | "cartao") {
+    const label = method === "pix" ? "Pix" : "cartao";
+    if (!window.confirm(`Voce JA RECEBEU e conferiu o pagamento via ${label}? A Vellto nao verifica pagamentos.`)) return;
+    const ok = await updateStatus(appointment._id, "confirmado", method);
+    if (ok) setSelectedAppointmentAction(null);
   }
 
   async function changeStatusFromSheet(
@@ -3756,6 +3786,9 @@ export default function AgendaPage() {
               selectedAppointmentAction
             )
           }
+          onRequestPayment={() => openWhatsAppPaymentRequest(selectedAppointmentAction, paymentSettings)}
+          onConfirmPaidPix={() => confirmPaid(selectedAppointmentAction, "pix")}
+          onConfirmPaidCard={() => confirmPaid(selectedAppointmentAction, "cartao")}
           onWhatsApp={() => {
             openWhatsAppConfirmation(
               selectedAppointmentAction
@@ -3879,6 +3912,11 @@ function AppointmentCard({
                 status
               }
             />
+            {status === "pendente" && appointment.bookingPaymentMode === "manual" ? (
+              <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
+                Aguardando pagamento
+              </span>
+            ) : null}
 
             {appointment.hasActiveMembership ||
             appointment.membershipUsageConsumed ? (
@@ -3962,6 +4000,9 @@ function AppointmentActionSheet({
   onClose,
   onConfirm,
   onConfirmWhatsApp,
+  onRequestPayment,
+  onConfirmPaidPix,
+  onConfirmPaidCard,
   onWhatsApp,
   onNotifySchedule,
   onArrived,
@@ -3977,6 +4018,9 @@ function AppointmentActionSheet({
   onClose: () => void;
   onConfirm: () => void;
   onConfirmWhatsApp: () => void;
+  onRequestPayment: () => void;
+  onConfirmPaidPix: () => void;
+  onConfirmPaidCard: () => void;
   onWhatsApp: () => void;
   onNotifySchedule: () => void;
   onArrived: () => void;
@@ -4136,8 +4180,26 @@ function AppointmentActionSheet({
             />
           ) : null}
 
-          {status ===
-          "pendente" ? (
+          {status === "pendente" && appointment.bookingPaymentMode === "manual" &&
+            appointment.paymentStatus === "awaiting_payment" ? (
+            <>
+              <div className="mb-2 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-300">
+                Aguardando pagamento. O horário ainda não está confirmado.
+              </div>
+              <SheetAction icon="◉" title="Solicitar pagamento pelo WhatsApp"
+                description="Abre uma mensagem com Pix, cartão, valor e instruções."
+                accent="emerald" disabled={updating || !canSendWhatsApp(appointment.clientPhone)}
+                onClick={onRequestPayment} />
+              <SheetAction icon="✓" title="Recebi por Pix: confirmar agendamento"
+                description="Use somente após conferir o pagamento."
+                disabled={updating} onClick={onConfirmPaidPix} />
+              <SheetAction icon="✓" title="Recebi por cartão: confirmar agendamento"
+                description="Use somente após conferir o pagamento."
+                disabled={updating} onClick={onConfirmPaidCard} />
+            </>
+          ) : null}
+
+          {status === "pendente" && appointment.bookingPaymentMode !== "manual" ? (
             <>
               <SheetAction
                 icon="✓"
@@ -4807,6 +4869,27 @@ function canSendWhatsApp(
       value
     )
   );
+}
+
+function openWhatsAppPaymentRequest(appointment: Appointment, settings: PaymentSettings | null) {
+  if (typeof window === "undefined") return;
+  const number = getWhatsAppNumber(appointment.clientPhone);
+  if (!number) return;
+  if (!settings) { window.alert("Configuracoes de cobranca nao carregadas. Atualize a pagina."); return; }
+  const tokens: Record<string, string> = {
+    cliente: appointment.clientName || "cliente",
+    servico: appointment.serviceName || "Servico",
+    valor: formatPrice(Number(appointment.price || 0)),
+    data: formatDate(appointment.date),
+    horario: appointment.time || appointment.startTime || "-",
+    profissional: appointment.professionalName || "Profissional",
+    pix: settings.pixKey || "Consulte a chave com o estabelecimento",
+    cartao: settings.cardLink || "Consulte o link de pagamento com o estabelecimento",
+  };
+  const message = (settings.template || "Olá, {cliente}! Seu agendamento aguarda pagamento. Valor: {valor}. Pix: {pix}. Cartão: {cartao}")
+    .replace(/\{(cliente|servico|valor|data|horario|profissional|pix|cartao)\}/g,
+      (_, name: string) => tokens[name] || "");
+  window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
 }
 
 function openWhatsAppConfirmation(

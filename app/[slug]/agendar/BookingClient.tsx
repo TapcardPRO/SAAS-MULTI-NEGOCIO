@@ -10,6 +10,7 @@ import {
 type Business = {
   name: string;
   slug: string;
+  manualPrepaymentEnabled: boolean;
   logoUrl: string;
   primaryColor: string;
   secondaryColor: string;
@@ -109,6 +110,8 @@ export default function BookingClient({
 
   const [done, setDone] =
     useState(false);
+  const [awaitingManualPayment, setAwaitingManualPayment] = useState(false);
+  const [paymentDeadline, setPaymentDeadline] = useState("");
 
   const [message, setMessage] =
     useState("");
@@ -621,6 +624,8 @@ export default function BookingClient({
         return;
       }
 
+      setAwaitingManualPayment(data.appointment?.bookingPaymentMode === "manual");
+      setPaymentDeadline(String(data.appointment?.paymentDueAt || ""));
       setDone(true);
     } catch (error) {
       console.error(
@@ -709,11 +714,11 @@ export default function BookingClient({
                 theme.primary,
             }}
           >
-            Agendamento realizado
+            {awaitingManualPayment ? "Solicitação recebida" : "Agendamento realizado"}
           </p>
 
           <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
-            Horário reservado
+            {awaitingManualPayment ? "Aguardando pagamento" : "Horário reservado"}
             {customer?.name
               ? `, ${customer.name.split(
                   " "
@@ -729,8 +734,9 @@ export default function BookingClient({
                 theme.muted,
             }}
           >
-            Seu agendamento foi enviado para{" "}
-            {business.name}.
+            {awaitingManualPayment
+              ? `Sua solicitacao foi enviada para ${business.name}. O profissional enviara as instrucoes pelo WhatsApp. O horario so sera confirmado apos a conferencia do pagamento.${paymentDeadline ? " O prazo termina em " + new Date(paymentDeadline).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) + "." : ""}`
+              : `Seu agendamento foi enviado para ${business.name}.`}
           </p>
 
           <div
@@ -1701,6 +1707,7 @@ export default function BookingClient({
 
           <div className="lg:hidden">
             <BookingSummary
+              requiresManualPayment={business.manualPrepaymentEnabled}
               customer={
                 customer
               }
@@ -1752,6 +1759,7 @@ export default function BookingClient({
 
         <aside className="hidden lg:sticky lg:top-[96px] lg:block">
           <BookingSummary
+            requiresManualPayment={business.manualPrepaymentEnabled}
             customer={
               customer
             }
@@ -1973,6 +1981,7 @@ function EmptyState({
 }
 
 function BookingSummary({
+  requiresManualPayment,
   customer,
   services,
   professional,
@@ -1986,6 +1995,7 @@ function BookingSummary({
   submit,
   theme,
 }: {
+  requiresManualPayment: boolean;
   customer:
     Customer | null;
   services:
@@ -2131,8 +2141,8 @@ function BookingSummary({
         }}
       >
         {submitting
-          ? "Confirmando..."
-          : "Confirmar agendamento"}
+          ? "Enviando..."
+          : requiresManualPayment ? "Solicitar agendamento" : "Confirmar agendamento"}
       </button>
 
       <p
@@ -2142,7 +2152,9 @@ function BookingSummary({
             theme.muted,
         }}
       >
-        Após confirmar, esse período ficará reservado para o seu atendimento.
+        {requiresManualPayment
+          ? "O horário será confirmado somente após o estabelecimento conferir o pagamento."
+          : "Após confirmar, esse período ficará reservado para o seu atendimento."}
       </p>
     </div>
   );

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireBusinessSession } from "@/lib/tenant-auth";
+import { expirePendingManualPayments } from "@/lib/vellto-manual-payment";
 import { isMonthClosed } from "@/lib/monthly-closing";
 
 import {
@@ -75,6 +76,8 @@ export async function PUT(
           $in: [businessIdString],
         };
 
+    // Nao permitir confirmar reserva cujo prazo de pagamento ja expirou.
+    await expirePendingManualPayments(auth.db, auth.businessId);
     const appointment = await auth.db
       .collection("appointments")
       .findOne({
@@ -115,6 +118,25 @@ export async function PUT(
           }
         );
       }
+    }
+
+    if (appointment.bookingPaymentMode === "manual" &&
+        appointment.paymentStatus === "awaiting_payment") {
+      if (status !== "cancelado" && status !== "faltou") {
+        if (status !== "confirmado" || body.paymentReceived !== true ||
+            !["pix", "cartao"].includes(String(body.paymentMethod || ""))) {
+          return NextResponse.json({
+            ok: false,
+            message: "Confirme o recebimento por Pix ou cartao antes de aprovar o agendamento.",
+          }, { status: 409 });
+        }
+      }
+    }
+    if (appointment.bookingPaymentMode === "manual" &&
+        appointment.paymentStatus === "expired" && status !== "cancelado") {
+      return NextResponse.json({
+        ok: false, message: "A reserva expirou. O cliente precisa agendar novamente.",
+      }, { status: 409 });
     }
 
     const monthClosed =
@@ -260,6 +282,11 @@ export async function PUT(
           $set: {
             status,
             updatedAt: now,
+            ...(appointment.bookingPaymentMode === "manual" &&
+                appointment.paymentStatus === "awaiting_payment" &&
+                status === "confirmado" && body.paymentReceived === true
+              ? { paymentStatus: "paid_manual", paymentMethod: String(body.paymentMethod), paidAt: now }
+              : {}),
             ...runtimeFields,
             ...(status === "concluido"
               ? {

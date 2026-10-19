@@ -26,6 +26,11 @@ type SettingsData = {
     whatsapp: string;
     instagram: string;
     address: string;
+    manualPrepaymentEnabled: boolean;
+    paymentPixKey: string;
+    paymentCardLink: string;
+    paymentMessageTemplate: string;
+    paymentHoldMinutes: number;
     plan: string;
     active: boolean;
   };
@@ -51,6 +56,16 @@ export default function ConfiguracoesPage() {
 
   const [savingBusiness, setSavingBusiness] =
     useState(false);
+
+  const [savingPayment, setSavingPayment] = useState(false);
+
+  const [paymentForm, setPaymentForm] = useState({
+    manualPrepaymentEnabled: false,
+    paymentPixKey: "",
+    paymentCardLink: "",
+    paymentHoldMinutes: 60,
+    paymentMessageTemplate: "",
+  });
 
   const [savingAccount, setSavingAccount] =
     useState(false);
@@ -142,6 +157,14 @@ export default function ConfiguracoesPage() {
             ?.address || "",
       });
 
+      setPaymentForm({
+        manualPrepaymentEnabled: json.business?.manualPrepaymentEnabled === true,
+        paymentPixKey: json.business?.paymentPixKey || "",
+        paymentCardLink: json.business?.paymentCardLink || "",
+        paymentHoldMinutes: Number(json.business?.paymentHoldMinutes || 60),
+        paymentMessageTemplate: json.business?.paymentMessageTemplate || "",
+      });
+
       setAccountForm({
         name:
           json.user?.name || "",
@@ -162,6 +185,26 @@ export default function ConfiguracoesPage() {
   function clearMessages() {
     setMessage("");
     setError("");
+  }
+
+  async function savePayment(event: FormEvent) {
+    event.preventDefault();
+    clearMessages();
+    setSavingPayment(true);
+    try {
+      const response = await fetch("/api/dashboard/settings", {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section: "booking_payment", ...paymentForm }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Nao foi possivel salvar.");
+      setMessage(data.message || "Configuracao atualizada.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar pagamento.");
+    } finally {
+      setSavingPayment(false);
+    }
   }
 
   async function saveBusiness(
@@ -511,6 +554,57 @@ export default function ConfiguracoesPage() {
                   }
                   text="Salvar empresa"
                 />
+              </div>
+            </form>
+
+            <form onSubmit={savePayment}
+              className="rounded-2xl border border-emerald-500/20 bg-white/[0.025] p-5 sm:p-6">
+              <SectionTitle title="Pagamento antecipado dos agendamentos"
+                description="Pix e cartao recebidos diretamente pelo estabelecimento. Sem cobranca automatica pela Vellto." />
+              <label className="mt-6 flex items-center gap-3 rounded-xl border border-white/10 p-4 text-sm font-semibold">
+                <input type="checkbox" checked={paymentForm.manualPrepaymentEnabled}
+                  onChange={e => setPaymentForm(c => ({ ...c, manualPrepaymentEnabled: e.target.checked }))}
+                  className="h-5 w-5 accent-emerald-500" />
+                Exigir pagamento manual antes de confirmar agendamentos publicos
+              </label>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">Chave Pix</label>
+                  <input value={paymentForm.paymentPixKey} maxLength={160}
+                    onChange={e => setPaymentForm(c => ({ ...c, paymentPixKey: e.target.value }))}
+                    placeholder="Chave para receber o pagamento"
+                    className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">Link de pagamento com cartao</label>
+                  <input type="url" value={paymentForm.paymentCardLink} maxLength={500}
+                    onChange={e => setPaymentForm(c => ({ ...c, paymentCardLink: e.target.value }))}
+                    placeholder="https://... (opcional)"
+                    className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">Tempo reservado aguardando pagamento</label>
+                  <select value={paymentForm.paymentHoldMinutes}
+                    onChange={e => setPaymentForm(c => ({ ...c, paymentHoldMinutes: Number(e.target.value) }))}
+                    className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-sm">
+                    <option value={30}>30 minutos</option>
+                    <option value={60}>1 hora</option>
+                    <option value={120}>2 horas</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-5">
+                <label className="mb-2 block text-sm font-semibold">Mensagem de cobranca pelo WhatsApp</label>
+                <textarea value={paymentForm.paymentMessageTemplate} maxLength={1600} rows={9}
+                  onChange={e => setPaymentForm(c => ({ ...c, paymentMessageTemplate: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm" />
+                <p className="mt-2 text-xs text-zinc-400">
+                  Campos disponiveis: {'{cliente}'}, {'{servico}'}, {'{valor}'}, {'{data}'}, {'{horario}'}, {'{profissional}'}, {'{pix}'}, {'{cartao}'}.
+                  O WhatsApp sera aberto com a mensagem; o envio e a conferencia do pagamento sao manuais.
+                </p>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <SaveButton loading={savingPayment} text="Salvar cobranca antecipada" />
               </div>
             </form>
 

@@ -1,4 +1,5 @@
 import { hasCapacityForInterval, normalizeBookingCapacity } from "@/lib/vellto-booking-capacity";
+import { requiresManualPayment, paymentHoldMinutes } from "@/lib/vellto-manual-payment";
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
@@ -813,8 +814,17 @@ export async function POST(
     =====================================================
     */
 
+    const bookingPaymentMode = requiresManualPayment(business) && !membership
+      ? "manual" : "none";
+    const paymentDueAt = bookingPaymentMode === "manual"
+      ? new Date(now.getTime() + paymentHoldMinutes(business.paymentHoldMinutes) * 60_000)
+      : null;
+
     const appointment = {
       businessId,
+      bookingPaymentMode,
+      paymentStatus: bookingPaymentMode === "manual" ? "awaiting_payment" : "not_required",
+      paymentDueAt,
 
       clientId:
         client._id,
@@ -1060,8 +1070,9 @@ export async function POST(
           ok:
             true,
 
-          message:
-            "Agendamento realizado com sucesso",
+          message: bookingPaymentMode === "manual"
+            ? "Solicitacao recebida. Aguardando pagamento e confirmacao do profissional."
+            : "Agendamento realizado com sucesso",
 
           appointment: {
             id:
