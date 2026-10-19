@@ -12,7 +12,6 @@ const prices: Record<Period, { pix: string; card: string; installments: string }
 export default function AtivarPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [method, setMethod] = useState<"pix" | "card">("pix");
-  const [payerCpf, setPayerCpf] = useState("");
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -23,6 +22,9 @@ export default function AtivarPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Não foi possível consultar sua assinatura.");
       setStatus(data);
+      if (!data.active && data.payment?.method === "pix" && data.payment?.qrCode) {
+        setPayment(data.payment);
+      }
     } catch (err) { setMessage(err instanceof Error ? err.message : "Erro ao consultar assinatura."); }
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
@@ -42,7 +44,7 @@ export default function AtivarPage() {
   async function checkout() {
     setLoading(true); setMessage("");
     try {
-      const res = await fetch("/api/onboarding/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ method, autoRenew: false, payerCpf: method === "pix" ? payerCpf : undefined }) });
+      const res = await fetch("/api/onboarding/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ method, autoRenew: false }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Não foi possível iniciar o pagamento.");
       setStatus(current => current ? { ...current, paymentStatus: "pending" } : current);
@@ -58,11 +60,6 @@ export default function AtivarPage() {
       <div className="mt-6 grid grid-cols-2 gap-3">{(["pix", "card"] as const).map(m => <button key={m} onClick={() => { setMethod(m); setPayment(null); }} className={`rounded-2xl border p-4 text-left ${method === m ? "border-emerald-500 bg-emerald-50" : "border-zinc-200"}`}><span className="block text-sm font-bold">{m === "pix" ? "Pix à vista" : "Cartão de crédito"}</span><strong className="mt-2 block text-lg">{m === "pix" ? prices[status.period].pix : prices[status.period].card}</strong><span className="text-xs text-zinc-500">{m === "pix" ? "Sem parcelamento" : prices[status.period].installments}</span></button>)}</div>
       <p className="mt-4 text-xs text-zinc-500">Os valores já incluem as taxas estimadas de processamento. O total no cartão não terá juros adicionais somente se o Parcelado Vendedor estiver habilitado no Mercado Pago. Confira o total antes de pagar.</p>
       <p className="mt-2 text-xs text-zinc-500">Renovação automática desativada. Ao vencer, será necessário renovar.</p>
-      {method === "pix" && <label className="mt-5 block text-sm font-semibold">CPF do pagador
-        <input type="text" inputMode="numeric" autoComplete="off" maxLength={14} value={payerCpf}
-          onChange={e => setPayerCpf(e.target.value.replace(/[^\d.\-]/g, "").slice(0, 14))}
-          placeholder="000.000.000-00" className="mt-2 w-full rounded-xl border border-zinc-200 p-3" />
-      </label>}
       <button onClick={checkout} disabled={loading} className="mt-6 w-full rounded-xl bg-emerald-500 px-5 py-4 font-black text-emerald-950 disabled:opacity-60">{loading ? "Preparando pagamento..." : `Pagar com ${method === "pix" ? "Pix" : "cartão"} →`}</button>
       {payment?.qrCode && <div className="mt-6 space-y-3 rounded-xl border p-4"><p className="font-bold">Seu Pix foi gerado</p>
         {payment.expiresAt && <p className="text-sm text-zinc-600">Válido até {new Date(payment.expiresAt).toLocaleString("pt-BR")}</p>}

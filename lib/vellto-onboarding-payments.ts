@@ -11,7 +11,39 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
   if (order.activatedAt && order.status === "approved") return true;
   if (!isPeriod(order.period) || !isMethod(order.method)) return false;
   let payment: Record<string, unknown> | null = null;
-  if (order.method === "pix" && order.paymentId) {
+  if (order.method === "pix" && order.mpOrderId) {
+    const providerOrder = await mercadoPagoRequest(`/v1/orders/${encodeURIComponent(String(order.mpOrderId))}`);
+    const txn = Array.isArray(providerOrder?.transactions?.payments)
+      ? providerOrder.transactions.payments[0] : null;
+    const status = String(providerOrder?.status || "");
+    const detail = String(providerOrder?.status_detail || "");
+    const sameOrder = String(providerOrder?.id || "") === String(order.mpOrderId) &&
+      String(providerOrder.external_reference || "") === String(order.reference) &&
+      String(providerOrder.currency || providerOrder.currency_id || "BRL") === "BRL" &&
+      Math.round(Number(providerOrder.total_amount) * 100) === Number(order.amountCents);
+
+    if (!sameOrder) return false;
+    if (["canceled", "failed", "refunded", "charged_back"].includes(status)) {
+      await db.collection("vellto_onboarding_orders").updateOne(
+        { _id: order._id, status: "pending" },
+        { $set: { status: detail === "expired" ? "expired" : "failed",
+          providerStatus: status, providerStatusDetail: detail, checkedAt: new Date() } }
+      );
+      return false;
+    }
+    // NUNCA ativar em waiting_transfer, action_required ou processing.
+    if (status === "processed" && detail === "accredited" &&
+        txn?.status === "processed" && txn?.status_detail === "accredited" &&
+        txn?.payment_method?.id === "pix" &&
+        Math.round(Number(txn.amount) * 100) === Number(order.amountCents) &&
+        String(txn.id || "")) {
+      payment = {
+        id: String(txn.id),
+        status: "approved", external_reference: String(order.reference),
+        transaction_amount: Number(txn.amount), payment_method_id: "pix",
+      };
+    }
+  } else if (order.method === "pix" && order.paymentId && /^\d+$/.test(String(order.paymentId))) {
     payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(String(order.paymentId))}`);
   } else if (order.method === "card" && order.preferenceId) {
     // A preferência não prova pagamento. Buscar pagamento por referência e validar cada campo.

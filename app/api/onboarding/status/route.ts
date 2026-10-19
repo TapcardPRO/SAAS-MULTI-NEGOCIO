@@ -10,13 +10,29 @@ export async function GET() {
   if (order && process.env.VELLTO_ONBOARDING_PAYMENTS_ENABLED === "true") {
     try { await reconcileOnboardingOrder(order._id); } catch (error) { console.error("VELLTO ONBOARDING SYNC", error); }
   }
-  const updated = await auth.db.collection("businesses").findOne({ _id: auth.businessId });
-  const latestOrder = await auth.db.collection("vellto_onboarding_orders").findOne(
-    { businessId: auth.businessId }, { sort: { createdAt: -1 } }
-  );
+  const [updated, latestOrder, pending] = await Promise.all([
+    auth.db.collection("businesses").findOne({ _id: auth.businessId }),
+    auth.db.collection("vellto_onboarding_orders").findOne(
+      { businessId: auth.businessId }, { sort: { createdAt: -1 } }
+    ),
+    auth.db.collection("vellto_onboarding_orders").findOne(
+      { businessId: auth.businessId, status: "pending" }, { sort: { createdAt: -1 } }
+    ),
+  ]);
   const period = updated?.selectedPeriod;
-  return NextResponse.json({ ok: true, active: updated?.active === true &&
-    updated?.billingStatus === "active" &&
-    Boolean(updated?.subscriptionEndsAt) &&
-    new Date(updated.subscriptionEndsAt).getTime() > Date.now(), period: isPeriod(period) ? period : "monthly", periodLabel: isPeriod(period) ? PERIODS[period].label : "Mensal", paymentStatus: latestOrder?.status || "none" });
+  return NextResponse.json({
+    ok: true,
+    active: updated?.active === true && updated?.billingStatus === "active" &&
+      Boolean(updated?.subscriptionEndsAt) &&
+      new Date(updated.subscriptionEndsAt).getTime() > Date.now(),
+    period: isPeriod(period) ? period : "monthly",
+    periodLabel: isPeriod(period) ? PERIODS[period].label : "Mensal",
+    paymentStatus: latestOrder?.status || "none",
+    payment: pending ? {
+      method: pending.method === "pix" ? "pix" : "card",
+      checkoutUrl: String(pending.checkoutUrl || ""),
+      qrCode: String(pending.qrCode || ""),
+      qrCodeBase64: String(pending.qrCodeBase64 || ""),
+    } : null,
+  });
 }

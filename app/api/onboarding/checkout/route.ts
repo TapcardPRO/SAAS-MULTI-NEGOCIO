@@ -1,20 +1,9 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import QRCode from "qrcode";
 import { requireOnboardingOwner } from "@/lib/vellto-onboarding-auth";
 import { amountCents, isMethod, isPeriod, PERIODS } from "@/lib/vellto-onboarding";
 import { mercadoPagoRequest } from "@/lib/mercado-pago";
-
-// O CPF vai direto ao Mercado Pago e não fica salvo pela Vellto.
-function validCPF(cpf: string) {
-  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
-  for (let pos = 9; pos <= 10; pos++) {
-    let sum = 0;
-    for (let i = 0; i < pos; i++) sum += Number(cpf[i]) * (pos + 1 - i);
-    const digit = (sum * 10) % 11;
-    if ((digit === 10 ? 0 : digit) !== Number(cpf[pos])) return false;
-  }
-  return true;
-}
 
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
@@ -48,9 +37,6 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const period = auth.business.selectedPeriod;
   const method = body.method;
-  const payerCpf = String(body.payerCpf || "").replace(/\D/g, "");
-  if (method === "pix" && !validCPF(payerCpf))
-    return NextResponse.json({ message: "Informe um CPF válido para pagar com Pix." }, { status: 400 });
   if (!isPeriod(period) || !isMethod(method) || body.autoRenew === true)
     return NextResponse.json({ message: "Seleção inválida. Renovação automática ainda indisponível." }, { status: 400 });
   // Homologação: somente Pix com banco isolado e credencial de teste já verificada.
@@ -115,34 +101,47 @@ export async function POST(request: Request) {
     }
 
     if (method === "pix") {
-      // O Mercado Pago aceita vencimento Pix entre 30 minutos e 30 dias.
-      // A mesma chave é usada em reexecuções do mesmo pedido.
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-      const idempotencyKey = reference.substring(reference.lastIndexOf(":") + 1);
-      const payment = await mercadoPagoRequest("/v1/payments", {
+      // Em homologacao, o Mercado Pago simula a aprovacao pelo nome APRO.
+      // Em producao, deve-se usar o nome verdadeiro do pagador.
+      const testMode = process.env.VELLTO_ONBOARDING_LIVE_ENABLED !== "true";
+      const firstName = testMode ? "APRO" : String(auth.user.name || "Cliente").trim().split(/\s+/)[0];
+      const amount = (cents / 100).toFixed(2);
+      const mpOrder = await mercadoPagoRequest("/v1/orders", {
         method: "POST",
-        headers: { "X-Idempotency-Key": idempotencyKey },
+        headers: { "X-Idempotency-Key": randomUUID() },
         body: {
-          transaction_amount: cents / 100,
-          description: `Vellto Agenda - ${PERIODS[period].label}`,
-          payment_method_id: "pix",
-          payer: { email, identification: { type: "CPF", number: payerCpf } },
+          type: "online",
+          processing_mode: "automatic",
+          total_amount: amount,
           external_reference: reference,
-          notification_url: `${baseUrl}/api/onboarding/webhook`,
-          date_of_expiration: expiresAt.toISOString(),
+          payer: { email, first_name: firstName },
+          transactions: { payments: [{
+            amount,
+            payment_method: { id: "pix", type: "bank_transfer" },
+          }] },
         },
       });
-      const qrCode = String(payment.point_of_interaction?.transaction_data?.qr_code || "");
-      const qrCodeBase64 = String(payment.point_of_interaction?.transaction_data?.qr_code_base64 || "");
-      if (!payment.id || !qrCode) throw new Error("Mercado Pago não retornou os dados do Pix.");
+      const mpOrderId = String(mpOrder?.id || "");
+      const transaction = Array.isArray(mpOrder?.transactions?.payments)
+        ? mpOrder.transactions.payments[0] : null;
+      const qrCode = String(transaction?.payment_method?.qr_code || "");
+      if (!/^ORD[A-Z0-9]+$/i.test(mpOrderId) || !transaction?.id || !qrCode) {
+        throw new Error("Mercado Pago nao retornou uma ordem Pix com QR Code valido.");
+      }
+      // Testes da Orders API frequentemente retornam qr_code_base64 vazio.
+      const qrCodeBase64 = (await QRCode.toDataURL(qrCode, { width: 320, margin: 2 })).split(",")[1];
       await auth.db.collection("vellto_onboarding_orders").updateOne(
         { _id: orderId },
-        { $set: { paymentId: String(payment.id), qrCode, qrCodeBase64, expiresAt } }
+        { $set: {
+          mpOrderId,
+          paymentId: String(transaction.id),
+          qrCode, qrCodeBase64,
+          providerStatus: String(mpOrder.status || "action_required"),
+          providerStatusDetail: String(mpOrder.status_detail || ""),
+        } }
       );
-      return NextResponse.json({
-        ok: true, method, orderId: String(orderId), qrCode, qrCodeBase64,
-        expiresAt: expiresAt.toISOString(),
-      });
+      return NextResponse.json({ ok: true, method, orderId: String(orderId),
+        qrCode, qrCodeBase64, paymentStatus: String(mpOrder.status || "action_required") });
     }
     const preference = await mercadoPagoRequest("/checkout/preferences", { method: "POST", body: {
       items: [{ id: `vellto-${period}`, title: `Vellto Agenda - ${PERIODS[period].label}`, quantity: 1, unit_price: cents / 100, currency_id: "BRL" }],

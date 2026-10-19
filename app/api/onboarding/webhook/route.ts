@@ -23,10 +23,32 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const url = new URL(request.url);
   const id = String(url.searchParams.get("data.id") || body?.data?.id || "");
-  if (!/^\d{1,25}$/.test(id)) return NextResponse.json({ ok: true, ignored: true });
+  const topic = String(url.searchParams.get("type") || body?.type || body?.topic || "").toLowerCase();
+  const mpOrder = topic === "order" || /^ORD[A-Z0-9]+$/i.test(id);
+  if (mpOrder ? !/^ORD[A-Z0-9]{6,70}$/i.test(id) : !/^\d{1,25}$/.test(id))
+    return NextResponse.json({ ok: true, ignored: true });
   if (!validSignature(request, id)) return NextResponse.json({ message: "Assinatura inválida" }, { status: 401 });
   try {
     const db = await getDb();
+    if (mpOrder) {
+      let order = await db.collection("vellto_onboarding_orders").findOne({ mpOrderId: id, method: "pix" });
+      if (!order) {
+        // A notificacao pode chegar antes de o ID da order ser persistido.
+        const providerOrder = await (await import("@/lib/mercado-pago"))
+          .mercadoPagoRequest(`/v1/orders/${encodeURIComponent(id)}`);
+        const reference = String(providerOrder.external_reference || "");
+        order = await db.collection("vellto_onboarding_orders").findOne({ reference, method: "pix" });
+        if (order && !order.mpOrderId) {
+          await db.collection("vellto_onboarding_orders").updateOne(
+            { _id: order._id, mpOrderId: { $exists: false } },
+            { $set: { mpOrderId: id } }
+          );
+        }
+      }
+      if (order && (!order.mpOrderId || String(order.mpOrderId) === id))
+        await reconcileOnboardingOrder(order._id);
+      return NextResponse.json({ ok: true });
+    }
     const order = await db.collection("vellto_onboarding_orders").findOne({ paymentId: id });
     if (order) await reconcileOnboardingOrder(order._id);
     else {
