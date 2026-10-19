@@ -90,7 +90,9 @@ export async function POST(request: Request) {
     });
   }
 
-  const reference = `vellto-onboard:${String(auth.businessId)}:${randomUUID()}`;
+  const reference = method === "pix"
+    ? `vellto_pix_${randomUUID().replace(/-/g, "")}`
+    : `vellto-onboard:${String(auth.businessId)}:${randomUUID()}`;
   const orderResult = await auth.db.collection("vellto_onboarding_orders").insertOne({ businessId: auth.businessId, reference, method, period, amountCents: cents, status: "pending", createdAt: new Date() });
   const orderId = orderResult.insertedId;
   try {
