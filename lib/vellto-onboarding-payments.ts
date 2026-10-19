@@ -20,6 +20,22 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
     const candidate = results.find((p: Record<string, unknown>) => String(p.external_reference) === String(order.reference) && p.status === "approved");
     if (candidate?.id) payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(String(candidate.id))}`);
   }
+  // Um Pix rejeitado/cancelado não pode prender o cliente em cobrança pendente.
+  // Sempre consultamos a API oficial antes de alterar o pedido.
+  if (order.method === "pix" && payment &&
+      String(payment.external_reference) === String(order.reference) &&
+      payment.payment_method_id === "pix" &&
+      ["cancelled", "rejected", "refunded", "charged_back"].includes(String(payment.status))) {
+    await db.collection("vellto_onboarding_orders").updateOne(
+      { _id: order._id, status: "pending" },
+      { $set: {
+          status: payment.status === "cancelled" ? "expired" : "failed",
+          finalPaymentStatus: String(payment.status),
+          checkedAt: new Date(),
+        } }
+    );
+    return false;
+  }
   if (!payment || payment.status !== "approved" || String(payment.external_reference) !== String(order.reference)) return false;
   if (Math.round(Number(payment.transaction_amount) * 100) !== Number(order.amountCents)) return false;
   if (order.method === "pix" && payment.payment_method_id !== "pix") return false;

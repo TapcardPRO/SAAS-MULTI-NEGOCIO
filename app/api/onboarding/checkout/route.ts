@@ -4,6 +4,18 @@ import { requireOnboardingOwner } from "@/lib/vellto-onboarding-auth";
 import { amountCents, isMethod, isPeriod, PERIODS } from "@/lib/vellto-onboarding";
 import { mercadoPagoRequest } from "@/lib/mercado-pago";
 
+// O CPF vai direto ao Mercado Pago e não fica salvo pela Vellto.
+function validCPF(cpf: string) {
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+  for (let pos = 9; pos <= 10; pos++) {
+    let sum = 0;
+    for (let i = 0; i < pos; i++) sum += Number(cpf[i]) * (pos + 1 - i);
+    const digit = (sum * 10) % 11;
+    if ((digit === 10 ? 0 : digit) !== Number(cpf[pos])) return false;
+  }
+  return true;
+}
+
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   if (process.env.VELLTO_ONBOARDING_PAYMENTS_ENABLED !== "true") return NextResponse.json({ message: "Pagamentos em preparação. Nenhuma cobrança foi realizada." }, { status: 503 });
@@ -36,10 +48,17 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const period = auth.business.selectedPeriod;
   const method = body.method;
+  const payerCpf = String(body.payerCpf || "").replace(/\D/g, "");
+  if (method === "pix" && !validCPF(payerCpf))
+    return NextResponse.json({ message: "Informe um CPF válido para pagar com Pix." }, { status: 400 });
   if (!isPeriod(period) || !isMethod(method) || body.autoRenew === true)
     return NextResponse.json({ message: "Seleção inválida. Renovação automática ainda indisponível." }, { status: 400 });
-  if (method === "pix" && process.env.VELLTO_ONBOARDING_LIVE_ENABLED !== "true")
-    return NextResponse.json({ message: "Neste teste, utilize cartão de teste." }, { status: 400 });
+  // Homologação: somente Pix com banco isolado e credencial de teste já verificada.
+  // A mudança desta regra NÃO habilita o Pix na produção.
+  if (method === "pix" && process.env.VELLTO_ONBOARDING_LIVE_ENABLED !== "true" &&
+      (process.env.DB_NAME !== "vellto_homologacao" ||
+       process.env.VELLTO_MP_TEST_CREDENTIAL_VERIFIED !== "true"))
+    return NextResponse.json({ message: "Pix em testes exige banco de homologação e credencial de teste." }, { status: 503 });
   if (method === "card" && process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true" &&
       process.env.VELLTO_MP_SELLER_INSTALLMENTS_CONFIRMED !== "true")
     return NextResponse.json({ message: "Configure Parcelado Vendedor no Mercado Pago antes de habilitar cartão." }, { status: 503 });
@@ -81,6 +100,7 @@ export async function POST(request: Request) {
       qrCode: pending.qrCode || "",
       qrCodeBase64: pending.qrCodeBase64 || "",
       orderId: String(pending._id),
+      expiresAt: pending.expiresAt ? new Date(pending.expiresAt).toISOString() : null,
     });
   }
 
@@ -95,16 +115,34 @@ export async function POST(request: Request) {
     }
 
     if (method === "pix") {
-      const payment = await mercadoPagoRequest("/v1/payments", { method: "POST", headers: { "X-Idempotency-Key": randomUUID() }, body: {
-        transaction_amount: cents / 100, description: `Vellto Agenda - ${PERIODS[period].label}`,
-        payment_method_id: "pix", payer: { email }, external_reference: reference,
-        notification_url: `${baseUrl}/api/onboarding/webhook`,
-      } });
+      // O Mercado Pago aceita vencimento Pix entre 30 minutos e 30 dias.
+      // A mesma chave é usada em reexecuções do mesmo pedido.
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      const idempotencyKey = reference.substring(reference.lastIndexOf(":") + 1);
+      const payment = await mercadoPagoRequest("/v1/payments", {
+        method: "POST",
+        headers: { "X-Idempotency-Key": idempotencyKey },
+        body: {
+          transaction_amount: cents / 100,
+          description: `Vellto Agenda - ${PERIODS[period].label}`,
+          payment_method_id: "pix",
+          payer: { email, identification: { type: "CPF", number: payerCpf } },
+          external_reference: reference,
+          notification_url: `${baseUrl}/api/onboarding/webhook`,
+          date_of_expiration: expiresAt.toISOString(),
+        },
+      });
       const qrCode = String(payment.point_of_interaction?.transaction_data?.qr_code || "");
       const qrCodeBase64 = String(payment.point_of_interaction?.transaction_data?.qr_code_base64 || "");
       if (!payment.id || !qrCode) throw new Error("Mercado Pago não retornou os dados do Pix.");
-      await auth.db.collection("vellto_onboarding_orders").updateOne({ _id: orderId }, { $set: { paymentId: String(payment.id), qrCode, qrCodeBase64 } });
-      return NextResponse.json({ ok: true, method, orderId: String(orderId), qrCode, qrCodeBase64 });
+      await auth.db.collection("vellto_onboarding_orders").updateOne(
+        { _id: orderId },
+        { $set: { paymentId: String(payment.id), qrCode, qrCodeBase64, expiresAt } }
+      );
+      return NextResponse.json({
+        ok: true, method, orderId: String(orderId), qrCode, qrCodeBase64,
+        expiresAt: expiresAt.toISOString(),
+      });
     }
     const preference = await mercadoPagoRequest("/checkout/preferences", { method: "POST", body: {
       items: [{ id: `vellto-${period}`, title: `Vellto Agenda - ${PERIODS[period].label}`, quantity: 1, unit_price: cents / 100, currency_id: "BRL" }],
