@@ -34,6 +34,16 @@ export default function EmpresasPage() {
   const [plans, setPlans] = useState<SaasPlan[]>([]);
   const [message, setMessage] = useState("");
   const [savingId, setSavingId] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState("");
+
+  const selectedBusinesses = businesses.filter((business) =>
+    selectedIds.includes(business.id)
+  );
+  const allSelected = businesses.length > 0 && selectedBusinesses.length === businesses.length;
 
   useEffect(() => {
     loadBusinesses();
@@ -94,9 +104,12 @@ export default function EmpresasPage() {
         return;
       }
 
-      setBusinesses(
-        data.businesses || []
-      );
+      const nextBusinesses: Business[] = Array.isArray(data.businesses)
+        ? data.businesses : [];
+      setBusinesses(nextBusinesses);
+      setSelectedIds((current) => current.filter((id) =>
+        nextBusinesses.some((business) => business.id === id)
+      ));
     } catch (error) {
       console.error(error);
 
@@ -180,6 +193,66 @@ export default function EmpresasPage() {
     }
   }
 
+  function toggleSelection(id: string) {
+    if (deletingSelected) return;
+    setSelectedIds((current) => current.includes(id)
+      ? current.filter((selectedId) => selectedId !== id)
+      : [...current, id]
+    );
+  }
+
+  function toggleAll() {
+    if (deletingSelected) return;
+    setSelectedIds(allSelected ? [] : businesses.map((business) => business.id));
+  }
+
+  async function deleteSelectedBusinesses() {
+    const queue = businesses.filter((business) => selectedIds.includes(business.id));
+    if (deletingSelected || savingId || queue.length === 0 ||
+      deleteConfirmation.trim() !== `EXCLUIR ${queue.length}`) return;
+
+    setDeletingSelected(true);
+    setMessage("");
+    const deletedIds: string[] = [];
+    let failure = "";
+
+    try {
+      // Uma por vez para reutilizar as verificacoes da API e evitar sobrecarregar o MongoDB.
+      for (let index = 0; index < queue.length; index += 1) {
+        const business = queue[index];
+        setDeleteProgress(`Excluindo ${index + 1} de ${queue.length}: ${business.name}`);
+        try {
+          const response = await fetch(`/api/admin/businesses/${encodeURIComponent(business.id)}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ confirmation: business.slug || business.name }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            failure = `Nao foi possivel excluir ${business.name}: ${result.message || `HTTP ${response.status}`}`;
+            break;
+          }
+          deletedIds.push(business.id);
+        } catch {
+          failure = `Erro de conexao ao excluir ${business.name}. Confira a lista antes de tentar novamente.`;
+          break;
+        }
+      }
+    } finally {
+      // Uma falha interrompe o lote; as exclusoes anteriores nao podem ser desfeitas.
+      setBusinesses((current) => current.filter((business) => !deletedIds.includes(business.id)));
+      setSelectedIds((current) => current.filter((id) => !deletedIds.includes(id)));
+      setShowDeleteDialog(false);
+      setDeleteConfirmation("");
+      setDeletingSelected(false);
+      setDeleteProgress("");
+      setMessage(failure
+        ? `${deletedIds.length} de ${queue.length} empresa(s) excluida(s). ${failure}`
+        : `${deletedIds.length} empresa(s) excluida(s) com sucesso.`
+      );
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-zinc-950 p-8 text-white">
@@ -256,6 +329,39 @@ export default function EmpresasPage() {
           />
         </div>
 
+        {businesses.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold">
+                <input type="checkbox" checked={allSelected}
+                  onChange={toggleAll} disabled={deletingSelected}
+                  aria-label="Selecionar todas as empresas"
+                  className="h-5 w-5 accent-emerald-500" />
+                Selecionar todas
+              </label>
+              <span className="text-sm text-zinc-400">
+                {selectedBusinesses.length} de {businesses.length} selecionada(s)
+              </span>
+              {selectedBusinesses.length > 0 && (
+                <button type="button" onClick={() => setSelectedIds([])}
+                  disabled={deletingSelected}
+                  className="text-sm text-zinc-300 underline underline-offset-4 disabled:opacity-50">
+                  Limpar selecao
+                </button>
+              )}
+            </div>
+            <button type="button"
+              disabled={selectedBusinesses.length === 0 || deletingSelected || Boolean(savingId)}
+              onClick={() => {
+                setDeleteConfirmation("");
+                setShowDeleteDialog(true);
+              }}
+              className="rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40">
+              Excluir {selectedBusinesses.length} selecionada(s)
+            </button>
+          </div>
+        )}
+
         {message ? (
           <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
             {message}
@@ -280,11 +386,21 @@ export default function EmpresasPage() {
                 return (
                   <div
                     key={business.id}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6"
+                    className={`rounded-2xl border bg-white/5 p-5 sm:p-6 ${
+                      selectedIds.includes(business.id)
+                        ? "border-red-500/50" : "border-white/10"
+                    }`}
                   >
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-3">
+                          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-zinc-300">
+                            <input type="checkbox" checked={selectedIds.includes(business.id)}
+                              onChange={() => toggleSelection(business.id)} disabled={deletingSelected}
+                              aria-label={`Selecionar empresa ${business.name}`}
+                              className="h-5 w-5 accent-emerald-500" />
+                            Selecionar
+                          </label>
                           <h2 className="text-xl font-bold">
                             {business.name}
                           </h2>
@@ -462,6 +578,50 @@ export default function EmpresasPage() {
           </div>
         )}
       </div>
+
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          role="dialog" aria-modal="true" aria-labelledby="bulk-delete-title">
+          <div className="w-full max-w-xl rounded-2xl border border-red-500/30 bg-zinc-950 p-6 text-white shadow-2xl">
+            <p className="text-xs font-bold uppercase tracking-widest text-red-400">Acao irreversivel</p>
+            <h2 id="bulk-delete-title" className="mt-2 text-2xl font-black">
+              Excluir {selectedBusinesses.length} empresa(s)?
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-zinc-300">
+              Os usuarios, clientes vinculados, agendamentos e demais dados dessas empresas
+              serao removidos conforme a rotina atual. Esta operacao nao pode ser desfeita.
+              Se houver cobranca recorrente no Mercado Pago, verifique o cancelamento no provedor antes de excluir.
+            </p>
+            <ul className="mt-4 max-h-40 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-black/40 p-4 text-sm">
+              {selectedBusinesses.map((business) => (
+                <li key={business.id}>• {business.name} <span className="text-zinc-500">/{business.slug}</span></li>
+              ))}
+            </ul>
+            <label htmlFor="bulk-delete-confirm" className="mt-5 block text-sm font-semibold">
+              Para confirmar, digite <strong className="text-red-400">EXCLUIR {selectedBusinesses.length}</strong>
+            </label>
+            <input id="bulk-delete-confirm" type="text" value={deleteConfirmation}
+              onChange={(event) => setDeleteConfirmation(event.target.value)}
+              disabled={deletingSelected} autoComplete="off"
+              placeholder={`EXCLUIR ${selectedBusinesses.length}`}
+              className="mt-2 w-full rounded-xl border border-white/20 bg-zinc-900 px-4 py-3 outline-none focus:border-red-500" />
+            {deleteProgress && <p className="mt-3 text-sm text-amber-300" role="status">{deleteProgress}</p>}
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button type="button" disabled={deletingSelected}
+                onClick={() => { setShowDeleteDialog(false); setDeleteConfirmation(""); }}
+                className="rounded-xl border border-white/20 px-5 py-3 font-semibold disabled:opacity-50">
+                Cancelar
+              </button>
+              <button type="button" onClick={deleteSelectedBusinesses}
+                disabled={deletingSelected || selectedBusinesses.length === 0 ||
+                  deleteConfirmation.trim() !== `EXCLUIR ${selectedBusinesses.length}`}
+                className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+                {deletingSelected ? "Excluindo..." : `Excluir definitivamente (${selectedBusinesses.length})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
