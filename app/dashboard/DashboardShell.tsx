@@ -133,6 +133,10 @@ export default function DashboardShell({
   const [billingLocked, setBillingLocked] =
     useState(business.billingLocked);
 
+  useEffect(() => {
+    setBillingLocked(business.billingLocked);
+  }, [business.billingLocked]);
+
   // Mesmo sem trocar de pagina, o painel bloqueia a tela ao chegar o vencimento.
   // A API ja restringe as operacoes; este timer protege a interface em sessao aberta.
   useEffect(() => {
