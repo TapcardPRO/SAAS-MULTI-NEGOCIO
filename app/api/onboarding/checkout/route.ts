@@ -111,10 +111,12 @@ export async function POST(request: Request) {
       back_urls: { success: `${baseUrl}/ativar`, failure: `${baseUrl}/ativar`, pending: `${baseUrl}/ativar` },
       auto_return: "approved",
     } });
-    const checkoutUrl =
-      process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true"
-        ? String(preference.init_point || "")
-        : String(preference.sandbox_init_point || "");
+    const checkoutUrl = String(preference.init_point || "");
+    const url = new URL(checkoutUrl);
+    if (
+      url.protocol !== "https:" ||
+      !["www.mercadopago.com.br", "www.mercadopago.com"].includes(url.hostname)
+    ) throw new Error("Link de pagamento não autorizado.");
 
     if (!preference.id || !checkoutUrl) throw new Error("Mercado Pago não retornou o checkout.");
     await auth.db.collection("vellto_onboarding_orders").updateOne({ _id: orderId }, { $set: { preferenceId: String(preference.id), checkoutUrl } });
