@@ -11,6 +11,9 @@ type Business = {
   name: string;
   slug: string;
   manualPrepaymentEnabled: boolean;
+  paymentPixKey: string;
+  paymentCardLink: string;
+  paymentWhatsApp: string;
   logoUrl: string;
   primaryColor: string;
   secondaryColor: string;
@@ -112,6 +115,7 @@ export default function BookingClient({
     useState(false);
   const [awaitingManualPayment, setAwaitingManualPayment] = useState(false);
   const [paymentDeadline, setPaymentDeadline] = useState("");
+  const [pixCopied, setPixCopied] = useState(false);
 
   const [message, setMessage] =
     useState("");
@@ -799,6 +803,75 @@ export default function BookingClient({
               }
             />
           </div>
+
+          {awaitingManualPayment && (
+            <section className="mt-6 rounded-2xl border p-5 text-left" style={{
+              borderColor: theme.border, backgroundColor: theme.surface2,
+            }}>
+              <h2 className="text-lg font-black">Pagamento necessário para confirmar</h2>
+              <p className="mt-2 text-sm leading-6" style={{ color: theme.muted }}>
+                Seu horário está temporariamente reservado, mas ainda não está confirmado.
+                Realize o pagamento pelos dados abaixo e envie o comprovante ao estabelecimento.
+              </p>
+              {paymentDeadline && (
+                <p className="mt-3 text-sm font-bold">
+                  Prazo para pagar: {new Date(paymentDeadline).toLocaleString("pt-BR", {
+                    timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit",
+                    hour: "2-digit", minute: "2-digit",
+                  })}
+                </p>
+              )}
+              {business.paymentPixKey && (
+                <div className="mt-5 rounded-xl border p-4" style={{ borderColor: theme.border }}>
+                  <p className="text-sm font-bold">Pagar com Pix</p>
+                  <p className="mt-2 break-all text-sm" style={{ color: theme.muted }}>
+                    {business.paymentPixKey}
+                  </p>
+                  <button type="button" onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(business.paymentPixKey);
+                      setPixCopied(true);
+                    } catch {
+                      setPixCopied(false);
+                      window.alert("Não foi possível copiar automaticamente. Selecione e copie a chave Pix exibida.");
+                    }
+                  }}
+                    className="mt-3 rounded-lg border px-4 py-2.5 text-sm font-bold"
+                    style={{ borderColor: theme.border }}>
+                    {pixCopied ? "Chave Pix copiada ✓" : "Copiar chave Pix"}
+                  </button>
+                </div>
+              )}
+              {business.paymentCardLink && business.paymentCardLink.startsWith("https://") && (
+                <a href={business.paymentCardLink} target="_blank" rel="noopener noreferrer"
+                  className="mt-3 flex min-h-[48px] items-center justify-center rounded-xl px-4 py-3 text-center text-sm font-bold"
+                  style={{ backgroundColor: theme.primary, color: theme.onPrimary }}>
+                  Pagar com cartão
+                </a>
+              )}
+              {getClientProofWhatsAppUrl(
+                business.paymentWhatsApp,
+                customer?.name || "Cliente",
+                selectedServices.map((service) => service.name).join(" + "),
+                date, time
+              ) && (
+                <a href={getClientProofWhatsAppUrl(
+                  business.paymentWhatsApp,
+                  customer?.name || "Cliente",
+                  selectedServices.map((service) => service.name).join(" + "),
+                  date, time
+                ) || "#"} target="_blank" rel="noopener noreferrer"
+                  className="mt-3 flex min-h-[48px] items-center justify-center rounded-xl border px-4 py-3 text-center text-sm font-bold"
+                  style={{ borderColor: theme.border }}>
+                  Enviar comprovante pelo WhatsApp
+                </a>
+              )}
+              <p className="mt-3 text-xs leading-5" style={{ color: theme.muted }}>
+                O pagamento é recebido diretamente pelo estabelecimento. A Vellto não verifica
+                o recebimento automaticamente. Aguarde a confirmação do profissional.
+              </p>
+            </section>
+          )}
 
           <a
             href={`/${business.slug}`}
@@ -2857,4 +2930,22 @@ async function readJsonResponse(
       `A API não retornou JSON válido. Status ${response.status}.`
     );
   }
+}
+
+
+function getClientProofWhatsAppUrl(
+  rawPhone: string, client: string, service: string, date: string, time: string
+): string | null {
+  const digits = String(rawPhone || "").replace(/\D/g, "");
+  const number = (digits.length === 10 || digits.length === 11)
+    ? `55${digits}` : ((digits.length === 12 || digits.length === 13) && digits.startsWith("55") ? digits : "");
+  if (!number) return null;
+  const message = [
+    `Olá! Sou ${client}. Solicitei um agendamento e gostaria de enviar o comprovante de pagamento.`,
+    `Serviço: ${service || "Atendimento"}`,
+    `Data: ${date ? date.split("-").reverse().join("/") : "-"}`,
+    `Horário: ${time || "-"}`,
+    "Meu pagamento ainda aguarda conferência. Obrigado!",
+  ].join("\n");
+  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }

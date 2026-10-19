@@ -189,6 +189,14 @@ export default async function AgendarPage({
 
         slug,
         manualPrepaymentEnabled: business.manualPrepaymentEnabled === true,
+        // Informacoes publicas EXCLUSIVAMENTE para clientes autenticados e
+        // estabelecimentos que optaram por cobranca antecipada.
+        paymentPixKey: business.manualPrepaymentEnabled === true
+          ? String(business.paymentPixKey || "") : "",
+        paymentCardLink: business.manualPrepaymentEnabled === true
+          ? String(business.paymentCardLink || "") : "",
+        paymentWhatsApp: business.manualPrepaymentEnabled === true
+          ? String(business.whatsapp || "") : "",
 
         logoUrl: String(
           business.logoUrl || ""
