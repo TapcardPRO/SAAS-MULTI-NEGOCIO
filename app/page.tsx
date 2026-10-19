@@ -1,5 +1,6 @@
 import VelltoPricing from "./components/VelltoPricing";
 import VelltoPublicShowcase from "./components/VelltoPublicShowcase";
+import { isPublicSignupAvailable } from "@/lib/vellto-public-signup-config";
 
 const features = [
   { icon: "▦", title: "Agenda inteligente", text: "Organize horários, profissionais e atendimentos em uma visão simples e rápida." },
@@ -16,6 +17,8 @@ const faqs = [
   ["Posso cadastrar vários profissionais?", "Sim. A quantidade de profissionais depende dos limites do plano contratado."],
   ["Consigo acompanhar clientes mensalistas?", "Sim. Você acompanha os planos, as utilizações e o histórico de atendimentos."],
   ["Preciso instalar algum programa?", "Não. A Vellto funciona online, diretamente pelo navegador."],
+  ["Posso testar como é o site do meu negócio?", "Sim. Na demonstração você pode conhecer modelos de barbearia, salão de beleza e manicure, e simular um agendamento sem criar reserva real."],
+  ["A renovação é automática?", "Não. Após o período contratado, a renovação é feita manualmente, conforme as condições do checkout."],
 ];
 
 function Logo({ dark = false }: { dark?: boolean }) {
@@ -80,7 +83,8 @@ function Preview() {
 }
 
 export default function Home() {
-  return <main className="min-h-screen overflow-x-hidden bg-white text-[#17231e]">
+  const signupAvailable = isPublicSignupAvailable();
+  return <main className="min-h-screen overflow-x-hidden bg-white pb-20 text-[#17231e] sm:pb-0">
     <header className="sticky top-0 z-50 border-b border-[#e8eeea] bg-white/95 backdrop-blur-xl">
       <div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <a href="/" aria-label="Vellto — início"><Logo /></a>
@@ -92,7 +96,7 @@ export default function Home() {
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <a href="/login" className="rounded-xl px-3 py-3 text-sm font-bold text-[#34453c] transition hover:bg-[#f2f7f4] sm:px-5">Entrar</a>
-          <a href="#planos" className="rounded-xl bg-[#00c896] px-3 py-3 text-sm font-extrabold text-[#073b2d] transition hover:bg-[#00b888] sm:px-5">Conhecer planos <span className="hidden sm:inline">↗</span></a>
+          <a href={signupAvailable ? "#planos" : "/demonstracao"} className="rounded-xl bg-[#00c896] px-3 py-3 text-sm font-extrabold text-[#073b2d] transition hover:bg-[#00b888] sm:px-5">{signupAvailable ? "Começar agora" : "Ver demonstração"} <span className="hidden sm:inline">↗</span></a>
         </div>
       </div>
     </header>
@@ -102,11 +106,11 @@ export default function Home() {
       <div className="relative mx-auto max-w-7xl">
         <div className="mx-auto max-w-4xl text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#bcebd8] bg-white px-4 py-2 text-xs font-bold text-[#008b68] shadow-sm sm:text-sm"><span className="h-2 w-2 rounded-full bg-[#00c896]" /> Agenda & gestão para o seu negócio</span>
-          <h1 className="mt-8 text-balance text-4xl font-black leading-[1.12] tracking-[-0.055em] text-[#14221b] sm:text-6xl lg:text-[72px]">Mais organização para você. <span className="text-[#00a97d]">Mais praticidade para seus clientes.</span></h1>
-          <p className="mx-auto mt-7 max-w-2xl text-base leading-8 text-[#64736b] sm:text-xl">Agendamentos, clientes, profissionais e controle financeiro em um só lugar. Uma gestão mais simples, do primeiro agendamento ao fim do dia.</p>
+          <h1 className="mt-8 text-balance text-4xl font-black leading-[1.12] tracking-[-0.055em] text-[#14221b] sm:text-6xl lg:text-[72px]">Organize sua agenda. <span className="text-[#00a97d]">Deixe seus clientes agendarem sozinhos.</span></h1>
+          <p className="mx-auto mt-7 max-w-2xl text-base leading-8 text-[#64736b] sm:text-xl">Sua agenda, equipe, clientes e financeiro em um só painel. E um site profissional para seus clientes encontrarem horários e agendarem com facilidade.</p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <a href="#planos" className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#00c896] px-7 font-extrabold text-[#073b2d] shadow-[0_12px_28px_-12px_rgba(0,184,136,0.5)] transition hover:-translate-y-0.5 hover:bg-[#00b888] sm:w-auto">Conhecer os planos <Arrow /></a>
-            <a href="#recursos" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border border-[#d7e5dd] bg-white px-7 font-bold text-[#26372d] transition hover:border-[#00b888] sm:w-auto">Explorar recursos</a>
+            <a href="/demonstracao" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border border-[#d7e5dd] bg-white px-7 font-bold text-[#26372d] transition hover:border-[#00b888] sm:w-auto">Testar uma página de exemplo ↗</a>
           </div>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-[#74847a] sm:text-sm"><span>✓ Acesso online</span><span>✓ Funciona no celular</span><span>✓ Agendamentos em um só lugar</span></div>
         </div>
@@ -145,8 +149,8 @@ export default function Home() {
 
     <section id="planos" className="scroll-mt-24 bg-[#f6faf8] px-4 py-24 sm:px-6 sm:py-28 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <Heading eyebrow="Planos" title="Escolha como prefere investir no seu negócio." text="Pague menos no Pix ou parcele no cartão. Você escolhe o período e decide sobre a renovação." />
-        <VelltoPricing />
+        <Heading eyebrow="Planos e valores" title="Uma Vellto completa. Escolha por quanto tempo contratar." text="Compare o total de cada período no Pix e no cartão, sem letras pequenas. Renovação manual e condições mostradas antes do pagamento." />
+        <VelltoPricing signupAvailable={signupAvailable} />
       </div>
     </section>
 
@@ -156,12 +160,16 @@ export default function Home() {
 
     <section id="contato" className="px-4 pb-24 sm:px-6 sm:pb-28 lg:px-8"><div className="relative mx-auto max-w-7xl overflow-hidden rounded-[32px] bg-[#12382c] p-8 text-white sm:p-12 lg:p-16"><div className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-[#00c896]/20 blur-[90px]" />
       <div className="relative max-w-3xl"><p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#64e9bc]">Vellto Agenda & Gestão</p><h2 className="mt-5 text-balance text-3xl font-black tracking-tight sm:text-5xl">Seu negócio merece uma gestão mais simples.</h2><p className="mt-5 max-w-xl text-base leading-8 text-[#c0d8cb]">Conheça os planos e descubra como organizar sua agenda e atender melhor seus clientes.</p>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row"><a href="#planos" className="inline-flex min-h-13 items-center justify-center rounded-xl bg-[#00c896] px-7 py-4 font-extrabold text-[#073b2d]">Ver planos ↗</a><a href="/login" className="inline-flex min-h-13 items-center justify-center rounded-xl border border-white/25 px-7 py-4 font-bold text-white">Já sou cliente</a></div></div>
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row"><a href="#planos" className="inline-flex min-h-13 items-center justify-center rounded-xl bg-[#00c896] px-7 py-4 font-extrabold text-[#073b2d]">Comparar planos ↗</a><a href="/demonstracao" className="inline-flex min-h-13 items-center justify-center rounded-xl border border-white/25 px-7 py-4 font-bold text-white">Testar demonstração</a></div></div>
     </div></section>
 
     <footer className="border-t border-[#e5ede7] bg-[#f8faf8] px-4 py-12 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-9 md:grid-cols-3"><div><Logo /><p className="mt-4 max-w-sm text-sm leading-7 text-[#697a70]">Tecnologia para organizar atendimentos e profissionalizar a gestão do seu negócio.</p></div>
       <div><p className="text-sm font-black text-[#223328]">Produto</p><div className="mt-4 space-y-3 text-sm font-semibold text-[#708076]"><p><a href="#recursos">Recursos</a></p><p><a href="#como-funciona">Como funciona</a></p><p><a href="#planos">Planos</a></p></div></div>
       <div><p className="text-sm font-black text-[#223328]">Acesso</p><div className="mt-4 space-y-3 text-sm font-semibold text-[#708076]"><p><a href="/login">Entrar no painel</a></p><p><a href="#faq">Dúvidas frequentes</a></p></div></div>
     </div><div className="mx-auto mt-10 flex max-w-7xl flex-wrap justify-between gap-2 border-t border-[#e4ece6] pt-6 text-xs text-[#88978c]"><span>© {new Date().getFullYear()} Vellto Agenda. Todos os direitos reservados.</span><span>Agenda & Gestão</span></div></footer>
+    <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-[#dce8df] bg-white/95 px-4 py-3 shadow-[0_-14px_45px_-30px_rgba(10,70,48,.3)] backdrop-blur-xl sm:hidden">
+      <a href="/demonstracao" className="flex min-h-11 flex-1 items-center justify-center rounded-xl border border-[#dce8df] px-2 text-center text-xs font-extrabold text-[#315344]">Testar demo</a>
+      <a href="#planos" className="flex min-h-11 flex-1 items-center justify-center rounded-xl bg-[#00c896] px-2 text-center text-xs font-extrabold text-[#073b2d]">Ver planos ↗</a>
+    </div>
   </main>;
 }
