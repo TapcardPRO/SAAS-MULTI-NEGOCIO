@@ -51,8 +51,36 @@ export async function POST(request: Request) {
       { status: 503 }
     );
   }
-  const recent = await auth.db.collection("vellto_onboarding_orders").findOne({ businessId: auth.businessId, method, status: "pending", createdAt: { $gt: new Date(Date.now() - 10 * 60_000) } }, { sort: { createdAt: -1 } });
-  if (recent?.checkoutUrl || recent?.qrCode) return NextResponse.json({ ok: true, method, checkoutUrl: recent.checkoutUrl || "", qrCode: recent.qrCode || "", qrCodeBase64: recent.qrCodeBase64 || "", orderId: String(recent._id) });
+  // Não gerar outra cobrança enquanto já existir uma pendente.
+  const pending = await auth.db.collection("vellto_onboarding_orders")
+    .findOne(
+      { businessId: auth.businessId, status: "pending" },
+      { sort: { createdAt: -1 } }
+    );
+
+  if (pending) {
+    if (pending.method !== method)
+      return NextResponse.json(
+        { message: "Já existe outro pagamento pendente para esta assinatura." },
+        { status: 409 }
+      );
+
+    if (!pending.checkoutUrl && !pending.qrCode)
+      return NextResponse.json(
+        { message: "Seu pagamento está sendo preparado. Aguarde." },
+        { status: 409 }
+      );
+
+    return NextResponse.json({
+      ok: true,
+      method,
+      checkoutUrl: pending.checkoutUrl || "",
+      qrCode: pending.qrCode || "",
+      qrCodeBase64: pending.qrCodeBase64 || "",
+      orderId: String(pending._id),
+    });
+  }
+
   const reference = `vellto-onboard:${String(auth.businessId)}:${randomUUID()}`;
   const orderResult = await auth.db.collection("vellto_onboarding_orders").insertOne({ businessId: auth.businessId, reference, method, period, amountCents: cents, status: "pending", createdAt: new Date() });
   const orderId = orderResult.insertedId;

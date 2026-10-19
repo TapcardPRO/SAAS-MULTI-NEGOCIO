@@ -21,7 +21,7 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
     if (candidate?.id) payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(String(candidate.id))}`);
   }
   if (!payment || payment.status !== "approved" || String(payment.external_reference) !== String(order.reference)) return false;
-  if (Math.round(Number(payment.transaction_amount) * 100) !== amountCents(order.period, order.method)) return false;
+  if (Math.round(Number(payment.transaction_amount) * 100) !== Number(order.amountCents)) return false;
   if (order.method === "pix" && payment.payment_method_id !== "pix") return false;
   if (order.method === "card" && payment.payment_type_id !== "credit_card") return false;
   if (!ObjectId.isValid(String(order.businessId))) return false;
