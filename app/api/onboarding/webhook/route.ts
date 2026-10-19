@@ -11,7 +11,10 @@ function validSignature(request: NextRequest, id: string) {
   const ts = signature.split(",").map(v => v.trim()).find(v => v.startsWith("ts="))?.slice(3);
   const v1 = signature.split(",").map(v => v.trim()).find(v => v.startsWith("v1="))?.slice(3);
   if (!ts || !v1 || !/^\d+$/.test(ts) || !/^[a-f0-9]{64}$/i.test(v1)) return false;
-  if (Math.abs(Date.now() - Number(ts) * 1000) > 10 * 60_000) return false;
+  const timestamp = Number(ts);
+  if (!Number.isSafeInteger(timestamp)) return false;
+  const timestampMs = timestamp >= 1e12 ? timestamp : timestamp * 1000;
+  if (Math.abs(Date.now() - timestampMs) > 10 * 60_000) return false;
   const manifest = `id:${id.toLowerCase()};request-id:${requestId};ts:${ts};`;
   const expected = createHmac("sha256", secret).update(manifest).digest("hex");
   return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(v1, "hex"));
