@@ -169,7 +169,8 @@ export default async function DashboardLayout({
           : "",
       }}
     >
-      {children}
+      {/* Nao enviar conteudo protegido para o cliente apos o vencimento. */}
+      {billingLocked ? null : children}
     </DashboardShell>
   );
 }
