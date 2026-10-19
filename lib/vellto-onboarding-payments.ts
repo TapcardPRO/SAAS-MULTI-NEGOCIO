@@ -28,21 +28,49 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
   const businessId = new ObjectId(String(order.businessId));
   const business = await db.collection("businesses").findOne({ _id: businessId, signupSource: "public" });
   if (!business) return false;
-  // Apenas a primeira ativação deste onboarding. Outras renovações terão fluxo próprio.
-  if (business.activatedOrderId && String(business.activatedOrderId) !== String(order._id)) return false;
   const now = new Date();
-  const endsAt = addMonths(now, { monthly: 1, semiannual: 6, annual: 12 }[order.period]);
+  const months = { monthly: 1, semiannual: 6, annual: 12 }[order.period];
+  const endsAt = addMonths(now, months);
+
   const alreadyClaimed =
     String(business.activatedOrderId || "") === String(order._id);
 
-  const claimed = alreadyClaimed ? null :
-    await db.collection("businesses").updateOne(
-      {
-        _id: businessId,
-        signupSource: "public",
-        activatedOrderId: { $exists: false },
-        active: false,
-      },
+  const expiration = business.subscriptionEndsAt
+    ? new Date(business.subscriptionEndsAt).getTime()
+    : NaN;
+
+  const initial =
+    business.active === false &&
+    business.billingStatus === "pending" &&
+    !business.activatedOrderId;
+
+  const renewal =
+    business.active === true &&
+    ["active", "past_due"].includes(String(business.billingStatus)) &&
+    Number.isFinite(expiration) &&
+    expiration <= now.getTime();
+
+  if (!alreadyClaimed && !initial && !renewal) return false;
+
+  if (!alreadyClaimed) {
+    const filter = initial
+      ? {
+          _id: businessId,
+          signupSource: "public",
+          active: false,
+          billingStatus: "pending",
+          activatedOrderId: { $exists: false },
+        }
+      : {
+          _id: businessId,
+          signupSource: "public",
+          active: true,
+          activatedOrderId: business.activatedOrderId,
+          subscriptionEndsAt: business.subscriptionEndsAt,
+        };
+
+    const claimed = await db.collection("businesses").updateOne(
+      filter,
       {
         $set: {
           active: true,
@@ -56,14 +84,37 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
       }
     );
 
-  if (claimed?.modifiedCount === 1 || alreadyClaimed) {
-    await db.collection("vellto_onboarding_orders").updateOne({ _id: order._id }, { $set: { status: "approved", paymentId: String(payment.id), activatedAt: now } });
-    await db.collection("saas_billing_payments").updateOne(
-      { externalId: `onboarding:${String(payment.id)}` },
-      { $setOnInsert: { businessId, externalId: `onboarding:${String(payment.id)}`, status: "approved", amount: Number(payment.transaction_amount), paidAt: now, createdAt: now, method: order.method } },
-      { upsert: true }
-    );
-    return true;
+    if (claimed.modifiedCount !== 1) return false;
   }
-  return false;
+
+  // Registrar pagamento antes de finalizar o pedido.
+  // Se houver falha, outra tentativa pode concluir o registro.
+  await db.collection("saas_billing_payments").updateOne(
+    { externalId: `onboarding:${String(payment.id)}` },
+    {
+      $setOnInsert: {
+        businessId,
+        externalId: `onboarding:${String(payment.id)}`,
+        status: "approved",
+        amount: Number(payment.transaction_amount),
+        paidAt: now,
+        createdAt: now,
+        method: order.method,
+      },
+    },
+    { upsert: true }
+  );
+
+  await db.collection("vellto_onboarding_orders").updateOne(
+    { _id: order._id },
+    {
+      $set: {
+        status: "approved",
+        paymentId: String(payment.id),
+        activatedAt: now,
+      },
+    }
+  );
+
+  return true;
 }

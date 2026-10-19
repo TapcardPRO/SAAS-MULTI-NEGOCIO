@@ -190,7 +190,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const pendingOnboarding = business.signupSource === "public" && business.active === false && business.billingStatus === "pending";
+    const expiredSubscription =
+      business.signupSource === "public" &&
+      business.active === true &&
+      business.subscriptionEndsAt &&
+      new Date(business.subscriptionEndsAt).getTime() <= Date.now();
+
+    const pendingOnboarding =
+      (business.signupSource === "public" &&
+       business.active === false &&
+       business.billingStatus === "pending") ||
+      (user.role === "owner" && Boolean(expiredSubscription));
     if (business.active === false && !pendingOnboarding) {
       return NextResponse.json(
         {

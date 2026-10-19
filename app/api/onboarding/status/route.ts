@@ -12,5 +12,8 @@ export async function GET() {
   }
   const updated = await auth.db.collection("businesses").findOne({ _id: auth.businessId });
   const period = updated?.selectedPeriod;
-  return NextResponse.json({ ok: true, active: updated?.active === true && updated?.billingStatus === "active", period: isPeriod(period) ? period : "monthly", periodLabel: isPeriod(period) ? PERIODS[period].label : "Mensal", paymentStatus: order?.status || "none" });
+  return NextResponse.json({ ok: true, active: updated?.active === true &&
+    updated?.billingStatus === "active" &&
+    Boolean(updated?.subscriptionEndsAt) &&
+    new Date(updated.subscriptionEndsAt).getTime() > Date.now(), period: isPeriod(period) ? period : "monthly", periodLabel: isPeriod(period) ? PERIODS[period].label : "Mensal", paymentStatus: order?.status || "none" });
 }

@@ -14,7 +14,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Use credenciais TEST do Mercado Pago neste ambiente." }, { status: 503 });
   const auth = await requireOnboardingOwner();
   if (!auth) return NextResponse.json({ message: "Faça login para continuar." }, { status: 401 });
-  if (auth.business.active || auth.business.billingStatus !== "pending") return NextResponse.json({ message: "Sua conta já foi ativada." }, { status: 409 });
+  const expiration = auth.business.subscriptionEndsAt
+    ? new Date(auth.business.subscriptionEndsAt).getTime()
+    : NaN;
+
+  const initial =
+    auth.business.active === false &&
+    auth.business.billingStatus === "pending";
+
+  const renewal =
+    auth.business.active === true &&
+    ["active", "past_due"].includes(String(auth.business.billingStatus)) &&
+    Number.isFinite(expiration) &&
+    expiration <= Date.now();
+
+  if (!initial && !renewal)
+    return NextResponse.json(
+      { message: "Esta assinatura não está disponível para pagamento." },
+      { status: 409 }
+    );
   const body = await request.json().catch(() => ({}));
   const period = auth.business.selectedPeriod;
   const method = body.method;
