@@ -1,4 +1,5 @@
 import VelltoPricing from "./components/VelltoPricing";
+import VelltoPublicShowcase from "./components/VelltoPublicShowcase";
 
 const features = [
   { icon: "▦", title: "Agenda inteligente", text: "Organize horários, profissionais e atendimentos em uma visão simples e rápida." },
@@ -140,16 +141,7 @@ export default function Home() {
       </div>
     </section>
 
-    <section className="px-4 py-24 sm:px-6 sm:py-28 lg:px-8"><div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
-      <div><p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#009a74]">Sua presença online</p><h2 className="mt-4 text-balance text-3xl font-black tracking-[-0.045em] text-[#15241b] sm:text-5xl">Uma página profissional com a cara do seu negócio.</h2><p className="mt-6 text-base leading-8 text-[#64736b]">Mostre seus serviços, apresente sua equipe e ofereça aos clientes uma maneira prática de agendar. Cada estabelecimento tem seu próprio link e identidade visual.</p>
-      <div className="mt-8 grid grid-cols-2 gap-3 text-sm font-semibold text-[#405247]"><span>✓ Logo e capa</span><span>✓ Serviços e preços</span><span>✓ Profissionais</span><span>✓ Link e QR Code</span><span>✓ Agendamento online</span><span>✓ Área do cliente</span></div></div>
-      <div className="rounded-[30px] border border-[#dcebe2] bg-[#eaf8f1] p-5 sm:p-9"><div className="overflow-hidden rounded-[22px] border border-[#dce9e0] bg-white shadow-xl shadow-[#1b6240]/10">
-        <div className="h-32 bg-gradient-to-r from-[#173c30] via-[#12654d] to-[#00bc8c] sm:h-44" />
-        <div className="p-6"><div className="-mt-12 flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-white bg-[#dff6e9] text-2xl font-black text-[#007f5e]">B</div><h3 className="mt-3 text-xl font-black text-[#192a20]">Seu negócio aqui</h3><p className="mt-1 text-sm text-[#72847a]">Sua marca, seus serviços, sua agenda.</p>
-          <div className="mt-5 space-y-2">{[["Serviço personalizado", "45 min"],["Atendimento especial", "60 min"]].map(([service, duration]) => <div key={service} className="flex justify-between rounded-xl border border-[#e6eee8] p-3 text-xs font-semibold text-[#35463a]"><span>{service}</span><span className="text-[#89968d]">{duration}</span></div>)}</div>
-          <div className="mt-5 rounded-xl bg-[#00c896] px-4 py-3 text-center text-sm font-extrabold text-[#06432e]">Agendar horário</div>
-        </div></div><p className="mt-4 text-center text-xs text-[#6a8878]">Exemplo ilustrativo de página pública</p></div>
-    </div></section>
+    <VelltoPublicShowcase />
 
     <section id="planos" className="scroll-mt-24 bg-[#f6faf8] px-4 py-24 sm:px-6 sm:py-28 lg:px-8">
       <div className="mx-auto max-w-7xl">
