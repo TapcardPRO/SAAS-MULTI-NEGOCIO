@@ -7,11 +7,14 @@ export const PERIODS: Record<Period, { label: string; months: number; baseCents:
 };
 export function isPeriod(value: unknown): value is Period { return typeof value === "string" && value in PERIODS; }
 export function isMethod(value: unknown): value is PaymentMethod { return value === "pix" || value === "card"; }
+// Valores finais definidos para o cliente: as taxas ja estao consideradas.
+const CARD_TOTAL_CENTS: Record<Period, number> = {
+  monthly: 2068,
+  semiannual: 11779,
+  annual: 22028,
+};
 export function amountCents(period: Period, method: PaymentMethod) {
-  const offer = PERIODS[period];
-  // Preco bruto = valor liquido desejado / (1 - taxa do meio de pagamento).
-  const fee = method === "pix" ? 0.0099 : offer.cardRate;
-  return Math.ceil(offer.baseCents / (1 - fee));
+  return method === "pix" ? PERIODS[period].baseCents : CARD_TOTAL_CENTS[period];
 }
 export function formatBRL(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
