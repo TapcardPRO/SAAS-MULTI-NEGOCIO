@@ -8,6 +8,11 @@ import { verifySessionToken } from "@/lib/auth";
 import DashboardShell from "./DashboardShell";
 import { hasSubscriptionAccess } from "@/lib/vellto-subscription-access";
 
+
+export const metadata = {
+  manifest: "/api/manifest?area=profissional",
+};
+
 export default async function DashboardLayout({
   children,
 }: {
