@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-type Props = { area: "cliente" | "profissional" };
+type Props = { area: "cliente" | "profissional" | "publico"; slug?: string };
 
-export default function AddToHomeScreen({ area }: Props) {
+export default function AddToHomeScreen({ area, slug }: Props) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const [ios, setIos] = useState(false);
@@ -27,7 +27,20 @@ export default function AddToHomeScreen({ area }: Props) {
     } catch {
       // Keep the persistent install button available when storage is blocked.
     }
-  }, [area]);
+    const manifestHref =
+      area === "profissional"
+        ? "/dashboard/manifest.webmanifest"
+        : slug
+          ? "/" + slug + "/" + (area === "cliente" ? "cliente/" : "") + "manifest.webmanifest"
+          : "/manifest.webmanifest";
+    let manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (!manifestLink) {
+      manifestLink = document.createElement("link");
+      manifestLink.rel = "manifest";
+      document.head.appendChild(manifestLink);
+    }
+    manifestLink.href = manifestHref;
+  }, [area, slug]);
 
   if (!visible) return null;
 
