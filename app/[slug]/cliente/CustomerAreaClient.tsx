@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AddToHomeScreen from "../../components/AddToHomeScreen";
 import {
   FormEvent,
   ReactNode,
@@ -610,6 +611,7 @@ export default function CustomerAreaClient({
         } as React.CSSProperties
       }
     >
+      <AddToHomeScreen area="cliente" />
       <style>{`
         html,
         body {
