@@ -12,6 +12,14 @@ type Props = {
   }>;
 };
 
+
+export async function generateMetadata({ params }: Props) {
+  const { slug } = await params;
+  return {
+    manifest: `/api/manifest?area=cliente&slug=${encodeURIComponent(slug)}`,
+  };
+}
+
 export default async function CustomerAreaPage({
   params,
 }: Props) {
