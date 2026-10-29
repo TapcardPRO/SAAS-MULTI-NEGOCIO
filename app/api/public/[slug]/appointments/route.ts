@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
 import { getDb } from "@/lib/db";
+import { sendNewAppointmentPush } from "@/lib/push-notifications";
 import { hasSubscriptionAccess } from "@/lib/vellto-subscription-access";
 import {
   getEligibleProfessionals,
@@ -1064,6 +1065,19 @@ export async function POST(
           .insertOne(
             appointment
           );
+
+      // Push é um aviso complementar: uma falha de entrega não cancela o agendamento.
+      try {
+        await sendNewAppointmentPush(db, businessId, {
+          clientName,
+          serviceName,
+          professionalName: String(professional.name || "Profissional"),
+          date,
+          time,
+        });
+      } catch (pushError) {
+        console.error("NEW APPOINTMENT PUSH ERROR:", pushError);
+      }
 
       return NextResponse.json(
         {
