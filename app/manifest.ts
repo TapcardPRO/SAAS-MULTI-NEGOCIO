@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Vellto | Agenda & Gestão",
     short_name: "Vellto",
     description: "Agenda e gestão para profissionais e empresas de beleza e serviços.",
-    start_url: "/dashboard",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
