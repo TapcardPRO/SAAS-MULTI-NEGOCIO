@@ -9,8 +9,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Novo agendamento · Vellto";
   const options = {
     body: data.body || "Um novo agendamento foi recebido.",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: "/icons/icon.svg",
+    badge: "/icons/icon.svg",
     data: { url: data.url || "/dashboard/agenda" },
     tag: data.tag || "vellto-new-appointment",
     renotify: true,
