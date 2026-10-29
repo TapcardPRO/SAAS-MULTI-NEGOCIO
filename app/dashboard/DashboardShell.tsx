@@ -9,6 +9,7 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AddToHomeScreen from "../components/AddToHomeScreen";
+import PushNotifications from "./PushNotifications";
 
 type Props = {
   children: ReactNode;
@@ -996,6 +997,7 @@ export default function DashboardShell({
         {/* CONTEÚDO */}
         <div className="min-w-0 flex-1 pb-24 lg:pb-0">
           {!billingLocked ? <AddToHomeScreen area="profissional" /> : null}
+          {!billingLocked ? <PushNotifications /> : null}
           {billingLocked ? (
             <main className="mx-auto max-w-3xl px-4 py-12 sm:px-8 sm:py-16">
               <section className="rounded-3xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-7 shadow-lg sm:p-10">
