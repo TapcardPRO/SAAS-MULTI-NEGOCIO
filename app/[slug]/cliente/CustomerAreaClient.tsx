@@ -611,7 +611,7 @@ export default function CustomerAreaClient({
         } as React.CSSProperties
       }
     >
-      <AddToHomeScreen area="cliente" />
+      <AddToHomeScreen area="cliente" slug={slug} />
       <style>{`
         html,
         body {
