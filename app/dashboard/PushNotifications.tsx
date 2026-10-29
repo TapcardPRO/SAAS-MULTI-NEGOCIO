@@ -18,11 +18,24 @@ export default function PushNotifications({ businessName }: PushNotificationsPro
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [isEnabled, setIsEnabled] = useState(false);
 
   useEffect(() => {
     const available = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
     setSupported(available);
-    if (available) setPermission(Notification.permission);
+    if (available) {
+      setPermission(Notification.permission);
+      if (Notification.permission === "granted") {
+        navigator.serviceWorker.ready
+          .then((registration) => registration.pushManager.getSubscription())
+          .then((subscription) => {
+            if (subscription) setIsEnabled(true);
+          })
+          .catch(() => {
+            // Mantém o botão disponível caso não seja possível verificar a assinatura.
+          });
+      }
+    }
   }, []);
 
   async function enableNotifications() {
@@ -52,7 +65,8 @@ export default function PushNotifications({ businessName }: PushNotificationsPro
       });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.message || "Não foi possível salvar a assinatura de notificações.");
-      setMessage("Notificações ativadas neste dispositivo.");
+      setIsEnabled(true);
+      setMessage("");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível ativar as notificações.");
     } finally {
@@ -60,8 +74,9 @@ export default function PushNotifications({ businessName }: PushNotificationsPro
     }
   }
 
-  if (!supported || permission === "granted") {
-    if (!supported) return null;
+  if (!supported || isEnabled) return null;
+
+  if (permission === "granted") {
     return (
       <div className="fixed bottom-4 left-4 z-[79] max-w-[calc(100vw-2rem)]">
         <button
