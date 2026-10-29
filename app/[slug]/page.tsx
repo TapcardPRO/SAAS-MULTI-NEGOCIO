@@ -18,6 +18,14 @@ type PageProps = {
   }>;
 };
 
+
+export async function generateMetadata({ params }: PageProps) {
+  const { slug } = await params;
+  return {
+    manifest: `/api/manifest?area=publico&slug=${encodeURIComponent(slug)}`,
+  };
+}
+
 export default async function BusinessPage({
   params,
 }: PageProps) {
