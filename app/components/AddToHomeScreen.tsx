@@ -29,10 +29,10 @@ export default function AddToHomeScreen({ area, slug }: Props) {
     }
     const manifestHref =
       area === "profissional"
-        ? "/dashboard/manifest.webmanifest"
-        : slug
-          ? "/" + slug + "/" + (area === "cliente" ? "cliente/" : "") + "manifest.webmanifest"
-          : "/manifest.webmanifest";
+        ? "/api/manifest?area=profissional"
+        : area === "cliente"
+          ? "/api/manifest?area=cliente&slug=" + encodeURIComponent(slug || "")
+          : "/api/manifest?area=publico&slug=" + encodeURIComponent(slug || "");
     let manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     if (!manifestLink) {
       manifestLink = document.createElement("link");
