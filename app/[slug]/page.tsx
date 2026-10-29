@@ -1,3 +1,4 @@
+import AddToHomeScreen from "../components/AddToHomeScreen";
 import type {
   ReactNode,
 } from "react";
@@ -329,6 +330,7 @@ export default async function BusinessPage({
         cssVariables
       }
     >
+      <AddToHomeScreen area="publico" slug={slug} />
       <style>{`
         html {
           scroll-behavior: smooth;
