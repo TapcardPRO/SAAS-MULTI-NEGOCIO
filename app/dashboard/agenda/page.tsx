@@ -2546,6 +2546,23 @@ export default function AgendaPage() {
               placeholder="Cliente, serviço ou profissional..."
               className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-base outline-none focus:border-emerald-500 sm:text-sm"
             />
+            <div className="mt-2 flex min-h-7 items-center justify-between gap-3">
+              <p className="text-xs text-zinc-500">
+                {filtered.length} de {appointments.length} atendimentos
+              </p>
+              {search || statusFilter !== "todos" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter("todos");
+                  }}
+                  className="text-xs font-semibold text-emerald-400 transition hover:text-emerald-300"
+                >
+                  Limpar filtros
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div>
@@ -2648,13 +2665,19 @@ export default function AgendaPage() {
               </p>
             </div>
 
-            <p className="text-xs text-zinc-500">
-              {filtered.length} atendimento
-              {filtered.length ===
-              1
-                ? ""
-                : "s"}
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-zinc-500">
+                {filtered.length} atendimento{filtered.length === 1 ? "" : "s"}
+              </p>
+              <button
+                type="button"
+                onClick={loadAppointments}
+                disabled={loading}
+                className="min-h-9 rounded-lg border border-white/10 px-3 text-xs font-semibold text-zinc-300 transition hover:border-emerald-400/30 hover:text-emerald-300 disabled:opacity-50"
+              >
+                {loading ? "Atualizando..." : "Atualizar"}
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -2666,7 +2689,7 @@ export default function AgendaPage() {
             0 ? (
             <EmptyState
               title="Nenhum atendimento"
-              description="Não existem atendimentos para esta data."
+              description={appointments.length > 0 ? "Nenhum atendimento corresponde aos filtros aplicados." : "Não existem atendimentos para esta data."}
             />
           ) : (
             <div className="space-y-3 p-3 sm:space-y-4 sm:p-5">
