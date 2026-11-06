@@ -2546,6 +2546,23 @@ export default function AgendaPage() {
               placeholder="Cliente, serviço ou profissional..."
               className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3 text-base outline-none focus:border-emerald-500 sm:text-sm"
             />
+            <div className="mt-2 flex min-h-7 items-center justify-between gap-3">
+              <p className="text-xs text-zinc-500">
+                {filtered.length} de {appointments.length} atendimentos
+              </p>
+              {search || statusFilter !== "todos" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter("todos");
+                  }}
+                  className="text-xs font-semibold text-emerald-400 transition hover:text-emerald-300"
+                >
+                  Limpar filtros
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div>

@@ -201,18 +201,25 @@ export default function ClientesPage() {
         return clients;
       }
 
-      return clients.filter(
-        (client) =>
-          [
-            client.name,
-            client.phone,
-            client.email,
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase()
-            .includes(term)
-      );
+      const searchDigits = term.replace(/\D/g, "");
+
+      return clients.filter((client) => {
+        const text = [
+          client.name,
+          client.phone,
+          client.email,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        const phoneDigits = String(client.phone || "").replace(/\D/g, "");
+
+        return (
+          text.includes(term) ||
+          Boolean(searchDigits && phoneDigits.includes(searchDigits))
+        );
+      });
     }, [
       clients,
       search,
@@ -345,8 +352,8 @@ export default function ClientesPage() {
           ) : filtered.length ===
             0 ? (
             <EmptyState
-              title="Nenhum cliente cadastrado"
-              description="Clique em Novo cliente para cadastrar o primeiro."
+              title={search ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
+              description={search ? "Tente buscar por outro nome, telefone ou e-mail." : "Clique em Novo cliente para cadastrar o primeiro."}
             />
           ) : (
             <div className="divide-y divide-white/5">
