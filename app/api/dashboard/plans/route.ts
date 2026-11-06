@@ -8,7 +8,7 @@ import {
 } from "mongodb";
 
 import {
-  requireOwnerSession,
+  requireBusinessSession,
 } from "@/lib/tenant-auth";
 
 export const dynamic =
@@ -20,7 +20,7 @@ export const revalidate =
 export async function GET() {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -47,8 +47,10 @@ export async function GET() {
           "plans"
         )
         .find({
-          $or:
-            filters,
+          $or: filters,
+          ...(auth.user.role === "employee"
+            ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+            : {}),
         })
         .sort({
           createdAt: -1,
@@ -87,7 +89,7 @@ export async function POST(
 ) {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -160,6 +162,10 @@ export async function POST(
     const plan = {
       businessId:
         auth.businessId,
+
+      professionalId: auth.user.role === "employee"
+        ? new ObjectId(String(auth.user.professionalId || ""))
+        : null,
 
       businessSlug:
         auth.business.slug ||
@@ -249,7 +255,7 @@ export async function PUT(
 ) {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -308,11 +314,11 @@ export async function PUT(
           "plans"
         )
         .findOne({
-          _id:
-            objectId,
-
-          $or:
-            filters,
+          _id: objectId,
+          $or: filters,
+          ...(auth.user.role === "employee"
+            ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+            : {}),
         });
 
     if (!existing) {
@@ -507,12 +513,13 @@ export async function PUT(
       )
       .updateOne(
         {
-          _id:
-            objectId,
+          _id: objectId,
+          ...(auth.user.role === "employee"
+            ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+            : {}),
         },
         {
-          $set:
-            update,
+          $set: update,
         }
       );
 
@@ -558,7 +565,7 @@ export async function DELETE(
 ) {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
