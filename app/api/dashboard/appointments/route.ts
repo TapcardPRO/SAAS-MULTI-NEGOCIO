@@ -624,6 +624,12 @@ export async function POST(
         clientId
       );
 
+    const cycleNow = new Date();
+    const cycleKey = `${cycleNow.getFullYear()}-${String(cycleNow.getMonth()+1).padStart(2,"0")}`;
+    const cycleLastDay = new Date(cycleNow.getFullYear(), cycleNow.getMonth()+1, 0).getDate();
+    const cycleEnd = `${cycleKey}-${String(cycleLastDay).padStart(2,"0")}`;
+    await auth.db.collection("memberships").updateMany({ $and: [{ $or: businessFilters }, { active: { $ne: false } }, { paymentStatus: "paid" }, { startDate: { $lte: cycleEnd } }, { cycleKey: { $ne: cycleKey } }] }, [{ $set: { cycleKey, usedUses: 0, remainingUses: "$totalUses", expiresAt: cycleEnd, updatedAt: cycleNow } }]);
+
     const memberships =
       await auth.db
         .collection(
@@ -653,10 +659,10 @@ export async function POST(
             },
 
             {
-              remainingUses: {
-                $gt: 0,
-              },
+              remainingUses: { $gt: 0 },
             },
+            { cycleKey },
+            { $or: [{ professionalId: { $exists: false } }, { professionalId: null }, { professionalId: professionalObjectId }, { professionalIds: professionalObjectId }] },
           ],
         } as any)
         .sort({
@@ -694,6 +700,8 @@ export async function POST(
           Planos novos:
           precisam cobrir pelo menos um serviço.
           */
+          if (!membershipAllowedOnSlot(item, date, time)) return false;
+
           const allowed =
             Array.isArray(
               item.serviceIds
@@ -1133,6 +1141,12 @@ export async function OPTIONS() {
 HELPERS
 =========================================================
 */
+
+function membershipAllowedOnSlot(item: any, date: string, time: string) {
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+  const days = Array.isArray(item.allowedDays) ? item.allowedDays.map(Number) : [0,1,2,3,4,5,6];
+  return days.includes(day) && time >= String(item.allowedStartTime || "00:00") && time < String(item.allowedEndTime || "23:59");
+}
 
 function formatMoney(
   value: number
