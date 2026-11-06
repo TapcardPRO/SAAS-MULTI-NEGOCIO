@@ -64,6 +64,10 @@ export async function GET() {
         : {}),
     };
 
+    const now = new Date();
+    const currentCycle = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    await db.collection("memberships").updateMany({ ...membershipFilter, active: { $ne: false }, paymentStatus: "paid", startDate: { $lte: `${currentCycle}-31` }, cycleKey: { $ne: currentCycle } }, [{ $set: { cycleKey: currentCycle, usedUses: 0, remainingUses: "$totalUses", expiresAt: monthEndDate(`${currentCycle}-01`), updatedAt: now } }]);
+
     const memberships = await db
       .collection("memberships")
       .find(
@@ -136,6 +140,10 @@ export async function GET() {
             Number(
               membership.validityDays || 0
             ),
+          allowedDays: Array.isArray(membership.allowedDays) ? membership.allowedDays.map(Number) : [0,1,2,3,4,5,6],
+          allowedStartTime: String(membership.allowedStartTime || "00:00"),
+          allowedEndTime: String(membership.allowedEndTime || "23:59"),
+          cycleKey: String(membership.cycleKey || ""),
 
           serviceIds:
             Array.isArray(
@@ -529,6 +537,9 @@ export async function POST(
       Number(
         plan.validityDays || 30
       );
+    const allowedDays = Array.isArray(plan.allowedDays) ? plan.allowedDays.map(Number) : [0,1,2,3,4,5,6];
+    const allowedStartTime = String(plan.allowedStartTime || "00:00");
+    const allowedEndTime = String(plan.allowedEndTime || "23:59");
 
     if (
       !Number.isFinite(price) ||
@@ -626,11 +637,8 @@ export async function POST(
       );
     }
 
-    const expiresAt =
-      addDays(
-        startDate,
-        validityDays
-      );
+    const cycleKey = startDate.slice(0, 7);
+    const expiresAt = monthEndDate(startDate);
 
     const now =
       new Date();
@@ -681,6 +689,10 @@ export async function POST(
         totalUses,
 
       validityDays,
+      allowedDays,
+      allowedStartTime,
+      allowedEndTime,
+      cycleKey,
 
       /*
       SNAPSHOT DOS SERVIÇOS DO PLANO.
@@ -895,6 +907,12 @@ function isValidDateString(
     date.getUTCDate() ===
       day
   );
+}
+
+function monthEndDate(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  const last = new Date(Date.UTC(year, month, 0, 12));
+  return `${last.getUTCFullYear()}-${String(last.getUTCMonth()+1).padStart(2,"0")}-${String(last.getUTCDate()).padStart(2,"0")}`;
 }
 
 function addDays(
