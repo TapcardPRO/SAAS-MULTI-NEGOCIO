@@ -33,6 +33,9 @@ export async function POST(request: Request) {
           userId: auth.user._id,
           businessId: auth.businessId,
           role: auth.user.role || "owner",
+          professionalId: auth.user.role === "employee"
+            ? String(auth.user.professionalId || "")
+            : null,
           updatedAt: now,
         },
         $setOnInsert: { createdAt: now },
