@@ -65,7 +65,7 @@ export async function GET() {
     };
 
     const now = new Date();
-    const currentCycle = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    const currentCycle = getCurrentCycleSaoPaulo();
     await db.collection("memberships").updateMany({ ...membershipFilter, active: { $ne: false }, paymentStatus: "paid", startDate: { $lte: `${currentCycle}-31` }, cycleKey: { $ne: currentCycle } }, [{ $set: { cycleKey: currentCycle, usedUses: 0, remainingUses: "$totalUses", expiresAt: monthEndDate(`${currentCycle}-01`), updatedAt: now } }]);
 
     const memberships = await db
@@ -870,6 +870,18 @@ export async function OPTIONS() {
 HELPERS
 =========================================================
 */
+
+function getCurrentCycleSaoPaulo() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return `${year}-${month}`;
+}
 
 function isValidDateString(
   value: string
