@@ -215,8 +215,22 @@ export async function POST(
       return NextResponse.json({ ok: false, message: "Profissional não vinculado ao usuário" }, { status: 403 });
     }
 
-    if (auth.user.role !== "employee" && professionalId && !ObjectId.isValid(professionalId)) {
-      return NextResponse.json({ ok: false, message: "Profissional inválido" }, { status: 400 });
+    if (auth.user.role !== "employee" && professionalId) {
+      const professional = await auth.db.collection("professionals").findOne({
+        _id: new ObjectId(professionalId),
+        $or: [
+          { businessId: auth.businessId },
+          { businessId: auth.businessId.toString() },
+          ...(auth.business.slug ? [{ businessSlug: auth.business.slug }] : []),
+        ],
+      });
+
+      if (!professional) {
+        return NextResponse.json(
+          { ok: false, message: "Profissional não pertence a esta empresa" },
+          { status: 400 }
+        );
+      }
     }
 
     /*
