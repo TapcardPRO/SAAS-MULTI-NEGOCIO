@@ -623,6 +623,7 @@ export async function POST(
 
           $or:
             duplicateFilters,
+          ...(user.role === "employee" ? { professionalId: new ObjectId(professionalId) } : {}),
         });
 
     if (existingMembership) {
