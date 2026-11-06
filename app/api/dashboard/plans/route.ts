@@ -107,6 +107,10 @@ export async function POST(
     const body =
       await request.json();
 
+    if (auth.user.role === "employee" && !ObjectId.isValid(String(auth.user.professionalId || ""))) {
+      return NextResponse.json({ message: "Profissional não vinculado ao usuário" }, { status: 403 });
+    }
+
     const parsed =
       parsePlanBody(
         body
@@ -626,11 +630,11 @@ export async function DELETE(
           "plans"
         )
         .findOne({
-          _id:
-            objectId,
-
-          $or:
-            filters,
+          _id: objectId,
+          $or: filters,
+          ...(auth.user.role === "employee"
+            ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+            : {}),
         });
 
     if (!existing) {
@@ -679,8 +683,10 @@ export async function DELETE(
         "plans"
       )
       .deleteOne({
-        _id:
-          objectId,
+        _id: objectId,
+        ...(auth.user.role === "employee"
+          ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+          : {}),
       });
 
     return NextResponse.json({
