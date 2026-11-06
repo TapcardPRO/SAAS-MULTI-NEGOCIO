@@ -35,6 +35,10 @@ export async function GET() {
       );
     }
 
+    if (auth.user.role === "employee" && !ObjectId.isValid(String(auth.user.professionalId || ""))) {
+      return NextResponse.json({ message: "Profissional não vinculado ao usuário" }, { status: 403 });
+    }
+
     const filters =
       tenantFilters(
         auth.businessId,
