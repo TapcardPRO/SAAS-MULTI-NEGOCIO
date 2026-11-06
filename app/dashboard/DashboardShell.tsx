@@ -9,7 +9,6 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AddToHomeScreen from "../components/AddToHomeScreen";
-import PushNotifications from "./PushNotifications";
 
 type Props = {
   children: ReactNode;
