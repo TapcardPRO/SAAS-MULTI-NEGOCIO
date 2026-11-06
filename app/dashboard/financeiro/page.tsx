@@ -162,16 +162,16 @@ export default function FinanceiroPage() {
   }, [completedAppointments]);
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen space-y-0">
       {/* CABEÇALHO */}
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
+      <div className="border-b border-white/10 bg-gradient-to-r from-[#0b1b25] via-[#09131d]/90 to-[#09131d]/70 px-4 py-5 backdrop-blur-xl sm:px-6 sm:py-7 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
               Financeiro
             </h1>
 
@@ -185,7 +185,7 @@ export default function FinanceiroPage() {
             onChange={(event) =>
               setPeriod(event.target.value)
             }
-            className="rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-sm outline-none focus:border-emerald-500"
+            className="min-h-[48px] rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-sm font-semibold outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/10"
           >
             <option value="7">
               Últimos 7 dias
@@ -258,7 +258,7 @@ export default function FinanceiroPage() {
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
           {/* HISTÓRICO */}
-          <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
+          <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b1620]/75 shadow-[0_18px_55px_-38px_rgba(0,0,0,0.9)]">
             <div className="border-b border-white/10 p-4 sm:p-5">
               <h2 className="font-bold">
                 Receitas recentes
@@ -284,7 +284,7 @@ export default function FinanceiroPage() {
                 {completedAppointments.map((item) => (
                   <div
                     key={item._id}
-                    className="grid gap-4 p-5 transition hover:bg-white/[0.02] md:grid-cols-[1fr_1fr_120px] md:items-center"
+                    className="grid gap-4 p-5 transition duration-200 hover:bg-white/[0.035] md:grid-cols-[1fr_1fr_120px] md:items-center"
                   >
                     <div>
                       <p className="font-semibold">
@@ -323,7 +323,7 @@ export default function FinanceiroPage() {
           </section>
 
           {/* PROFISSIONAIS */}
-          <section className="rounded-2xl border border-white/10 bg-white/[0.025]">
+          <section className="rounded-2xl border border-white/10 bg-[#0b1620]/75 shadow-[0_18px_55px_-38px_rgba(0,0,0,0.9)]">
             <div className="border-b border-white/10 p-4 sm:p-5">
               <h2 className="font-bold">
                 Desempenho por profissional
@@ -406,7 +406,7 @@ function StatCard({
   detail?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
+    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.015] p-5 shadow-[0_12px_40px_-28px_rgba(0,0,0,0.8)] transition duration-200 hover:border-emerald-400/25 hover:bg-white/[0.045] sm:p-6">
       <p className="text-sm text-zinc-400">
         {label}
       </p>
