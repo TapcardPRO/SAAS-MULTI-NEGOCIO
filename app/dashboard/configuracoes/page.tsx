@@ -8,6 +8,7 @@ import {
 import {
   useRouter,
 } from "next/navigation";
+import PushNotifications from "../PushNotifications";
 
 type SettingsData = {
   user: {
@@ -421,6 +422,10 @@ export default function ConfiguracoesPage() {
             {error || message}
           </div>
         )}
+
+        <div className="mb-6">
+          <PushNotifications />
+        </div>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
           <div className="space-y-6">
