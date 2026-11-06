@@ -24,8 +24,9 @@ export async function requireBusinessSession() {
     return { ok: false as const, status: 403, message: "Acesso bloqueado" };
   }
 
-  if (user.role === "superadmin") {
-    return { ok: false as const, status: 403, message: "Acesso exclusivo da empresa" };
+  const role = String(user.role || "owner");
+  if (role !== "owner" && role !== "employee") {
+    return { ok: false as const, status: 403, message: "Perfil sem permissão para acessar a empresa" };
   }
 
   if (!user.businessId || !ObjectId.isValid(String(user.businessId))) {
@@ -45,6 +46,30 @@ export async function requireBusinessSession() {
       status: 403,
       message: "Assinatura vencida ou não confirmada.",
     };
+  }
+
+  // Um usuário employee só pode operar quando continua vinculado
+  // a um profissional pertencente à mesma empresa.
+  if (role === "employee") {
+    const professionalId = String(user.professionalId || "");
+    if (!ObjectId.isValid(professionalId)) {
+      return { ok: false as const, status: 403, message: "Profissional não vinculado ao usuário" };
+    }
+
+    const professionalFilters: Record<string, unknown>[] = [
+      { businessId },
+      { businessId: businessId.toString() },
+    ];
+    if (business.slug) professionalFilters.push({ businessSlug: business.slug });
+
+    const professional = await db.collection("professionals").findOne({
+      _id: new ObjectId(professionalId),
+      $or: professionalFilters,
+    });
+
+    if (!professional || professional.active === false) {
+      return { ok: false as const, status: 403, message: "Vínculo profissional inativo ou inválido" };
+    }
   }
 
   return { ok: true as const, db, user, business, businessId };

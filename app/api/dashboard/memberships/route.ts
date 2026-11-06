@@ -269,11 +269,6 @@ export async function POST(
       );
     }
 
-    console.log(
-      "BODY MENSALISTA RECEBIDO:",
-      body
-    );
-
     const clientId =
       String(
         body.clientId || ""
