@@ -2402,7 +2402,7 @@ export default function AgendaPage() {
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
               Agenda
             </h1>
 
@@ -2417,7 +2417,7 @@ export default function AgendaPage() {
 
   return (
     <main className="min-h-screen">
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
+      <div className="border-b border-white/10 bg-gradient-to-r from-[#0b1b25] via-[#09131d]/90 to-[#09131d]/70 px-4 py-5 backdrop-blur-xl sm:px-6 sm:py-7 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
@@ -2439,7 +2439,7 @@ export default function AgendaPage() {
               onClick={
                 openNewAppointment
               }
-              className="col-span-4 flex min-h-[48px] items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 sm:col-auto sm:px-5"
+              className="col-span-4 flex min-h-[48px] items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-extrabold text-[#071018] shadow-lg shadow-emerald-500/10 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:col-auto"
             >
               + Novo agendamento
             </button>
@@ -2528,7 +2528,7 @@ export default function AgendaPage() {
           />
         </div>
 
-        <section className="mt-5 grid gap-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:mt-6 sm:p-5 lg:grid-cols-[1fr_240px]">
+        <section className="mt-5 grid gap-4 rounded-2xl border border-white/10 bg-[#0b1620]/80 p-4 shadow-sm sm:mt-6 sm:p-5 lg:grid-cols-[1fr_240px]">
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
               Buscar
@@ -2634,7 +2634,7 @@ export default function AgendaPage() {
           </div>
         ) : null}
 
-        <section className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] sm:mt-6">
+        <section className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1620]/75 shadow-[0_18px_55px_-38px_rgba(0,0,0,0.9)] sm:mt-6">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4 sm:gap-4 sm:p-5">
             <div>
               <h2 className="font-bold">
