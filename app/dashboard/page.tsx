@@ -56,54 +56,72 @@ export default async function DashboardPage() {
 
   const today = getToday();
 
-  const appointments = businessId
-    ? await db
-        .collection("appointments")
-        .find({
-          businessId,
-          date: today,
-        })
-        .sort({
-          startTime: 1,
-          time: 1,
-        })
-        .limit(6)
-        .toArray()
+  const tenantFilters = businessId
+    ? [
+        { businessId },
+        { businessId: String(businessId) },
+        ...(business?.slug ? [{ businessSlug: business.slug }] : []),
+      ]
     : [];
 
-  const appointmentsToday =
-    appointments.length;
+  const todayFilter = {
+    $and: [
+      { $or: tenantFilters },
+      { date: today },
+    ],
+  };
 
-  const completedToday =
-    appointments.filter(
-      (appointment) =>
-        appointment.status === "completed"
-    ).length;
+  // O painel mostra somente os seis próximos horários, mas os indicadores
+  // consideram todos os registros do dia (não apenas os seis da prévia).
+  const [appointments, appointmentsToday, completedToday, revenueRows, totalClients] =
+    businessId
+      ? await Promise.all([
+          db.collection("appointments")
+            .find(todayFilter)
+            .sort({ startTime: 1, time: 1 })
+            .limit(6)
+            .toArray(),
+          db.collection("appointments").countDocuments(todayFilter),
+          db.collection("appointments").countDocuments({
+            $and: [
+              { $or: tenantFilters },
+              { date: today },
+              { status: { $in: ["completed", "concluido"] } },
+            ],
+          }),
+          db.collection("appointments").aggregate([
+            {
+              $match: {
+                $and: [
+                  { $or: tenantFilters },
+                  { date: today },
+                  { status: { $in: ["completed", "concluido"] } },
+                ],
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: {
+                  $sum: {
+                    $convert: {
+                      input: { $ifNull: ["$servicePrice", "$price"] },
+                      to: "double",
+                      onError: 0,
+                      onNull: 0,
+                    },
+                  },
+                },
+              },
+            },
+          ]).toArray(),
+          db.collection("clients").countDocuments({
+            $or: tenantFilters,
+          }),
+        ])
+      : [[], 0, 0, [], 0];
 
-  const revenueToday =
-    appointments
-      .filter(
-        (appointment) =>
-          appointment.status === "completed"
-      )
-      .reduce(
-        (total, appointment) =>
-          total +
-          Number(
-            appointment.servicePrice ??
-              appointment.price ??
-              0
-          ),
-        0
-      );
-
-  const totalClients = businessId
-    ? await db
-        .collection("clients")
-        .countDocuments({
-          businessId,
-        })
-    : 0;
+  const revenueToday = Number(revenueRows[0]?.total || 0);
 
   return (
     <main className="min-h-screen">
@@ -485,17 +503,16 @@ function formatPrice(
 }
 
 function getToday() {
-  const date = new Date();
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
 
-  const year = date.getFullYear();
-
-  const month = String(
-    date.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    date.getDate()
-  ).padStart(2, "0");
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
 
   return `${year}-${month}-${day}`;
 }
