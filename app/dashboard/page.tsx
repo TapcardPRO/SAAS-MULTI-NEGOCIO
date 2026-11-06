@@ -106,14 +106,16 @@ export default async function DashboardPage() {
     : [[], 0, 0, [], 0];
 
   const revenueToday = Number(revenueRows[0]?.total || 0);
+  const formattedToday = new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Sao_Paulo" }).format(new Date());
 
   return (
     <main className="min-h-screen">
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
+      <div className="border-b border-white/10 bg-[#09131d]/65 px-4 py-5 backdrop-blur-xl sm:px-6 sm:py-6 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-zinc-500">Painel da empresa</p>
-            <h1 className="mt-1 text-xl font-bold sm:text-2xl">Visão geral</h1>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.7)]" /> Painel da empresa</div>
+            <h1 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Visão geral</h1>
+            <p className="mt-1 text-xs capitalize text-zinc-500">{formattedToday}</p>
           </div>
           <a
             href={business?.slug ? `/${business.slug}` : "#"}
@@ -127,20 +129,27 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
-        <div>
-          <h2 className="text-xl font-bold sm:text-2xl">Bem-vindo de volta!</h2>
-          <p className="mt-1 text-sm text-zinc-500">Veja o resumo do seu negócio hoje.</p>
-        </div>
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] via-white/[0.025] to-transparent p-5 shadow-xl sm:p-7">
+          <div className="pointer-events-none absolute -right-12 -top-20 h-56 w-56 rounded-full bg-emerald-400/10 blur-3xl" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-400">Resumo do seu negócio</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Bem-vindo de volta!</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">Acompanhe o movimento de hoje e mantenha sua operação organizada em um só lugar.</p>
+            </div>
+            <Link href="/dashboard/agenda?novo=1" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 shadow-lg shadow-emerald-950/20 transition hover:-translate-y-0.5 hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"> <span className="text-xl leading-none">+</span> Novo agendamento</Link>
+          </div>
+        </section>
 
-        <div className="mt-5 grid gap-3 sm:mt-7 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
-          <MetricCard title="Agendamentos hoje" value={String(appointmentsToday)} detail="Todos os horários da agenda" />
-          <MetricCard title="Concluídos hoje" value={String(completedToday)} detail="Atendimentos realizados" />
-          <MetricCard title="Faturamento hoje" value={formatPrice(revenueToday)} detail="Atendimentos concluídos" />
-          <MetricCard title="Clientes cadastrados" value={String(totalClients)} detail="Base total de clientes" />
+        <div className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2 sm:gap-4 2xl:grid-cols-4">
+          <MetricCard title="Agendamentos hoje" value={String(appointmentsToday)} detail="Horários reservados" icon="▣" />
+          <MetricCard title="Concluídos hoje" value={String(completedToday)} detail="Atendimentos realizados" icon="✓" />
+          <MetricCard title="Faturamento hoje" value={formatPrice(revenueToday)} detail="Serviços concluídos" icon="R$" />
+          <MetricCard title="Clientes cadastrados" value={String(totalClients)} detail="Pessoas na sua base" icon="♙" />
         </div>
 
         <div className="mt-5 grid gap-4 sm:mt-6 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025]">
+          <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] shadow-lg shadow-black/5">
             <div className="flex items-center justify-between gap-4 border-b border-white/10 p-4 sm:p-5">
               <div>
                 <h2 className="font-bold">Próximos agendamentos</h2>
@@ -178,7 +187,7 @@ export default async function DashboardPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 shadow-lg shadow-black/5 sm:p-5">
             <h2 className="font-bold">Atalhos rápidos</h2>
             <p className="mt-1 text-xs text-zinc-500">Acesse as principais funções.</p>
             <div className="mt-5 space-y-3">
@@ -216,13 +225,17 @@ export default async function DashboardPage() {
   );
 }
 
-function MetricCard({ title, value, detail }: { title: string; value: string; detail: string }) {
+function MetricCard({ title, value, detail, icon }: { title: string; value: string; detail: string; icon: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
-      <p className="text-sm text-zinc-400">{title}</p>
-      <p className="mt-2 break-words text-2xl font-bold tracking-tight sm:mt-3 sm:text-3xl">{value}</p>
-      <p className="mt-3 text-xs text-emerald-400">{detail}</p>
-    </div>
+    <article className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] p-4 shadow-lg shadow-black/5 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-500/25 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-medium text-zinc-400">{title}</p>
+        <span aria-hidden="true" className="flex h-9 min-w-9 items-center justify-center rounded-xl border border-emerald-500/15 bg-emerald-500/10 px-2 text-sm font-bold text-emerald-400">{icon}</span>
+      </div>
+      <p className="mt-3 break-words text-2xl font-black tracking-tight sm:text-3xl">{value}</p>
+      <p className="mt-2 text-xs text-zinc-500">{detail}</p>
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-emerald-400/40 via-emerald-400/10 to-transparent opacity-0 transition group-hover:opacity-100" />
+    </article>
   );
 }
 
