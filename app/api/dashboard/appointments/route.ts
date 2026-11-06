@@ -662,7 +662,7 @@ export async function POST(
               remainingUses: { $gt: 0 },
             },
             { cycleKey },
-            { $or: [{ professionalId: { $exists: false } }, { professionalId: null }, { professionalId: professionalObjectId }, { professionalIds: professionalObjectId }] },
+            { $or: [{ professionalId: { $exists: false } }, { professionalId: null }, { professionalId: new ObjectId(professionalId) }, { professionalIds: new ObjectId(professionalId) }] },
           ],
         } as any)
         .sort({
