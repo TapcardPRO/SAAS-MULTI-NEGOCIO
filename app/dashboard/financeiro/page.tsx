@@ -161,6 +161,11 @@ export default function FinanceiroPage() {
     );
   }, [completedAppointments]);
 
+  const maxProfessionalRevenue = Math.max(
+    ...professionalSummary.map((professional) => professional.revenue),
+    1
+  );
+
   return (
     <main className="min-h-screen space-y-0">
       {/* CABEÇALHO */}
@@ -180,35 +185,32 @@ export default function FinanceiroPage() {
             </p>
           </div>
 
-          <select
-            value={period}
-            onChange={(event) =>
-              setPeriod(event.target.value)
-            }
-            className="min-h-[48px] rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-sm font-semibold outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/10"
-          >
-            <option value="7">
-              Últimos 7 dias
-            </option>
-
-            <option value="30">
-              Últimos 30 dias
-            </option>
-
-            <option value="90">
-              Últimos 90 dias
-            </option>
-
-            <option value="365">
-              Últimos 12 meses
-            </option>
-          </select>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <select
+              value={period}
+              onChange={(event) => setPeriod(event.target.value)}
+              className="min-h-[48px] rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-sm font-semibold outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/10"
+            >
+              <option value="7">Últimos 7 dias</option>
+              <option value="30">Últimos 30 dias</option>
+              <option value="90">Últimos 90 dias</option>
+              <option value="365">Últimos 12 meses</option>
+            </select>
+            <button
+              type="button"
+              onClick={loadFinance}
+              disabled={loading}
+              className="min-h-[48px] rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-zinc-300 transition hover:border-emerald-400/30 hover:text-emerald-300 disabled:opacity-50"
+            >
+              {loading ? "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         {/* MÉTRICAS */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           <StatCard
             label="Faturamento"
             value={money(stats.revenue)}
@@ -367,6 +369,12 @@ export default function FinanceiroPage() {
                         <p className="font-bold text-emerald-400">
                           {money(professional.revenue)}
                         </p>
+                      </div>
+                      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/5">
+                        <div
+                          className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                          style={{ width: `${Math.min(100, (professional.revenue / maxProfessionalRevenue) * 100)}%` }}
+                        />
                       </div>
                     </div>
                   )
