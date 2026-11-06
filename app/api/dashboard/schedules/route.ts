@@ -270,6 +270,7 @@ export async function GET(
     const {
       db,
       businessId,
+      user,
     } = auth;
 
     const url =
@@ -277,10 +278,15 @@ export async function GET(
         request.url
       );
 
-    const professionalId =
-      url.searchParams.get(
-        "professionalId"
-      );
+    const requestedProfessionalId =
+      url.searchParams.get("professionalId");
+    const professionalId = user.role === "employee"
+      ? String(user.professionalId || "")
+      : String(requestedProfessionalId || "");
+
+    if (user.role === "employee" && requestedProfessionalId && requestedProfessionalId !== professionalId) {
+      return NextResponse.json({ message: "Você só pode gerenciar seus próprios horários." }, { status: 403 });
+    }
 
     if (
       !professionalId ||
@@ -418,11 +424,14 @@ export async function PUT(
     const body =
       await request.json();
 
-    const professionalId =
-      String(
-        body.professionalId ||
-          ""
-      );
+    const requestedProfessionalId = String(body.professionalId || "");
+    const professionalId = user.role === "employee"
+      ? String(user.professionalId || "")
+      : requestedProfessionalId;
+
+    if (user.role === "employee" && requestedProfessionalId && requestedProfessionalId !== professionalId) {
+      return NextResponse.json({ message: "Você só pode gerenciar seus próprios horários." }, { status: 403 });
+    }
 
     if (
       !professionalId ||
