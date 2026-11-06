@@ -423,7 +423,7 @@ export default function HorariosPage() {
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
-              Painel da empresa
+              Minha área profissional
             </p>
 
             <h1 className="mt-1 text-xl font-bold sm:text-2xl">
