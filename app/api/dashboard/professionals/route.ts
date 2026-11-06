@@ -2,14 +2,14 @@ import { normalizeBookingCapacity, parseBookingCapacity } from "@/lib/vellto-boo
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
-import { requireOwnerSession } from "@/lib/tenant-auth";
+import { requireBusinessSession } from "@/lib/tenant-auth";
 import { hashPassword } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const auth = await requireOwnerSession();
+    const auth = await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -37,10 +37,14 @@ export async function GET() {
       });
     }
 
+    const professionalId = String(auth.user.professionalId || "");
     const professionals = await auth.db
       .collection("professionals")
       .find({
         $or: filters,
+        ...(auth.user.role === "employee"
+          ? { _id: ObjectId.isValid(professionalId) ? new ObjectId(professionalId) : null }
+          : {}),
       })
       .sort({
         order: 1,
