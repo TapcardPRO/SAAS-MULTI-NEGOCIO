@@ -161,11 +161,12 @@ export default function DashboardShell({
     isEmployee
       ? menu.filter(
           (item) =>
-            item.href ===
-              "/dashboard/agenda" ||
+            item.href === "/dashboard/agenda" ||
             item.href === "/dashboard/minhas-vagas" ||
-            item.href ===
-              "/dashboard/mensalistas" ||
+            item.href === "/dashboard/clientes" ||
+            item.href === "/dashboard/planos" ||
+            item.href === "/dashboard/horarios" ||
+            item.href === "/dashboard/mensalistas" ||
             item.href ===
               "/dashboard/financeiro" ||
             item.href ===
@@ -179,13 +180,12 @@ export default function DashboardShell({
     }
 
     const allowed =
-      pathname.startsWith(
-        "/dashboard/agenda"
-      ) ||
+      pathname.startsWith("/dashboard/agenda") ||
       pathname.startsWith("/dashboard/minhas-vagas") ||
-      pathname.startsWith(
-        "/dashboard/mensalistas"
-      ) ||
+      pathname.startsWith("/dashboard/clientes") ||
+      pathname.startsWith("/dashboard/planos") ||
+      pathname.startsWith("/dashboard/horarios") ||
+      pathname.startsWith("/dashboard/mensalistas") ||
       pathname.startsWith(
         "/dashboard/financeiro"
       ) ||
