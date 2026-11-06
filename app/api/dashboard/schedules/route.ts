@@ -419,6 +419,7 @@ export async function PUT(
     const {
       db,
       businessId,
+      user,
     } = auth;
 
     const body =
