@@ -695,7 +695,7 @@ export async function POST(
           Planos novos:
           precisam cobrir pelo menos um serviço.
           */
-          if (!membershipAllowedOnSlot(item, date, time)) return false;
+          if (!membershipAllowedOnSlot(item, date, time, totalDuration)) return false;
 
           const allowed =
             Array.isArray(
@@ -1137,10 +1137,13 @@ HELPERS
 =========================================================
 */
 
-function membershipAllowedOnSlot(item: any, date: string, time: string) {
+function membershipAllowedOnSlot(item: any, date: string, time: string, duration = 0) {
   const day = new Date(`${date}T12:00:00Z`).getUTCDay();
   const days = Array.isArray(item.allowedDays) ? item.allowedDays.map(Number) : [0,1,2,3,4,5,6];
-  return days.includes(day) && time >= String(item.allowedStartTime || "00:00") && time < String(item.allowedEndTime || "23:59");
+  const start = Number(time.slice(0,2))*60 + Number(time.slice(3,5));
+  const end = Number(String(item.allowedEndTime || "23:59").slice(0,2))*60 + Number(String(item.allowedEndTime || "23:59").slice(3,5));
+  const allowedStart = String(item.allowedStartTime || "00:00");
+  return days.includes(day) && time >= allowedStart && start + Math.max(0, Number(duration || 0)) <= end;
 }
 
 function formatMoney(
