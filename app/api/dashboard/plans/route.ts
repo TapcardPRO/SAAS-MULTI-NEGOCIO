@@ -473,6 +473,14 @@ export async function PUT(
         validityDays;
     }
 
+    if (body.allowedDays !== undefined || body.allowedStartTime !== undefined || body.allowedEndTime !== undefined) {
+      const schedule = parsePlanSchedule(body.allowedDays ?? existing.allowedDays, body.allowedStartTime ?? existing.allowedStartTime, body.allowedEndTime ?? existing.allowedEndTime);
+      if (!schedule) return NextResponse.json({ message: "Configure dias e horários válidos para o plano." }, { status: 400 });
+      update.allowedDays = schedule.allowedDays;
+      update.allowedStartTime = schedule.allowedStartTime;
+      update.allowedEndTime = schedule.allowedEndTime;
+    }
+
     if (
       body.active !==
       undefined
@@ -741,6 +749,10 @@ function parsePlanBody(
         body.totalUses
       ),
 
+    allowedDays: Array.isArray(body.allowedDays) ? body.allowedDays.map(Number) : [0,1,2,3,4,5,6],
+    allowedStartTime: String(body.allowedStartTime || "00:00"),
+    allowedEndTime: String(body.allowedEndTime || "23:59"),
+
     validityDays:
       body.validityDays ===
       undefined
@@ -763,6 +775,8 @@ function validatePlan(
     typeof parsePlanBody
   >
 ) {
+  if (!parsePlanSchedule(plan.allowedDays, plan.allowedStartTime, plan.allowedEndTime)) return "Configure dias da semana e horários válidos";
+
   if (!plan.name) {
     return "Informe o nome do plano";
   }
@@ -795,6 +809,16 @@ function validatePlan(
   }
 
   return "";
+}
+
+function parsePlanSchedule(days: unknown, start: unknown, end: unknown) {
+  const allowedDays = Array.isArray(days) ? [...new Set(days.map(Number))] : [];
+  const allowedStartTime = String(start || "");
+  const allowedEndTime = String(end || "");
+  const validTime = (value: string) => /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+  if (!allowedDays.length || allowedDays.some(day => !Number.isInteger(day) || day < 0 || day > 6)) return null;
+  if (!validTime(allowedStartTime) || !validTime(allowedEndTime) || allowedStartTime >= allowedEndTime) return null;
+  return { allowedDays, allowedStartTime, allowedEndTime };
 }
 
 function normalizeServiceIds(
@@ -979,6 +1003,10 @@ function serializePlan(
         plan.validityDays ||
           30
       ),
+
+    allowedDays: Array.isArray(plan.allowedDays) ? plan.allowedDays.map(Number) : [0,1,2,3,4,5,6],
+    allowedStartTime: String(plan.allowedStartTime || "00:00"),
+    allowedEndTime: String(plan.allowedEndTime || "23:59"),
 
     serviceIds:
       Array.isArray(
