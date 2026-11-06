@@ -298,11 +298,8 @@ export async function PUT(
         }
       );
 
-    if (status !== "concluido") {
-      return NextResponse.json({
-        ok: true,
-        message: "Agendamento atualizado",
-      });
+    if (status !== "confirmado" && status !== "concluido") {
+      return NextResponse.json({ ok: true, message: "Agendamento atualizado" });
     }
 
     /*
@@ -311,6 +308,7 @@ export async function PUT(
     =============================================
     */
 
+    if (status === "concluido") {
     if (
       appointment.clientId &&
       appointment.countedInClient !== true
@@ -367,6 +365,8 @@ export async function PUT(
         );
     }
 
+    }
+
     /*
     =============================================
     NÃO DESCONTAR DUAS VEZES
@@ -418,6 +418,12 @@ export async function PUT(
             $in: [clientIdString],
           };
 
+    const cycleNow = new Date();
+    const cycleKey = `${cycleNow.getFullYear()}-${String(cycleNow.getMonth()+1).padStart(2,"0")}`;
+    const cycleLastDay = new Date(cycleNow.getFullYear(), cycleNow.getMonth()+1, 0).getDate();
+    const cycleEnd = `${cycleKey}-${String(cycleLastDay).padStart(2,"0")}`;
+    await auth.db.collection("memberships").updateMany({ businessId: businessFilter, active: { $ne: false }, paymentStatus: "paid", startDate: { $lte: cycleEnd }, cycleKey: { $ne: cycleKey } }, [{ $set: { cycleKey, usedUses: 0, remainingUses: "$totalUses", expiresAt: cycleEnd, updatedAt: cycleNow } }]);
+
     const memberships = await auth.db
       .collection("memberships")
       .find({
@@ -427,9 +433,9 @@ export async function PUT(
           $ne: false,
         },
         paymentStatus: "paid",
-        remainingUses: {
-          $gt: 0,
-        },
+        remainingUses: { $gt: 0 },
+        cycleKey,
+        $or: [{ professionalId: { $exists: false } }, { professionalId: null }, { professionalId: appointment.professionalId }, { professionalIds: appointment.professionalId }],
       } as any)
       .sort({
         createdAt: -1,
@@ -444,6 +450,7 @@ export async function PUT(
     const membership =
       memberships.find(
         (item) => {
+          if (!membershipAllowedOnSlot(item, String(appointment.date || ""), String(appointment.time || appointment.startTime || ""))) return false;
           if (
             item.expiresAt
           ) {
@@ -722,6 +729,12 @@ export async function PUT(
       }
     );
   }
+}
+
+function membershipAllowedOnSlot(item: any, date: string, time: string) {
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+  const days = Array.isArray(item.allowedDays) ? item.allowedDays.map(Number) : [0,1,2,3,4,5,6];
+  return days.includes(day) && time >= String(item.allowedStartTime || "00:00") && time < String(item.allowedEndTime || "23:59");
 }
 
 function getAppointmentServiceIds(
