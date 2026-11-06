@@ -19,6 +19,10 @@ type Membership = {
 
   startDate?: string;
   expiresAt?: string;
+  cycleKey?: string;
+  allowedDays?: number[];
+  allowedStartTime?: string;
+  allowedEndTime?: string;
 
   active?: boolean;
 
@@ -42,6 +46,9 @@ type Plan = {
   price: number;
   totalUses: number;
   validityDays: number;
+  allowedDays?: number[];
+  allowedStartTime?: string;
+  allowedEndTime?: string;
   active: boolean;
 };
 
@@ -367,10 +374,7 @@ export default function MensalistasPage() {
         return "";
       }
 
-      return addDays(
-        startDate,
-        selectedPlan.validityDays
-      );
+      return monthEndDate(startDate);
     }, [
       selectedPlan,
       startDate,
@@ -799,8 +803,8 @@ export default function MensalistasPage() {
                     />
 
                     <MiniInfo
-                      label="Validade"
-                      value={`${selectedPlan.validityDays} dias`}
+                      label="Ciclo"
+                      value="Mês calendário"
                     />
 
                     <MiniInfo
@@ -1101,6 +1105,12 @@ function today() {
   ).padStart(2, "0")}-${String(
     date.getDate()
   ).padStart(2, "0")}`;
+}
+
+function monthEndDate(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month, 0, 12));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,"0")}-${String(date.getUTCDate()).padStart(2,"0")}`;
 }
 
 function addDays(
