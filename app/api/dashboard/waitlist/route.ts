@@ -60,11 +60,11 @@ export async function PATCH(request: NextRequest) {
     const availableDate = String(body.availableDate || "").trim();
     const availableTime = String(body.availableTime || "").trim();
     const hasAvailability = Boolean(availableDate || availableTime);
-    if (!ObjectId.isValid(id) || (hasAvailability && (!/^\\d{4}-\\d{2}-\\d{2}$/.test(availableDate) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(availableTime))) || (!hasAvailability && !["waiting", "contacted", "booked", "cancelled"].includes(status))) {
+    if (!ObjectId.isValid(id) || (hasAvailability && (!/^\d{4}-\d{2}-\d{2}$/.test(availableDate) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(availableTime))) || (!hasAvailability && !["waiting", "contacted", "booked", "cancelled"].includes(status))) {
       return NextResponse.json({ ok: false, message: "Atualização inválida." }, { status: 400 });
     }
 
-    const query: any = { _id: new ObjectId(id), $or: businessFilters(auth.businessId) };
+    const query: any = { _id: new ObjectId(id), $or: businessFilters(auth.businessId, auth.business.slug) };
     if (auth.user.role === "employee") {
       const professionalId = String(auth.user.professionalId || "");
       if (!ObjectId.isValid(professionalId)) return NextResponse.json({ ok: false, message: "Profissional não vinculado." }, { status: 403 });
