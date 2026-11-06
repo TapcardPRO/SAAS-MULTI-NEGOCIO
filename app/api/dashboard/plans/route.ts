@@ -818,7 +818,7 @@ function parsePlanSchedule(days: unknown, start: unknown, end: unknown) {
   const allowedDays = Array.isArray(days) ? [...new Set(days.map(Number))] : [];
   const allowedStartTime = String(start || "");
   const allowedEndTime = String(end || "");
-  const validTime = (value: string) => /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+  const validTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
   if (!allowedDays.length || allowedDays.some(day => !Number.isInteger(day) || day < 0 || day > 6)) return null;
   if (!validTime(allowedStartTime) || !validTime(allowedEndTime) || allowedStartTime >= allowedEndTime) return null;
   return { allowedDays, allowedStartTime, allowedEndTime };
