@@ -43,6 +43,11 @@ const menu = [
     href: "/dashboard/agenda",
     icon: "▣",
   },
+  {
+    label: "Lista de espera",
+    href: "/dashboard/lista-espera",
+    icon: "◷",
+  },
   { label: "Minhas vagas", href: "/dashboard/minhas-vagas", icon: "◎" },
   {
     label: "Clientes",
@@ -161,6 +166,7 @@ export default function DashboardShell({
       ? menu.filter(
           (item) =>
             item.href === "/dashboard/agenda" ||
+            item.href === "/dashboard/lista-espera" ||
             item.href === "/dashboard/minhas-vagas" ||
             item.href === "/dashboard/clientes" ||
             item.href === "/dashboard/planos" ||
@@ -180,6 +186,7 @@ export default function DashboardShell({
 
     const allowed =
       pathname.startsWith("/dashboard/agenda") ||
+      pathname.startsWith("/dashboard/lista-espera") ||
       pathname.startsWith("/dashboard/minhas-vagas") ||
       pathname.startsWith("/dashboard/clientes") ||
       pathname.startsWith("/dashboard/planos") ||
