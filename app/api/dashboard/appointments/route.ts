@@ -21,6 +21,7 @@ import {
 import {
   applyLiveQueue,
 } from "@/lib/live-queue";
+import { sendNewAppointmentPush } from "@/lib/push-notifications";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1039,6 +1040,20 @@ export async function POST(
           .insertOne(
             appointment
           );
+
+      // A notificação é complementar: falha de push nunca desfaz o agendamento.
+      try {
+        await sendNewAppointmentPush(auth.db, auth.businessId, {
+          clientName: String(appointment.clientName || "Cliente"),
+          serviceName: String(appointment.serviceName || "Serviço"),
+          professionalName: String(appointment.professionalName || "Profissional"),
+          professionalId: String(professionalObjectId),
+          date,
+          time,
+        });
+      } catch (pushError) {
+        console.error("DASHBOARD APPOINTMENT PUSH ERROR:", pushError);
+      }
 
       if (membership) {
         await auth.db

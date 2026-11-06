@@ -1079,6 +1079,7 @@ export async function POST(
           clientName,
           serviceName,
           professionalName: String(professional.name || "Profissional"),
+          professionalId: String(professional._id),
           date,
           time,
         });

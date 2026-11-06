@@ -8,6 +8,7 @@ import {
 import {
   useRouter,
 } from "next/navigation";
+import PushNotifications from "../PushNotifications";
 
 type Profile = {
   name: string;
@@ -337,7 +338,8 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+        <PushNotifications />
         {message ? (
           <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
             {message}

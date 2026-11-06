@@ -5,6 +5,7 @@ type NewAppointmentNotice = {
   clientName: string;
   serviceName: string;
   professionalName: string;
+  professionalId: string;
   date: string;
   time: string;
 };
@@ -31,6 +32,8 @@ export async function sendNewAppointmentPush(
 ) {
   if (!configureVapid()) return;
 
+  // O proprietário acompanha a agenda inteira. Cada profissional recebe
+  // somente os avisos dos atendimentos vinculados ao próprio cadastro.
   const subscriptions = await db.collection("pushSubscriptions").find({
     $or: [
       { businessId },
@@ -38,14 +41,21 @@ export async function sendNewAppointmentPush(
     ],
   }).toArray();
 
+  const targeted = subscriptions.filter((item: any) => {
+    const role = String(item.role || "owner");
+    if (role === "owner") return true;
+    return role === "employee" &&
+      String(item.professionalId || "") === notice.professionalId;
+  });
+
   const payload = JSON.stringify({
     title: "Novo agendamento · Vellto",
     body: `${notice.clientName} agendou ${notice.serviceName} para ${notice.date} às ${notice.time} com ${notice.professionalName}.`,
     url: "/dashboard/agenda",
-    tag: `vellto-appointment-${Date.now()}`,
+    tag: `vellto-appointment-${Date.now()}-${notice.professionalId}`,
   });
 
-  await Promise.all(subscriptions.map(async (item: any) => {
+  await Promise.all(targeted.map(async (item: any) => {
     try {
       await webpush.sendNotification(item.subscription, payload);
     } catch (error: any) {

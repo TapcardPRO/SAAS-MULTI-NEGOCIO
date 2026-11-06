@@ -9,7 +9,6 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AddToHomeScreen from "../components/AddToHomeScreen";
-import PushNotifications from "./PushNotifications";
 
 type Props = {
   children: ReactNode;
@@ -43,6 +42,11 @@ const menu = [
     label: "Agenda",
     href: "/dashboard/agenda",
     icon: "▣",
+  },
+  {
+    label: "Lista de espera",
+    href: "/dashboard/lista-espera",
+    icon: "◷",
   },
   { label: "Minhas vagas", href: "/dashboard/minhas-vagas", icon: "◎" },
   {
@@ -162,6 +166,7 @@ export default function DashboardShell({
       ? menu.filter(
           (item) =>
             item.href === "/dashboard/agenda" ||
+            item.href === "/dashboard/lista-espera" ||
             item.href === "/dashboard/minhas-vagas" ||
             item.href === "/dashboard/clientes" ||
             item.href === "/dashboard/planos" ||
@@ -181,6 +186,7 @@ export default function DashboardShell({
 
     const allowed =
       pathname.startsWith("/dashboard/agenda") ||
+      pathname.startsWith("/dashboard/lista-espera") ||
       pathname.startsWith("/dashboard/minhas-vagas") ||
       pathname.startsWith("/dashboard/clientes") ||
       pathname.startsWith("/dashboard/planos") ||
@@ -997,7 +1003,6 @@ export default function DashboardShell({
         {/* CONTEÚDO */}
         <div className="min-w-0 flex-1 pb-24 lg:pb-0">
           {!billingLocked ? <AddToHomeScreen area="profissional" /> : null}
-          {!billingLocked ? <PushNotifications /> : null}
           {billingLocked ? (
             <main className="mx-auto max-w-3xl px-4 py-12 sm:px-8 sm:py-16">
               <section className="rounded-3xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-7 shadow-lg sm:p-10">
