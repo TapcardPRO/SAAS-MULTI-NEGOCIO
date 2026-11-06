@@ -119,6 +119,8 @@ export default function BookingClient({
 
   const [message, setMessage] =
     useState("");
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
+  const [waitlistMessage, setWaitlistMessage] = useState("");
 
   const [notes, setNotes] =
     useState("");
@@ -529,6 +531,30 @@ export default function BookingClient({
       setLoadingSlots(
         false
       );
+    }
+  }
+
+  async function joinWaitlist() {
+    if (!customer || !serviceIds.length || !professionalId || !date) {
+      setWaitlistMessage("Entre na sua conta e selecione serviço, profissional e data.");
+      return;
+    }
+
+    try {
+      setWaitlistSubmitting(true);
+      setWaitlistMessage("");
+      const response = await fetch(`/api/public/${business.slug}/waitlist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceIds, professionalId, date }),
+      });
+      const data = await readJsonResponse(response);
+      if (!response.ok) throw new Error(data.message || "Não foi possível entrar na lista de espera.");
+      setWaitlistMessage(data.message || "Você entrou na lista de espera.");
+    } catch (error) {
+      setWaitlistMessage(error instanceof Error ? error.message : "Não foi possível entrar na lista de espera.");
+    } finally {
+      setWaitlistSubmitting(false);
     }
   }
 
@@ -1571,15 +1597,37 @@ export default function BookingClient({
               />
             ) : slots.length ===
               0 ? (
-              <EmptyState
-                text={
-                  message ||
-                  "Nenhum horário disponível nesta data."
-                }
-                theme={
-                  theme
-                }
-              />
+              <div className="space-y-3">
+                <EmptyState
+                  text={
+                    message ||
+                    "Nenhum horário disponível nesta data."
+                  }
+                  theme={theme}
+                />
+                {customer && serviceIds.length > 0 && professionalId && date ? (
+                  <div className="rounded-xl border p-4" style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
+                    <p className="text-sm font-semibold" style={{ color: theme.text }}>
+                      Quer ser avisado se surgir uma vaga?
+                    </p>
+                    <p className="mt-1 text-xs leading-5" style={{ color: theme.muted }}>
+                      Entre na lista de espera desta data. O estabelecimento poderá entrar em contato pelo WhatsApp.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={joinWaitlist}
+                      disabled={waitlistSubmitting}
+                      className="mt-3 min-h-11 w-full rounded-xl px-4 py-3 text-sm font-bold disabled:opacity-60"
+                      style={{ backgroundColor: theme.primary, color: theme.onPrimary }}
+                    >
+                      {waitlistSubmitting ? "Adicionando..." : "Entrar na lista de espera"}
+                    </button>
+                    {waitlistMessage ? (
+                      <p role="status" className="mt-2 text-xs" style={{ color: theme.text }}>{waitlistMessage}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5">
                 {slots.map(
