@@ -778,6 +778,10 @@ export default function PlanosPage() {
                     />
                   </div>
 
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3 text-xs text-zinc-400">
+                    <span className="font-bold text-emerald-400">Disponibilidade:</span> {(plan.allowedDays || [0,1,2,3,4,5,6]).map(day => ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][day]).join(", ")} · {plan.allowedStartTime || "00:00"} às {plan.allowedEndTime || "23:59"}
+                  </div>
+
                   <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-4">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                       Serviços incluídos
@@ -925,7 +929,7 @@ export default function PlanosPage() {
                 />
 
                 <Field
-                  label="Validade em dias"
+                  label="Validade técnica"
                   value={
                     validityDays
                   }
