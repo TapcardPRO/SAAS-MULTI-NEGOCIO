@@ -2,10 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-type PushNotificationsProps = {
-  businessName?: string;
-};
-
 function decodeVapidKey(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -13,7 +9,7 @@ function decodeVapidKey(value: string) {
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
 }
 
-export default function PushNotifications({ businessName }: PushNotificationsProps) {
+export default function PushNotifications() {
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [busy, setBusy] = useState(false);
@@ -23,19 +19,18 @@ export default function PushNotifications({ businessName }: PushNotificationsPro
   useEffect(() => {
     const available = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
     setSupported(available);
-    if (available) {
-      setPermission(Notification.permission);
-      if (Notification.permission === "granted") {
-        navigator.serviceWorker.ready
-          .then((registration) => registration.pushManager.getSubscription())
-          .then((subscription) => {
-            if (subscription) setIsEnabled(true);
-          })
-          .catch(() => {
-            // Mantém o botão disponível caso não seja possível verificar a assinatura.
-          });
-      }
-    }
+    if (!available) return;
+
+    setPermission(Notification.permission);
+    if (Notification.permission !== "granted") return;
+
+    navigator.serviceWorker.getRegistration("/").then(async (registration) => {
+      if (!registration) return;
+      const subscription = await registration.pushManager.getSubscription();
+      setIsEnabled(Boolean(subscription));
+    }).catch(() => {
+      // A ativação manual continua disponível caso a leitura falhe.
+    });
   }, []);
 
   async function enableNotifications() {
@@ -47,9 +42,10 @@ export default function PushNotifications({ businessName }: PushNotificationsPro
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!publicKey) throw new Error("As notificações ainda não foram configuradas no servidor.");
 
-      const result = await Notification.requestPermission();
+      let result = Notification.permission;
+      if (result !== "granted") result = await Notification.requestPermission();
       setPermission(result);
-      if (result !== "granted") throw new Error("Permissão não concedida. Você pode liberar as notificações nas configurações do navegador.");
+      if (result !== "granted") throw new Error("Permissão não concedida. Libere as notificações nas configurações do navegador.");
 
       const registration = await navigator.serviceWorker.register("/sw.js");
       const existing = await registration.pushManager.getSubscription();
@@ -65,8 +61,9 @@ export default function PushNotifications({ businessName }: PushNotificationsPro
       });
       const body = await response.json();
       if (!response.ok || !body.ok) throw new Error(body.message || "Não foi possível salvar a assinatura de notificações.");
+
       setIsEnabled(true);
-      setMessage("");
+      setMessage("Notificações ativadas neste dispositivo. O Vellto enviará avisos conforme as permissões do seu perfil.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível ativar as notificações.");
     } finally {
@@ -74,35 +71,41 @@ export default function PushNotifications({ businessName }: PushNotificationsPro
     }
   }
 
-  if (!supported || isEnabled) return null;
-
-  if (permission === "granted") {
-    return (
-      <div className="fixed bottom-4 left-4 z-[79] max-w-[calc(100vw-2rem)]">
+  return (
+    <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="text-xl" aria-hidden="true">🔔</span>
+            <h2 className="text-lg font-bold">Notificações neste dispositivo</h2>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">
+            Receba avisos de novos agendamentos mesmo quando o Vellto não estiver aberto. O proprietário recebe os agendamentos da empresa; cada profissional recebe somente os atendimentos vinculados a ele.
+          </p>
+          {!supported ? (
+            <p className="mt-2 text-xs text-amber-300">
+              Este navegador não oferece suporte a notificações push. Use um navegador compatível e uma conexão HTTPS.
+            </p>
+          ) : permission === "denied" ? (
+            <p className="mt-2 text-xs text-amber-300">
+              As notificações estão bloqueadas pelo navegador. Altere a permissão do site nas configurações do navegador.
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-zinc-500">
+              {isEnabled ? "Este dispositivo possui uma assinatura de notificações." : "A ativação é feita individualmente em cada celular ou computador."}
+            </p>
+          )}
+          {message ? <p role="status" className="mt-3 text-sm text-emerald-300">{message}</p> : null}
+        </div>
         <button
           type="button"
           onClick={enableNotifications}
-          disabled={busy}
-          className="rounded-full border border-white/15 bg-[#111b24] px-4 py-3 text-sm font-semibold text-white shadow-lg disabled:opacity-60"
+          disabled={!supported || busy || permission === "denied"}
+          className="shrink-0 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {busy ? "Ativando..." : "🔔 Notificações"}
+          {busy ? "Ativando..." : isEnabled ? "Atualizar dispositivo" : "Ativar notificações"}
         </button>
-        {message ? <p role="status" className="mt-2 max-w-xs rounded-xl bg-[#111b24] p-3 text-xs text-white shadow-lg">{message}</p> : null}
       </div>
-    );
-  }
-
-  return (
-    <div className="fixed bottom-4 left-4 z-[79] max-w-[calc(100vw-2rem)]">
-      <button
-        type="button"
-        onClick={enableNotifications}
-        disabled={busy}
-        className="rounded-full bg-[#8df542] px-4 py-3 text-sm font-bold text-black shadow-lg disabled:opacity-60"
-      >
-        {busy ? "Ativando..." : "🔔 Ativar notificações"}
-      </button>
-      {message ? <p role="status" className="mt-2 max-w-xs rounded-xl bg-white p-3 text-xs text-gray-800 shadow-lg">{message}</p> : null}
-    </div>
+    </section>
   );
 }
