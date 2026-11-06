@@ -21,7 +21,11 @@ export async function POST(request: Request, { params }: Props) {
     if (!ObjectId.isValid(customerId)) return NextResponse.json({ ok: false, message: "Sessão do cliente inválida." }, { status: 401 });
 
     const body = await request.json();
-    const serviceIds = Array.isArray(body.serviceIds) ? [...new Set(body.serviceIds.map((id: unknown) => String(id).trim()).filter(Boolean))] : [];
+    const serviceIds: string[] = Array.isArray(body.serviceIds)
+      ? Array.from(new Set<string>((body.serviceIds as unknown[])
+          .map((value) => String(value).trim())
+          .filter((value) => value.length > 0)))
+      : [];
     const professionalId = String(body.professionalId || "");
     const preferredDate = String(body.date || "");
     if (!serviceIds.length || serviceIds.some((id: string) => !ObjectId.isValid(id))) {
@@ -43,7 +47,7 @@ export async function POST(request: Request, { params }: Props) {
       db.collection("customer_accounts").findOne({ _id: new ObjectId(customerId), active: { $ne: false } }),
     ]);
     if (!business || !customer) return NextResponse.json({ ok: false, message: "Empresa ou conta do cliente não encontrada." }, { status: 404 });
-    if (!hasSubscriptionAccess(business)) return NextResponse.json({ ok: false, message: "Agendamentos temporariamente indisponíveis." }, { status: 403 });
+    if (!hasSubscriptionAccess(business as any)) return NextResponse.json({ ok: false, message: "Agendamentos temporariamente indisponíveis." }, { status: 403 });
 
     const tenantFilters = [{ businessId: business._id }, { businessId: business._id.toString() }, { businessSlug: slug }];
     const [services, professional] = await Promise.all([
