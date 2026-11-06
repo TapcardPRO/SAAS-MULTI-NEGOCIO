@@ -2665,13 +2665,19 @@ export default function AgendaPage() {
               </p>
             </div>
 
-            <p className="text-xs text-zinc-500">
-              {filtered.length} atendimento
-              {filtered.length ===
-              1
-                ? ""
-                : "s"}
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-zinc-500">
+                {filtered.length} atendimento{filtered.length === 1 ? "" : "s"}
+              </p>
+              <button
+                type="button"
+                onClick={loadAppointments}
+                disabled={loading}
+                className="min-h-9 rounded-lg border border-white/10 px-3 text-xs font-semibold text-zinc-300 transition hover:border-emerald-400/30 hover:text-emerald-300 disabled:opacity-50"
+              >
+                {loading ? "Atualizando..." : "Atualizar"}
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -2683,7 +2689,7 @@ export default function AgendaPage() {
             0 ? (
             <EmptyState
               title="Nenhum atendimento"
-              description="Não existem atendimentos para esta data."
+              description={appointments.length > 0 ? "Nenhum atendimento corresponde aos filtros aplicados." : "Não existem atendimentos para esta data."}
             />
           ) : (
             <div className="space-y-3 p-3 sm:space-y-4 sm:p-5">

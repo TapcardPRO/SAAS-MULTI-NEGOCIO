@@ -264,13 +264,23 @@ export default function ClientesPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={openForm}
-            className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-center text-sm font-extrabold text-[#071018] shadow-lg shadow-emerald-500/10 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:w-auto"
-          >
-            + Novo cliente
-          </button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <button
+              type="button"
+              onClick={loadClients}
+              disabled={loading}
+              className="flex min-h-[48px] items-center justify-center rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-zinc-300 transition hover:border-emerald-400/30 hover:text-emerald-300 disabled:opacity-50"
+            >
+              {loading ? "Atualizando..." : "Atualizar"}
+            </button>
+            <button
+              type="button"
+              onClick={openForm}
+              className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-center text-sm font-extrabold text-[#071018] shadow-lg shadow-emerald-500/10 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:w-auto"
+            >
+              + Novo cliente
+            </button>
+          </div>
         </div>
       </div>
 
@@ -316,6 +326,16 @@ export default function ClientesPage() {
             placeholder="Nome, WhatsApp ou e-mail..."
             className="min-h-[48px] w-full rounded-xl border border-white/10 bg-[#0b1620] px-4 py-3 text-base outline-none focus:border-emerald-500 sm:text-sm"
           />
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-zinc-500">
+              Exibindo {filtered.length} de {clients.length} clientes
+            </p>
+            {search ? (
+              <button type="button" onClick={() => setSearch("")} className="text-xs font-semibold text-emerald-400 transition hover:text-emerald-300">
+                Limpar busca
+              </button>
+            ) : null}
+          </div>
         </section>
 
         {message ? (
@@ -383,6 +403,16 @@ export default function ClientesPage() {
                           client.phone
                         }
                       </p>
+                      {whatsappUrl(client.phone) ? (
+                        <a
+                          href={whatsappUrl(client.phone) || undefined}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex min-h-8 items-center rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/10"
+                        >
+                          Conversar no WhatsApp
+                        </a>
+                      ) : null}
 
                       {client.email ? (
                         <p className="mt-1 text-xs text-zinc-600">
@@ -659,6 +689,24 @@ function EmptyState({
       </p>
     </div>
   );
+}
+
+function whatsappUrl(phone: string) {
+  let digits = String(phone || "").replace(/\D/g, "");
+
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    digits = `55${digits}`;
+  }
+
+  if (digits.length < 12 || digits.length > 13) {
+    return null;
+  }
+
+  return `https://wa.me/${digits}`;
 }
 
 function money(
