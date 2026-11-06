@@ -139,10 +139,14 @@ export async function GET(
             "professionals"
           )
           .findOne({
-            _id:
-              new ObjectId(
-                professionalId
-              ),
+            _id: new ObjectId(professionalId),
+            $or: [
+              { businessId: auth.businessId },
+              { businessId: auth.businessId.toString() },
+              ...(auth.business.slug
+                ? [{ businessSlug: auth.business.slug }]
+                : []),
+            ],
           });
 
       commissionPercent =
