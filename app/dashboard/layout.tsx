@@ -53,6 +53,11 @@ export default async function DashboardLayout({
     redirect("/admin");
   }
 
+  const role = String(user.role || "owner");
+  if (role !== "owner" && role !== "employee") {
+    redirect("/login?blocked=1");
+  }
+
   if (user.active === false) {
     redirect("/login?blocked=1");
   }
@@ -79,6 +84,30 @@ export default async function DashboardLayout({
 
   if (business.active === false) {
     redirect("/login?blocked=1");
+  }
+
+  // Impede que um vínculo antigo ou adulterado abra o painel
+  // de um profissional que não pertence mais a esta empresa.
+  if (role === "employee") {
+    const professionalId = String(user.professionalId || "");
+    if (!ObjectId.isValid(professionalId)) {
+      redirect("/login?blocked=1");
+    }
+
+    const professionalFilters: Record<string, unknown>[] = [
+      { businessId: new ObjectId(businessId) },
+      { businessId },
+    ];
+    if (business.slug) professionalFilters.push({ businessSlug: business.slug });
+
+    const professional = await db.collection("professionals").findOne({
+      _id: new ObjectId(professionalId),
+      $or: professionalFilters,
+    });
+
+    if (!professional || professional.active === false) {
+      redirect("/login?blocked=1");
+    }
   }
 
   /*
