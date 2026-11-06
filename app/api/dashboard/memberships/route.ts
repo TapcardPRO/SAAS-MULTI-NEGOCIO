@@ -1,157 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 
-import { getDb } from "@/lib/db";
-import { verifySessionToken } from "@/lib/auth";
+import { requireBusinessSession } from "@/lib/tenant-auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 async function getAuthenticatedBusiness() {
-  const cookieStore = await cookies();
-
-  const token =
-    cookieStore.get("saas_session")?.value;
-
-  if (!token) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário não autenticado",
-        },
-        {
-          status: 401,
-        }
-      ),
-    };
+  const auth = await requireBusinessSession();
+  if (!auth.ok) {
+    return { error: NextResponse.json({ message: auth.message }, { status: auth.status }) };
   }
-
-  const session =
-    await verifySessionToken(token);
-
-  if (
-    !session?.userId ||
-    !ObjectId.isValid(String(session.userId))
-  ) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Sessão inválida",
-        },
-        {
-          status: 401,
-        }
-      ),
-    };
-  }
-
-  const db = await getDb();
-
-  const user = await db
-    .collection("users")
-    .findOne({
-      _id: new ObjectId(
-        String(session.userId)
-      ),
-    });
-
-  if (!user) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário não encontrado",
-        },
-        {
-          status: 404,
-        }
-      ),
-    };
-  }
-
-  if (user.active === false) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário bloqueado",
-        },
-        {
-          status: 403,
-        }
-      ),
-    };
-  }
-
-  if (!user.businessId) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Usuário sem empresa vinculada",
-        },
-        {
-          status: 400,
-        }
-      ),
-    };
-  }
-
-  const businessIdString =
-    String(user.businessId);
-
-  if (!ObjectId.isValid(businessIdString)) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa inválida",
-        },
-        {
-          status: 400,
-        }
-      ),
-    };
-  }
-
-  const businessId =
-    new ObjectId(businessIdString);
-
-  const business = await db
-    .collection("businesses")
-    .findOne({
-      _id: businessId,
-    });
-
-  if (!business) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa não encontrada",
-        },
-        {
-          status: 404,
-        }
-      ),
-    };
-  }
-
-  if (business.active === false) {
-    return {
-      error: NextResponse.json(
-        {
-          message: "Empresa bloqueada",
-        },
-        {
-          status: 403,
-        }
-      ),
-    };
-  }
-
-  return {
-    db,
-    user,
-    business,
-    businessId,
-  };
+  return auth;
 }
 
 /*
@@ -193,152 +53,20 @@ export async function GET() {
       });
     }
 
-    let membershipFilter: any = {
+    const professionalId = String(user.professionalId || "");
+    if (user.role === "employee" && !ObjectId.isValid(professionalId)) {
+      return NextResponse.json({ message: "Profissional não vinculado ao usuário" }, { status: 403 });
+    }
+    const membershipFilter: any = {
       $or: tenantFilters,
+      ...(user.role === "employee"
+        ? { professionalId: { $in: [professionalId, new ObjectId(professionalId)] } }
+        : {}),
     };
 
-    if (
-      user.role ===
-      "employee"
-    ) {
-      const professionalId =
-        String(
-          user.professionalId ||
-            ""
-        );
-
-      if (
-        !ObjectId.isValid(
-          professionalId
-        )
-      ) {
-        return NextResponse.json(
-          {
-            message:
-              "Profissional não vinculado ao usuário",
-          },
-          {
-            status: 403,
-          }
-        );
-      }
-
-      const professionalVariants: any[] =
-        [
-          professionalId,
-          new ObjectId(
-            professionalId
-          ),
-        ];
-
-      const [
-        appointmentClients,
-        usageClients,
-      ] = await Promise.all([
-        db
-          .collection(
-            "appointments"
-          )
-          .find({
-            $and: [
-              {
-                $or:
-                  tenantFilters,
-              },
-              {
-                professionalId: {
-                  $in:
-                    professionalVariants,
-                },
-              },
-            ],
-          } as any)
-          .project({
-            clientId: 1,
-          })
-          .toArray(),
-
-        db
-          .collection(
-            "membership_usages"
-          )
-          .find({
-            $and: [
-              {
-                $or:
-                  tenantFilters,
-              },
-              {
-                professionalId: {
-                  $in:
-                    professionalVariants,
-                },
-              },
-            ],
-          } as any)
-          .project({
-            clientId: 1,
-          })
-          .toArray(),
-      ]);
-
-      const clientIdStrings =
-        new Set<string>();
-
-      for (
-        const item of [
-          ...appointmentClients,
-          ...usageClients,
-        ]
-      ) {
-        if (item.clientId) {
-          clientIdStrings.add(
-            String(
-              item.clientId
-            )
-          );
-        }
-      }
-
-      const clientVariants: any[] =
-        [];
-
-      for (
-        const clientId of
-        clientIdStrings
-      ) {
-        clientVariants.push(
-          clientId
-        );
-
-        if (
-          ObjectId.isValid(
-            clientId
-          )
-        ) {
-          clientVariants.push(
-            new ObjectId(
-              clientId
-            )
-          );
-        }
-      }
-
-      membershipFilter = {
-        $and: [
-          {
-            $or:
-              tenantFilters,
-          },
-          {
-            clientId: {
-              $in:
-                clientVariants,
-            },
-          },
-        ],
-      };
-    }
+    const now = new Date();
+    const currentCycle = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    await db.collection("memberships").updateMany({ ...membershipFilter, active: { $ne: false }, paymentStatus: "paid", startDate: { $lte: `${currentCycle}-31` }, cycleKey: { $ne: currentCycle } }, [{ $set: { cycleKey: currentCycle, usedUses: 0, remainingUses: "$totalUses", expiresAt: monthEndDate(`${currentCycle}-01`), updatedAt: now } }]);
 
     const memberships = await db
       .collection("memberships")
@@ -412,6 +140,10 @@ export async function GET() {
             Number(
               membership.validityDays || 0
             ),
+          allowedDays: Array.isArray(membership.allowedDays) ? membership.allowedDays.map(Number) : [0,1,2,3,4,5,6],
+          allowedStartTime: String(membership.allowedStartTime || "00:00"),
+          allowedEndTime: String(membership.allowedEndTime || "23:59"),
+          cycleKey: String(membership.cycleKey || ""),
 
           serviceIds:
             Array.isArray(
@@ -515,19 +247,9 @@ export async function POST(
       businessId,
     } = auth;
 
-    if (
-      user.role ===
-      "employee"
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "Somente o proprietário pode cadastrar mensalistas.",
-        },
-        {
-          status: 403,
-        }
-      );
+    const professionalId = user.role === "employee" ? String(user.professionalId || "") : ""; 
+    if (user.role === "employee" && !ObjectId.isValid(professionalId)) {
+      return NextResponse.json({ message: "Profissional não vinculado ao usuário" }, { status: 403 });
     }
 
     let body: any = {};
@@ -712,6 +434,9 @@ export async function POST(
         _id: clientObjectId,
 
         $or: clientFilters,
+        ...(user.role === "employee"
+          ? { professionalId: { $in: [professionalId, new ObjectId(professionalId)] } }
+          : {}),
       });
 
     if (!client) {
@@ -757,6 +482,9 @@ export async function POST(
         },
 
         $or: planFilters,
+        ...(user.role === "employee"
+          ? { professionalId: new ObjectId(professionalId) }
+          : {}),
       });
 
     if (!plan) {
@@ -809,6 +537,9 @@ export async function POST(
       Number(
         plan.validityDays || 30
       );
+    const allowedDays = Array.isArray(plan.allowedDays) ? plan.allowedDays.map(Number) : [0,1,2,3,4,5,6];
+    const allowedStartTime = String(plan.allowedStartTime || "00:00");
+    const allowedEndTime = String(plan.allowedEndTime || "23:59");
 
     if (
       !Number.isFinite(price) ||
@@ -892,6 +623,7 @@ export async function POST(
 
           $or:
             duplicateFilters,
+          ...(user.role === "employee" ? { professionalId: new ObjectId(professionalId) } : {}),
         });
 
     if (existingMembership) {
@@ -906,11 +638,8 @@ export async function POST(
       );
     }
 
-    const expiresAt =
-      addDays(
-        startDate,
-        validityDays
-      );
+    const cycleKey = startDate.slice(0, 7);
+    const expiresAt = monthEndDate(startDate);
 
     const now =
       new Date();
@@ -925,6 +654,10 @@ export async function POST(
 
     const membership = {
       businessId,
+
+      professionalId: user.role === "employee"
+        ? new ObjectId(professionalId)
+        : (plan.professionalId || null),
 
       businessSlug:
         business.slug || "",
@@ -957,6 +690,10 @@ export async function POST(
         totalUses,
 
       validityDays,
+      allowedDays,
+      allowedStartTime,
+      allowedEndTime,
+      cycleKey,
 
       /*
       SNAPSHOT DOS SERVIÇOS DO PLANO.
@@ -1171,6 +908,12 @@ function isValidDateString(
     date.getUTCDate() ===
       day
   );
+}
+
+function monthEndDate(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  const last = new Date(Date.UTC(year, month, 0, 12));
+  return `${last.getUTCFullYear()}-${String(last.getUTCMonth()+1).padStart(2,"0")}-${String(last.getUTCDate()).padStart(2,"0")}`;
 }
 
 function addDays(

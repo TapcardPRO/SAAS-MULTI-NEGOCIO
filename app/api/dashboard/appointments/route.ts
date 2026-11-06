@@ -454,14 +454,9 @@ export async function POST(
         )
         .findOne({
           $and: [
-            {
-              _id:
-                clientObjectId,
-            },
-            {
-              $or:
-                businessFilters,
-            },
+            { _id: clientObjectId },
+            { $or: businessFilters },
+            ...(auth.user.role === "employee" ? [{ professionalId: { $in: [String(auth.user.professionalId), new ObjectId(String(auth.user.professionalId))] } }] : []),
           ],
         } as any);
 
@@ -624,6 +619,12 @@ export async function POST(
         clientId
       );
 
+    const cycleNow = new Date();
+    const cycleKey = `${cycleNow.getFullYear()}-${String(cycleNow.getMonth()+1).padStart(2,"0")}`;
+    const cycleLastDay = new Date(cycleNow.getFullYear(), cycleNow.getMonth()+1, 0).getDate();
+    const cycleEnd = `${cycleKey}-${String(cycleLastDay).padStart(2,"0")}`;
+    await auth.db.collection("memberships").updateMany({ $and: [{ $or: businessFilters }, { active: { $ne: false } }, { paymentStatus: "paid" }, { startDate: { $lte: cycleEnd } }, { cycleKey: { $ne: cycleKey } }] }, [{ $set: { cycleKey, usedUses: 0, remainingUses: "$totalUses", expiresAt: cycleEnd, updatedAt: cycleNow } }]);
+
     const memberships =
       await auth.db
         .collection(
@@ -653,10 +654,10 @@ export async function POST(
             },
 
             {
-              remainingUses: {
-                $gt: 0,
-              },
+              remainingUses: { $gt: 0 },
             },
+            { cycleKey },
+            { $or: [{ professionalId: { $exists: false } }, { professionalId: null }, { professionalId: new ObjectId(professionalId) }, { professionalIds: new ObjectId(professionalId) }] },
           ],
         } as any)
         .sort({
@@ -694,6 +695,8 @@ export async function POST(
           Planos novos:
           precisam cobrir pelo menos um serviço.
           */
+          if (!membershipAllowedOnSlot(item, date, time, totalDuration)) return false;
+
           const allowed =
             Array.isArray(
               item.serviceIds
@@ -1133,6 +1136,15 @@ export async function OPTIONS() {
 HELPERS
 =========================================================
 */
+
+function membershipAllowedOnSlot(item: any, date: string, time: string, duration = 0) {
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+  const days = Array.isArray(item.allowedDays) ? item.allowedDays.map(Number) : [0,1,2,3,4,5,6];
+  const start = Number(time.slice(0,2))*60 + Number(time.slice(3,5));
+  const end = Number(String(item.allowedEndTime || "23:59").slice(0,2))*60 + Number(String(item.allowedEndTime || "23:59").slice(3,5));
+  const allowedStart = String(item.allowedStartTime || "00:00");
+  return days.includes(day) && time >= allowedStart && start + Math.max(0, Number(duration || 0)) <= end;
+}
 
 function formatMoney(
   value: number

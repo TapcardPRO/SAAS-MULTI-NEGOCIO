@@ -8,7 +8,7 @@ import {
 } from "mongodb";
 
 import {
-  requireOwnerSession,
+  requireBusinessSession,
 } from "@/lib/tenant-auth";
 
 export const dynamic =
@@ -20,7 +20,7 @@ export const revalidate =
 export async function GET() {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -35,6 +35,10 @@ export async function GET() {
       );
     }
 
+    if (auth.user.role === "employee" && !ObjectId.isValid(String(auth.user.professionalId || ""))) {
+      return NextResponse.json({ message: "Profissional não vinculado ao usuário" }, { status: 403 });
+    }
+
     const filters =
       tenantFilters(
         auth.businessId,
@@ -47,8 +51,10 @@ export async function GET() {
           "plans"
         )
         .find({
-          $or:
-            filters,
+          $or: filters,
+          ...(auth.user.role === "employee"
+            ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+            : {}),
         })
         .sort({
           createdAt: -1,
@@ -87,7 +93,7 @@ export async function POST(
 ) {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -104,6 +110,10 @@ export async function POST(
 
     const body =
       await request.json();
+
+    if (auth.user.role === "employee" && !ObjectId.isValid(String(auth.user.professionalId || ""))) {
+      return NextResponse.json({ message: "Profissional não vinculado ao usuário" }, { status: 403 });
+    }
 
     const parsed =
       parsePlanBody(
@@ -161,6 +171,10 @@ export async function POST(
       businessId:
         auth.businessId,
 
+      professionalId: auth.user.role === "employee"
+        ? new ObjectId(String(auth.user.professionalId || ""))
+        : null,
+
       businessSlug:
         auth.business.slug ||
         "",
@@ -179,6 +193,9 @@ export async function POST(
 
       validityDays:
         parsed.validityDays,
+      allowedDays: parsed.allowedDays,
+      allowedStartTime: parsed.allowedStartTime,
+      allowedEndTime: parsed.allowedEndTime,
 
       /*
       [] significa plano compatível
@@ -249,7 +266,7 @@ export async function PUT(
 ) {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -308,11 +325,11 @@ export async function PUT(
           "plans"
         )
         .findOne({
-          _id:
-            objectId,
-
-          $or:
-            filters,
+          _id: objectId,
+          $or: filters,
+          ...(auth.user.role === "employee"
+            ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+            : {}),
         });
 
     if (!existing) {
@@ -459,6 +476,14 @@ export async function PUT(
         validityDays;
     }
 
+    if (body.allowedDays !== undefined || body.allowedStartTime !== undefined || body.allowedEndTime !== undefined) {
+      const schedule = parsePlanSchedule(body.allowedDays ?? existing.allowedDays, body.allowedStartTime ?? existing.allowedStartTime, body.allowedEndTime ?? existing.allowedEndTime);
+      if (!schedule) return NextResponse.json({ message: "Configure dias e horários válidos para o plano." }, { status: 400 });
+      update.allowedDays = schedule.allowedDays;
+      update.allowedStartTime = schedule.allowedStartTime;
+      update.allowedEndTime = schedule.allowedEndTime;
+    }
+
     if (
       body.active !==
       undefined
@@ -507,12 +532,13 @@ export async function PUT(
       )
       .updateOne(
         {
-          _id:
-            objectId,
+          _id: objectId,
+          ...(auth.user.role === "employee"
+            ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+            : {}),
         },
         {
-          $set:
-            update,
+          $set: update,
         }
       );
 
@@ -558,7 +584,7 @@ export async function DELETE(
 ) {
   try {
     const auth =
-      await requireOwnerSession();
+      await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -619,11 +645,11 @@ export async function DELETE(
           "plans"
         )
         .findOne({
-          _id:
-            objectId,
-
-          $or:
-            filters,
+          _id: objectId,
+          $or: filters,
+          ...(auth.user.role === "employee"
+            ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+            : {}),
         });
 
     if (!existing) {
@@ -672,8 +698,10 @@ export async function DELETE(
         "plans"
       )
       .deleteOne({
-        _id:
-          objectId,
+        _id: objectId,
+        ...(auth.user.role === "employee"
+          ? { professionalId: new ObjectId(String(auth.user.professionalId || "")) }
+          : {}),
       });
 
     return NextResponse.json({
@@ -724,6 +752,10 @@ function parsePlanBody(
         body.totalUses
       ),
 
+    allowedDays: Array.isArray(body.allowedDays) ? body.allowedDays.map(Number) : [0,1,2,3,4,5,6],
+    allowedStartTime: String(body.allowedStartTime || "00:00"),
+    allowedEndTime: String(body.allowedEndTime || "23:59"),
+
     validityDays:
       body.validityDays ===
       undefined
@@ -746,6 +778,8 @@ function validatePlan(
     typeof parsePlanBody
   >
 ) {
+  if (!parsePlanSchedule(plan.allowedDays, plan.allowedStartTime, plan.allowedEndTime)) return "Configure dias da semana e horários válidos";
+
   if (!plan.name) {
     return "Informe o nome do plano";
   }
@@ -778,6 +812,16 @@ function validatePlan(
   }
 
   return "";
+}
+
+function parsePlanSchedule(days: unknown, start: unknown, end: unknown) {
+  const allowedDays = Array.isArray(days) ? [...new Set(days.map(Number))] : [];
+  const allowedStartTime = String(start || "");
+  const allowedEndTime = String(end || "");
+  const validTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+  if (!allowedDays.length || allowedDays.some(day => !Number.isInteger(day) || day < 0 || day > 6)) return null;
+  if (!validTime(allowedStartTime) || !validTime(allowedEndTime) || allowedStartTime >= allowedEndTime) return null;
+  return { allowedDays, allowedStartTime, allowedEndTime };
 }
 
 function normalizeServiceIds(
@@ -962,6 +1006,10 @@ function serializePlan(
         plan.validityDays ||
           30
       ),
+
+    allowedDays: Array.isArray(plan.allowedDays) ? plan.allowedDays.map(Number) : [0,1,2,3,4,5,6],
+    allowedStartTime: String(plan.allowedStartTime || "00:00"),
+    allowedEndTime: String(plan.allowedEndTime || "23:59"),
 
     serviceIds:
       Array.isArray(

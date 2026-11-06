@@ -520,6 +520,7 @@ export async function POST(
         .collection("clients")
         .insertOne({
           businessId,
+          professionalId: professional._id,
 
           name:
             clientName,
@@ -588,6 +589,7 @@ export async function POST(
             $set: {
               name:
                 clientName,
+              professionalId: professional._id,
 
               phone:
                 clientPhone,
@@ -706,6 +708,12 @@ export async function POST(
     =====================================================
     */
 
+    const cycleNow = new Date();
+    const cycleKey = `${cycleNow.getFullYear()}-${String(cycleNow.getMonth()+1).padStart(2,"0")}`;
+    const cycleLastDay = new Date(cycleNow.getFullYear(), cycleNow.getMonth()+1, 0).getDate();
+    const cycleEnd = `${cycleKey}-${String(cycleLastDay).padStart(2,"0")}`;
+    await db.collection("memberships").updateMany({ $and: [{ $or: tenantFilters }, { active: { $ne: false } }, { paymentStatus: "paid" }, { startDate: { $lte: cycleEnd } }, { cycleKey: { $ne: cycleKey } }] }, [{ $set: { cycleKey, usedUses: 0, remainingUses: "$totalUses", expiresAt: cycleEnd, updatedAt: cycleNow } }]);
+
     const memberships =
       await db
         .collection(
@@ -749,11 +757,9 @@ export async function POST(
                 "paid",
             },
 
-            {
-              remainingUses: {
-                $gt: 0,
-              },
-            },
+            { remainingUses: { $gt: 0 } },
+            { cycleKey },
+            { $or: [{ professionalId: { $exists: false } }, { professionalId: null }, { professionalId: professionalObjectId }, { professionalIds: professionalObjectId }] },
           ],
         } as any)
         .sort({
@@ -764,6 +770,7 @@ export async function POST(
     const membership =
       memberships.find(
         (item) => {
+          if (!membershipAllowedOnSlot(item, date, time, duration)) return false;
           if (
             item.expiresAt
           ) {
@@ -1270,6 +1277,15 @@ function overlaps(
     startA < endB &&
     endA > startB
   );
+}
+
+function membershipAllowedOnSlot(item: any, date: string, time: string, duration = 0) {
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+  const days = Array.isArray(item.allowedDays) ? item.allowedDays.map(Number) : [0,1,2,3,4,5,6];
+  const start = Number(time.slice(0,2))*60 + Number(time.slice(3,5));
+  const end = Number(String(item.allowedEndTime || "23:59").slice(0,2))*60 + Number(String(item.allowedEndTime || "23:59").slice(3,5));
+  const allowedStart = String(item.allowedStartTime || "00:00");
+  return days.includes(day) && time >= allowedStart && start + Math.max(0, Number(duration || 0)) <= end;
 }
 
 function parseExpirationDate(

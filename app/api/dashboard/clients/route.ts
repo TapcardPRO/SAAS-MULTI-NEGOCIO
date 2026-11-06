@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
-import { requireOwnerSession } from "@/lib/tenant-auth";
+import { requireBusinessSession } from "@/lib/tenant-auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,7 +15,7 @@ LISTAR CLIENTES
 
 export async function GET() {
   try {
-    const auth = await requireOwnerSession();
+    const auth = await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -29,16 +29,18 @@ export async function GET() {
       );
     }
 
-    const businessVariants = buildIdVariants(
-      auth.businessId
-    );
+    const businessVariants = buildIdVariants(auth.businessId);
+    const professionalVariants = auth.user.role === "employee"
+      ? buildIdVariants(auth.user.professionalId)
+      : [];
 
     const clients = await auth.db
       .collection("clients")
       .find({
-        businessId: {
-          $in: businessVariants,
-        },
+        businessId: { $in: businessVariants },
+        ...(auth.user.role === "employee"
+          ? { professionalId: { $in: professionalVariants } }
+          : {}),
       })
       .sort({
         createdAt: -1,
@@ -50,6 +52,8 @@ export async function GET() {
 
       clients: clients.map((client) => ({
         _id: client._id.toString(),
+
+        professionalId: client.professionalId ? String(client.professionalId) : "",
 
         name: String(
           client.name || ""
@@ -137,7 +141,7 @@ export async function POST(
   request: NextRequest
 ) {
   try {
-    const auth = await requireOwnerSession();
+    const auth = await requireBusinessSession();
 
     if (!auth.ok) {
       return NextResponse.json(
@@ -201,10 +205,19 @@ export async function POST(
     const phoneNormalized =
       normalizePhone(phone);
 
-    const businessVariants =
-      buildIdVariants(
-        auth.businessId
-      );
+    const businessVariants = buildIdVariants(auth.businessId);
+    const professionalId = auth.user.role === "employee"
+      ? String(auth.user.professionalId || "")
+      : String(body.professionalId || "");
+    const professionalVariants = buildIdVariants(professionalId);
+
+    if (auth.user.role === "employee" && !ObjectId.isValid(professionalId)) {
+      return NextResponse.json({ ok: false, message: "Profissional não vinculado ao usuário" }, { status: 403 });
+    }
+
+    if (auth.user.role !== "employee" && professionalId && !ObjectId.isValid(professionalId)) {
+      return NextResponse.json({ ok: false, message: "Profissional inválido" }, { status: 400 });
+    }
 
     /*
     =====================================================
@@ -216,10 +229,8 @@ export async function POST(
       await auth.db
         .collection("clients")
         .findOne({
-          businessId: {
-            $in:
-              businessVariants,
-          },
+          businessId: { $in: businessVariants },
+          ...(professionalId ? { professionalId: { $in: professionalVariants } } : {}),
 
           $or: [
             {
@@ -250,6 +261,8 @@ export async function POST(
     const client = {
       businessId:
         auth.businessId,
+
+      professionalId: professionalId ? new ObjectId(professionalId) : null,
 
       name,
 

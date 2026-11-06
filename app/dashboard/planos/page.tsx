@@ -13,6 +13,9 @@ type Plan = {
   price: number;
   totalUses: number;
   validityDays: number;
+  allowedDays?: number[];
+  allowedStartTime?: string;
+  allowedEndTime?: string;
   serviceIds: string[];
   active: boolean;
 };
@@ -109,6 +112,10 @@ export default function PlanosPage() {
     setValidityDays,
   ] =
     useState("30");
+
+  const [allowedDays, setAllowedDays] = useState<number[]>([0,1,2,3,4,5,6]);
+  const [allowedStartTime, setAllowedStartTime] = useState("00:00");
+  const [allowedEndTime, setAllowedEndTime] = useState("23:59");
 
   const [
     serviceIds,
@@ -234,6 +241,9 @@ export default function PlanosPage() {
     setValidityDays(
       "30"
     );
+    setAllowedDays([0,1,2,3,4,5,6]);
+    setAllowedStartTime("00:00");
+    setAllowedEndTime("23:59");
 
     /*
     Vazio = qualquer serviço.
@@ -281,6 +291,9 @@ export default function PlanosPage() {
         plan.validityDays
       )
     );
+    setAllowedDays(Array.isArray(plan.allowedDays) ? plan.allowedDays : [0,1,2,3,4,5,6]);
+    setAllowedStartTime(plan.allowedStartTime || "00:00");
+    setAllowedEndTime(plan.allowedEndTime || "23:59");
 
     setServiceIds(
       Array.isArray(
@@ -430,6 +443,10 @@ export default function PlanosPage() {
 
                 validityDays:
                   parsedValidity,
+
+                allowedDays,
+                allowedStartTime,
+                allowedEndTime,
 
                 serviceIds,
 
@@ -761,6 +778,10 @@ export default function PlanosPage() {
                     />
                   </div>
 
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3 text-xs text-zinc-400">
+                    <span className="font-bold text-emerald-400">Disponibilidade:</span> {(plan.allowedDays || [0,1,2,3,4,5,6]).map(day => ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"][day]).join(", ")} · {plan.allowedStartTime || "00:00"} às {plan.allowedEndTime || "23:59"}
+                  </div>
+
                   <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-4">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
                       Serviços incluídos
@@ -884,7 +905,7 @@ export default function PlanosPage() {
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Field
                   label="Valor"
                   value={
@@ -907,16 +928,20 @@ export default function PlanosPage() {
                   placeholder="4"
                 />
 
-                <Field
-                  label="Validade em dias"
-                  value={
-                    validityDays
-                  }
-                  setValue={
-                    setValidityDays
-                  }
-                  placeholder="30"
-                />
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/10 p-4 space-y-4">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Dias permitidos para agendamento</label>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((day,index) => <button key={day} type="button" onClick={() => setAllowedDays(current => current.includes(index) ? current.filter(item => item !== index) : [...current,index].sort())} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${allowedDays.includes(index) ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400" : "border-white/10 text-zinc-500"}`}>{day}</button>)}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">A partir de</label><input type="time" value={allowedStartTime} onChange={e=>setAllowedStartTime(e.target.value)} className="w-full rounded-xl border border-white/10 bg-[#071018] px-3 py-3"/></div>
+                  <div><label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Até</label><input type="time" value={allowedEndTime} onChange={e=>setAllowedEndTime(e.target.value)} className="w-full rounded-xl border border-white/10 bg-[#071018] px-3 py-3"/></div>
+                </div>
+                <p className="text-xs text-zinc-500">O cliente poderá escolher qualquer horário disponível dentro dos dias e do intervalo definidos.</p>
               </div>
 
               <div>
