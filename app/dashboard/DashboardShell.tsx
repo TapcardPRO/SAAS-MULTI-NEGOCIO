@@ -137,6 +137,8 @@ export default function DashboardShell({
   const [mobileMenu, setMobileMenu] =
     useState(false);
 
+  const [menuSearch, setMenuSearch] = useState("");
+
   const [billingLocked, setBillingLocked] =
     useState(business.billingLocked);
 
@@ -162,7 +164,7 @@ export default function DashboardShell({
     user.role === "employee";
 
   const visibleMenu =
-    isEmployee
+    (isEmployee
       ? menu.filter(
           (item) =>
             item.href === "/dashboard/agenda" ||
@@ -172,12 +174,20 @@ export default function DashboardShell({
             item.href === "/dashboard/planos" ||
             item.href === "/dashboard/horarios" ||
             item.href === "/dashboard/mensalistas" ||
-            item.href ===
-              "/dashboard/financeiro" ||
-            item.href ===
-              "/dashboard/perfil"
+            item.href === "/dashboard/financeiro" ||
+            item.href === "/dashboard/perfil"
         )
-      : menu.filter((item) => item.href !== "/dashboard/minhas-vagas");
+      : menu.filter((item) => item.href !== "/dashboard/minhas-vagas"))
+      .filter((item) => item.label.toLocaleLowerCase("pt-BR").includes(menuSearch.trim().toLocaleLowerCase("pt-BR")));
+
+  const menuSections = [
+    { title: "Visão geral", items: visibleMenu.filter((item) => item.href === "/dashboard") },
+    { title: "Atendimento", items: visibleMenu.filter((item) => ["/dashboard/agenda", "/dashboard/lista-espera", "/dashboard/minhas-vagas"].includes(item.href)) },
+    { title: "Relacionamento", items: visibleMenu.filter((item) => ["/dashboard/clientes", "/dashboard/mensalistas"].includes(item.href)) },
+    { title: "Equipe e serviços", items: visibleMenu.filter((item) => ["/dashboard/planos", "/dashboard/servicos", "/dashboard/profissionais", "/dashboard/horarios"].includes(item.href)) },
+    { title: "Gestão", items: visibleMenu.filter((item) => ["/dashboard/minha-pagina", "/dashboard/meu-link", "/dashboard/financeiro", "/dashboard/despesas", "/dashboard/relatorios", "/dashboard/fechamento"].includes(item.href)) },
+    { title: "Conta", items: visibleMenu.filter((item) => ["/dashboard/assinatura", "/dashboard/perfil", "/dashboard/configuracoes"].includes(item.href)) },
+  ].filter((section) => section.items.length > 0);
 
   useEffect(() => {
     if (!isEmployee) {
@@ -820,6 +830,54 @@ export default function DashboardShell({
               16px;
           }
         }
+
+        .vellto-dashboard-theme main h1,
+        .vellto-dashboard-theme main h2,
+        .vellto-dashboard-theme main h3 {
+          letter-spacing: -0.025em;
+        }
+
+        .vellto-dashboard-theme main section,
+        .vellto-dashboard-theme main article {
+          transition: border-color 160ms ease, box-shadow 160ms ease;
+        }
+
+        .vellto-dashboard-theme main section[class*="rounded-2xl"],
+        .vellto-dashboard-theme main section[class*="rounded-3xl"] {
+          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+        }
+
+        .vellto-dashboard-theme main button,
+        .vellto-dashboard-theme main a,
+        .vellto-dashboard-theme aside a,
+        .vellto-dashboard-theme aside button {
+          transition-property: color, background-color, border-color, box-shadow, transform;
+          transition-duration: 160ms;
+        }
+
+        .vellto-dashboard-theme button:focus-visible,
+        .vellto-dashboard-theme a:focus-visible,
+        .vellto-dashboard-theme input:focus-visible,
+        .vellto-dashboard-theme select:focus-visible,
+        .vellto-dashboard-theme textarea:focus-visible {
+          outline: 2px solid var(--vellto-primary);
+          outline-offset: 2px;
+        }
+
+        .vellto-dashboard-theme input[type="search"]::-webkit-search-cancel-button {
+          cursor: pointer;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .vellto-dashboard-theme *,
+          .vellto-dashboard-theme *::before,
+          .vellto-dashboard-theme *::after {
+            scroll-behavior: auto !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
       `}</style>
       {/* TOPO MOBILE */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-white/10 bg-[#09131d]/95 px-3 backdrop-blur sm:px-4 lg:hidden">
@@ -839,20 +897,21 @@ export default function DashboardShell({
 
         <button
           type="button"
-          onClick={() =>
-            setMobileMenu(
-              (current) => !current
-            )
-          }
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-lg transition hover:bg-white/[0.06]"
+          aria-label={mobileMenu ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={mobileMenu}
+          aria-controls="vellto-sidebar"
+          onClick={() => setMobileMenu((current) => !current)}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-lg transition hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vellto-primary)]"
         >
-          ☰
+          {mobileMenu ? "×" : "☰"}
         </button>
       </header>
 
       <div className="flex min-h-screen">
         {/* SIDEBAR */}
         <aside
+          id="vellto-sidebar"
+          aria-label="Menu lateral"
           className={`
             fixed inset-y-0 left-0 z-50 w-[min(18rem,88vw)]
             border-r border-white/10
@@ -914,32 +973,54 @@ export default function DashboardShell({
             </div>
 
             {/* MENU */}
-            <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pb-5 sm:px-4">
-              {visibleMenu.map((item) => {
-                const active =
-                  isActive(item.href);
+            <div className="px-3 pb-3 sm:px-4">
+              <label className="sr-only" htmlFor="vellto-menu-search">Buscar no menu</label>
+              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 focus-within:border-[var(--vellto-primary)] focus-within:ring-2 focus-within:ring-[var(--vellto-primary-soft)]">
+                <span aria-hidden="true" className="text-sm text-zinc-500">⌕</span>
+                <input
+                  id="vellto-menu-search"
+                  type="search"
+                  value={menuSearch}
+                  onChange={(event) => setMenuSearch(event.target.value)}
+                  placeholder="Buscar no menu..."
+                  className="h-10 min-w-0 flex-1 border-0 bg-transparent text-sm outline-none ring-0 placeholder:text-zinc-500 focus:border-0 focus:ring-0"
+                />
+                {menuSearch ? (
+                  <button type="button" onClick={() => setMenuSearch("")} aria-label="Limpar busca" className="rounded-md px-1 text-xs text-zinc-400 hover:text-white">×</button>
+                ) : null}
+              </div>
+            </div>
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() =>
-                      setMobileMenu(false)
-                    }
-                    className={`flex min-h-[46px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition sm:px-4 sm:py-3 ${
-                      active
-                        ? "bg-emerald-500/15 font-semibold text-emerald-400"
-                        : "text-zinc-400 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <span className="w-5 text-center text-base">
-                      {item.icon}
-                    </span>
-
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <nav aria-label="Navegação principal" className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 pb-5 sm:px-4">
+              {menuSections.length ? menuSections.map((section) => (
+                <section key={section.title} aria-label={section.title}>
+                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{section.title}</p>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          aria-current={active ? "page" : undefined}
+                          onClick={() => { setMobileMenu(false); setMenuSearch(""); }}
+                          className={`group flex min-h-[44px] items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition duration-150 sm:px-4 ${
+                            active
+                              ? "border-[var(--vellto-primary-soft-strong)] bg-emerald-500/15 font-semibold text-emerald-400 shadow-sm"
+                              : "border-transparent text-zinc-400 hover:border-white/5 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          <span aria-hidden="true" className={`w-5 text-center text-base transition-transform group-hover:scale-110 ${active ? "text-[var(--vellto-primary)]" : ""}`}>{item.icon}</span>
+                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          {active ? <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--vellto-primary)]" /> : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </section>
+              )) : (
+                <p className="rounded-xl border border-dashed border-white/10 px-3 py-5 text-center text-xs text-zinc-500">Nenhuma opção encontrada.</p>
+              )}
             </nav>
 
             {/* ACESSO À PÁGINA PÚBLICA */}
