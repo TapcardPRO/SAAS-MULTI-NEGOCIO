@@ -905,7 +905,7 @@ export default function PlanosPage() {
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Field
                   label="Valor"
                   value={
@@ -928,16 +928,6 @@ export default function PlanosPage() {
                   placeholder="4"
                 />
 
-                <Field
-                  label="Validade técnica"
-                  value={
-                    validityDays
-                  }
-                  setValue={
-                    setValidityDays
-                  }
-                  placeholder="30"
-                />
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/10 p-4 space-y-4">
