@@ -454,14 +454,9 @@ export async function POST(
         )
         .findOne({
           $and: [
-            {
-              _id:
-                clientObjectId,
-            },
-            {
-              $or:
-                businessFilters,
-            },
+            { _id: clientObjectId },
+            { $or: businessFilters },
+            ...(auth.user.role === "employee" ? [{ professionalId: { $in: [String(auth.user.professionalId), new ObjectId(String(auth.user.professionalId))] } }] : []),
           ],
         } as any);
 
