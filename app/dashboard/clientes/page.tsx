@@ -239,15 +239,15 @@ export default function ClientesPage() {
     );
 
   return (
-    <main className="min-h-screen">
-      <div className="border-b border-white/10 bg-[#09131d]/70 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5 lg:px-8">
+    <main className="min-h-screen space-y-0">
+      <div className="border-b border-white/10 bg-gradient-to-r from-[#0b1b25] via-[#09131d]/90 to-[#09131d]/70 px-4 py-5 backdrop-blur-xl sm:px-6 sm:py-7 lg:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-zinc-500">
               Painel da empresa
             </p>
 
-            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
               Clientes
             </h1>
 
@@ -260,7 +260,7 @@ export default function ClientesPage() {
           <button
             type="button"
             onClick={openForm}
-            className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 sm:w-auto sm:px-5"
+            className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-center text-sm font-extrabold text-[#071018] shadow-lg shadow-emerald-500/10 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:w-auto"
           >
             + Novo cliente
           </button>
@@ -294,7 +294,7 @@ export default function ClientesPage() {
           />
         </div>
 
-        <section className="mt-5 rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:mt-6 sm:p-5">
+        <section className="mt-5 rounded-2xl border border-white/10 bg-[#0b1620]/80 p-4 shadow-sm sm:mt-6 sm:p-5">
           <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Buscar cliente
           </label>
@@ -323,7 +323,7 @@ export default function ClientesPage() {
           </div>
         ) : null}
 
-        <section className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] sm:mt-6">
+        <section className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-[#0b1620]/75 shadow-[0_18px_55px_-38px_rgba(0,0,0,0.9)] sm:mt-6">
           <div className="border-b border-white/10 p-4 sm:p-5">
             <h2 className="font-bold">
               Base de clientes
@@ -356,7 +356,7 @@ export default function ClientesPage() {
                     key={
                       client._id
                     }
-                    className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5"
+                    className="flex flex-col gap-4 p-4 transition duration-200 hover:bg-white/[0.025] sm:flex-row sm:items-center sm:p-5"
                   >
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 font-bold text-emerald-400">
                       {initials(
@@ -598,7 +598,7 @@ function StatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
+    <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.015] p-5 shadow-[0_12px_40px_-28px_rgba(0,0,0,0.8)] transition duration-200 hover:border-emerald-400/25 hover:bg-white/[0.045] sm:p-6">
       <p className="text-sm text-zinc-400">
         {label}
       </p>
