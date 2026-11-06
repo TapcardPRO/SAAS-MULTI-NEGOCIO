@@ -2,7 +2,7 @@ import { normalizeBookingCapacity, parseBookingCapacity } from "@/lib/vellto-boo
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 
-import { requireBusinessSession } from "@/lib/tenant-auth";
+import { requireBusinessSession, requireOwnerSession } from "@/lib/tenant-auth";
 import { hashPassword } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -38,12 +38,15 @@ export async function GET() {
     }
 
     const professionalId = String(auth.user.professionalId || "");
+    if (auth.user.role === "employee" && !ObjectId.isValid(professionalId)) {
+      return NextResponse.json({ message: "Profissional não vinculado ao usuário" }, { status: 403 });
+    }
     const professionals = await auth.db
       .collection("professionals")
       .find({
         $or: filters,
         ...(auth.user.role === "employee"
-          ? { _id: ObjectId.isValid(professionalId) ? new ObjectId(professionalId) : null }
+          ? { _id: new ObjectId(professionalId) }
           : {}),
       })
       .sort({
