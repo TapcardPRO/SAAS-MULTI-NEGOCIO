@@ -193,6 +193,9 @@ export async function POST(
 
       validityDays:
         parsed.validityDays,
+      allowedDays: parsed.allowedDays,
+      allowedStartTime: parsed.allowedStartTime,
+      allowedEndTime: parsed.allowedEndTime,
 
       /*
       [] significa plano compatível
