@@ -459,13 +459,12 @@ export default function MensalistasPage() {
             <p className="mt-1 text-sm text-zinc-500">
               {viewerRole ===
               "employee"
-                ? "Clientes mensalistas que já possuem ou possuíram agendamentos com você."
+                ? "Gerencie seus próprios mensalistas, pacotes e utilizações."
                 : "Planos, usos e pagamentos dos clientes."}
             </p>
           </div>
 
-          {viewerRole ===
-          "owner" ? (
+          {viewerRole === "owner" || viewerRole === "employee" ? (
             <button
               type="button"
               onClick={
