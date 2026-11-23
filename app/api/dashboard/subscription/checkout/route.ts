@@ -35,9 +35,12 @@ export async function POST(
       );
     }
 
-    if (auth.business.signupSource === "public") {
+    // Empresas de onboarding público que já possuem uma assinatura recorrente
+    // antiga também podem migrá-la. Somente contas sem assinatura recorrente
+    // seguem pelo fluxo de renovação avulsa (/renovar).
+    if (auth.business.signupSource === "public" && !auth.business.mercadoPagoSubscriptionId) {
       return NextResponse.json(
-        { ok: false, message: "Para renovar esta assinatura, use a nova pagina de renovacao da Vellto.", redirectUrl: "/renovar" },
+        { ok: false, message: "Esta empresa não possui assinatura recorrente para migrar. Use a página de renovação da Vellto.", redirectUrl: "/renovar" },
         { status: 409 }
       );
     }
