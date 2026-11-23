@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { getDb } from "@/lib/db";
 import { createSessionToken, hashPassword } from "@/lib/auth";
 import { isPeriod } from "@/lib/vellto-onboarding";
+import { createReferralRecord } from "@/lib/vellto-referrals";
 
 export const dynamic = "force-dynamic";
 const slugify = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
     const category = String(body.category || "outros").trim().slice(0, 80);
     const whatsapp = String(body.whatsapp || "").replace(/[^0-9]/g, "").slice(0, 15);
     const period = body.period;
+    const referralCode = String(body.referralCode || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16);
     const slug = slugify(businessName);
     if (!businessName || businessName.length < 3 || !slug || !ownerName || ownerName.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10 || password.length > 128 || !isPeriod(period))
       return responseError("Confira nome, e-mail, senha (mínimo de 10 caracteres) e plano.", 400);
@@ -45,6 +47,19 @@ export async function POST(request: Request) {
     if (userExists) return responseError("Este e-mail já está cadastrado.", 409);
     if (slugExists) return responseError("Este nome de estabelecimento já está em uso. Tente um nome diferente.", 409);
     if (!plan?.slug) return responseError("Nenhum plano de recursos está configurado. Contate o suporte.", 503);
+    let referrer = null;
+    if (referralCode) {
+      referrer = await db.collection("businesses").findOne(
+        { referralCode, signupSource: "public", active: true },
+        { projection: { _id: 1, ownerUserId: 1 } }
+      );
+      if (!referrer) return responseError("Código de indicação inválido ou indisponível.", 400);
+      const referrerOwner = referrer.ownerUserId
+        ? await db.collection("users").findOne({ _id: referrer.ownerUserId }, { projection: { email: 1 } })
+        : null;
+      if (String(referrerOwner?.email || "").toLowerCase() === email)
+        return responseError("Você não pode usar seu próprio código de indicação.", 400);
+    }
     const passwordHash = await hashPassword(password);
     const now = new Date();
     // Bloqueado até pagamento validado pelo Mercado Pago. Dashboard existente já nega business.active=false.
@@ -56,6 +71,7 @@ export async function POST(request: Request) {
       bookingSectionLabel: "Agendamento", bookingSectionTitle: "Escolha seu horário",
       bookingSectionDescription: "Escolha o serviço e encontre o melhor horário para você.",
       plan: String(plan.slug), selectedPeriod: period, active: false, signupSource: "public",
+      ...(referrer ? { referredByBusinessId: referrer._id, referredByCode: referralCode } : {}),
       billingStatus: "pending", liveTestOnly: privateTestAllowed, trialStartedAt: null, trialEndsAt: null, subscriptionEndsAt: null,
       billingUpdatedAt: now, ownerUserId: null,
       workingHours: {
@@ -67,6 +83,9 @@ export async function POST(request: Request) {
     };
     const inserted = await db.collection("businesses").insertOne(business);
     try {
+      if (referrer) {
+        await createReferralRecord(db, referrer._id, inserted.insertedId, referralCode);
+      }
       const userResult = await db.collection("users").insertOne({ name: ownerName, email, passwordHash, businessId: inserted.insertedId, role: "owner", active: true, createdAt: now, updatedAt: now });
       await db.collection("businesses").updateOne({ _id: inserted.insertedId }, { $set: { ownerUserId: userResult.insertedId } });
       const token = await createSessionToken(String(userResult.insertedId));
@@ -74,6 +93,7 @@ export async function POST(request: Request) {
       response.cookies.set("saas_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 604800 });
       return response;
     } catch (error) {
+      await db.collection("vellto_referrals").deleteOne({ referredBusinessId: inserted.insertedId });
       await db.collection("businesses").deleteOne({ _id: inserted.insertedId });
       throw error;
     }

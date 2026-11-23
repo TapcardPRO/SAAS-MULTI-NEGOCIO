@@ -29,7 +29,7 @@ export default function VelltoSignupForm({ signupAvailable }: { signupAvailable:
       const response = await fetch("/api/onboarding/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, period, liveTestCode: privateTest ? liveTestCode : undefined }),
+        body: JSON.stringify({ ...values, period, liveTestCode: privateTest ? liveTestCode : undefined, referralCode: params.get("ref") || undefined }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || "Não foi possível criar a conta.");
