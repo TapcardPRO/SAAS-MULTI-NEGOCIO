@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { requireOnboardingOwner } from "@/lib/vellto-onboarding-auth";
 import { reconcileOnboardingOrder } from "@/lib/vellto-onboarding-payments";
 import { isPeriod, PERIODS } from "@/lib/vellto-onboarding";
+
+// Não reapresentar QR Codes gerados antes da troca da conta recebedora.
+const MP_ACCOUNT_CUTOVER_AT = new Date("2026-11-23T00:00:00.000Z");
 export const dynamic = "force-dynamic";
 export async function GET() {
   const auth = await requireOnboardingOwner();
   if (!auth) return NextResponse.json({ message: "Faça login para continuar." }, { status: 401 });
   // Reapresenta somente cobranças pendentes da conta atualmente configurada.
   const order = await auth.db.collection("vellto_onboarding_orders").findOne(
-    { businessId: auth.businessId, status: "pending", providerAccount: "legacy" },
+    { businessId: auth.businessId, status: "pending", providerAccount: "legacy", createdAt: { $gte: MP_ACCOUNT_CUTOVER_AT } },
     { sort: { createdAt: -1 } }
   );
   const privateLivePayment =
@@ -29,7 +32,7 @@ export async function GET() {
       { businessId: auth.businessId }, { sort: { createdAt: -1 } }
     ),
     auth.db.collection("vellto_onboarding_orders").findOne(
-      { businessId: auth.businessId, status: "pending", providerAccount: "legacy" }, { sort: { createdAt: -1 } }
+      { businessId: auth.businessId, status: "pending", providerAccount: "legacy", createdAt: { $gte: MP_ACCOUNT_CUTOVER_AT } }, { sort: { createdAt: -1 } }
     ),
   ]);
   const period = updated?.selectedPeriod;
