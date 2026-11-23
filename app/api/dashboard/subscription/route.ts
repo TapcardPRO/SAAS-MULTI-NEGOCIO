@@ -20,6 +20,37 @@ export async function GET() {
       auth.business.mercadoPagoAccount === "new" ? "new" : "legacy";
     const subscriptionId = String(auth.business.mercadoPagoSubscriptionId || "");
 
+    // Se a nova assinatura já foi confirmada, tentamos novamente cancelar a antiga
+    // caso o Mercado Pago tenha apresentado uma falha temporária no cancelamento.
+    const oldSubscriptionPendingCancel = String(auth.business.mercadoPagoPreviousSubscriptionIdPendingCancel || "");
+    if (oldSubscriptionPendingCancel) {
+      const oldAccount: MercadoPagoAccount =
+        auth.business.mercadoPagoPreviousSubscriptionAccountPendingCancel === "new" ? "new" : "legacy";
+      try {
+        await mercadoPagoRequest(
+          `/preapproval/${encodeURIComponent(oldSubscriptionPendingCancel)}`,
+          { method: "PUT", body: { status: "cancelled" } },
+          oldAccount
+        );
+        await auth.db.collection("businesses").updateOne(
+          { _id: auth.businessId, mercadoPagoPreviousSubscriptionIdPendingCancel: oldSubscriptionPendingCancel },
+          {
+            $set: { mercadoPagoMigrationStatus: "completed", updatedAt: new Date() },
+            $unset: {
+              mercadoPagoPreviousSubscriptionIdPendingCancel: "",
+              mercadoPagoPreviousSubscriptionAccountPendingCancel: "",
+            },
+          }
+        );
+        await auth.db.collection("saas_subscriptions").updateOne(
+          { businessId: auth.businessId },
+          { $set: { mercadoPagoMigrationStatus: "completed", updatedAt: new Date() } }
+        );
+      } catch (cancelError) {
+        console.error("MERCADO PAGO OLD SUBSCRIPTION RETRY ERROR:", cancelError);
+      }
+    }
+
     if (subscriptionId && hasMercadoPagoConfig(currentAccount)) {
       try {
         const invoices = await mercadoPagoRequest(
