@@ -6,7 +6,12 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const auth = await requireOnboardingOwner();
   if (!auth) return NextResponse.json({ message: "Faça login para continuar." }, { status: 401 });
-  const order = await auth.db.collection("vellto_onboarding_orders").findOne({ businessId: auth.businessId, status: "pending" }, { sort: { createdAt: -1 } });
+  // Nunca reapresentar QR Codes criados na conta antiga. Eles continuam associados
+  // ao vendedor antigo e não devem ser confundidos com uma cobrança nova.
+  const order = await auth.db.collection("vellto_onboarding_orders").findOne(
+    { businessId: auth.businessId, status: "pending", providerAccount: "new" },
+    { sort: { createdAt: -1 } }
+  );
   const privateLivePayment =
     process.env.NODE_ENV === "production" &&
     process.env.VELLTO_ONBOARDING_LIVE_ENABLED === "true" &&
@@ -25,7 +30,7 @@ export async function GET() {
       { businessId: auth.businessId }, { sort: { createdAt: -1 } }
     ),
     auth.db.collection("vellto_onboarding_orders").findOne(
-      { businessId: auth.businessId, status: "pending" }, { sort: { createdAt: -1 } }
+      { businessId: auth.businessId, status: "pending", providerAccount: "new" }, { sort: { createdAt: -1 } }
     ),
   ]);
   const period = updated?.selectedPeriod;
