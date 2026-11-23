@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   try {
     const db = await getDb();
     if (mpOrder) {
-      let order = await db.collection("vellto_onboarding_orders").findOne({ mpOrderId: id, method: "pix" });
+      let order = await db.collection("vellto_onboarding_orders").findOne({ mpOrderId: id, method: "pix", ...accountFilter });
       if (!order) {
         // A notificacao pode chegar antes de o ID da order ser persistido.
         const providerOrder = await (await import("@/lib/mercado-pago"))
