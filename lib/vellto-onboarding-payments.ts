@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db";
 import { mercadoPagoRequest } from "@/lib/mercado-pago";
 import { addMonths, amountCents, isMethod, isPeriod } from "@/lib/vellto-onboarding";
+import { creditReferralReward } from "@/lib/vellto-referrals";
 
 // A ativação só ocorre após consulta direta ao Mercado Pago. Não confiar no status da URL/webhook.
 export async function reconcileOnboardingOrder(orderId: ObjectId) {
@@ -158,6 +159,11 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
     },
     { upsert: true }
   );
+
+  // A indicação só é recompensada depois da confirmação real do primeiro pagamento.
+  // O crédito é idempotente e pode ser repetido com segurança se houver falha transitória.
+  const referralCredited = await creditReferralReward(db, businessId);
+  if (!referralCredited) return false;
 
   await db.collection("vellto_onboarding_orders").updateOne(
     { _id: order._id },
