@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    if (account === "new" && type === "payment" && /^\\d+$/.test(dataId)) {
+    if (account === "new" && type === "payment" && /^\d+$/.test(dataId)) {
       let order = await db.collection("vellto_onboarding_orders").findOne({
         paymentId: dataId,
         providerAccount: "new",
