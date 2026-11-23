@@ -4,7 +4,7 @@ import { reconcileOnboardingOrder } from "@/lib/vellto-onboarding-payments";
 import { isPeriod, PERIODS } from "@/lib/vellto-onboarding";
 
 // Não reapresentar QR Codes gerados antes da troca da conta recebedora.
-const MP_ACCOUNT_CUTOVER_AT = new Date("2026-11-23T00:00:00.000Z");
+const MP_ACCOUNT_CUTOVER_AT = new Date("2026-11-23T22:14:45.000Z");
 export const dynamic = "force-dynamic";
 export async function GET() {
   const auth = await requireOnboardingOwner();
