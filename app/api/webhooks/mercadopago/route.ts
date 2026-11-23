@@ -7,8 +7,7 @@ import { reconcileOnboardingOrder } from "@/lib/vellto-onboarding-payments";
 
 export const dynamic = "force-dynamic";
 
-function validNewAccountSignature(request: NextRequest, id: string) {
-  const secret = process.env.VELLTO_MP_NEW_WEBHOOK_SECRET || "";
+function validAccountSignature(request: NextRequest, id: string, secret: string) {
   const signature = request.headers.get("x-signature") || "";
   const requestId = request.headers.get("x-request-id") || "";
   if (!secret || !signature || !requestId) return false;
@@ -36,7 +35,10 @@ export async function POST(request: NextRequest) {
 
     const simulator = dataId === "123456" && String(body.application_id || "") !== "";
     if (simulator) return NextResponse.json({ ok: true, simulated: true });
-    if (account === "new" && !validNewAccountSignature(request, dataId)) {
+    const webhookSecret = account === "new"
+      ? process.env.VELLTO_MP_NEW_WEBHOOK_SECRET || ""
+      : process.env.MERCADO_PAGO_WEBHOOK_SECRET || "";
+    if (!validAccountSignature(request, dataId, webhookSecret)) {
       return NextResponse.json({ ok: false, message: "Assinatura do webhook inválida." }, { status: 401 });
     }
 
