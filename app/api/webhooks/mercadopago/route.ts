@@ -44,11 +44,28 @@ export async function POST(request: NextRequest) {
 
     // O mesmo endpoint processa pedidos Pix e cartão do onboarding na conta nova.
     if (account === "new" && (type === "order" || /^ORD[A-Z0-9]{6,70}$/i.test(dataId))) {
-      const order = await db.collection("vellto_onboarding_orders").findOne({
+      let order = await db.collection("vellto_onboarding_orders").findOne({
         mpOrderId: dataId,
         providerAccount: "new",
         method: "pix",
       });
+      if (!order) {
+        const providerOrder = await mercadoPagoRequest(`/v1/orders/${encodeURIComponent(dataId)}`, {}, "new");
+        const reference = String(providerOrder.external_reference || "");
+        if (reference) {
+          order = await db.collection("vellto_onboarding_orders").findOne({
+            reference,
+            providerAccount: "new",
+            method: "pix",
+          });
+          if (order && !order.mpOrderId) {
+            await db.collection("vellto_onboarding_orders").updateOne(
+              { _id: order._id, mpOrderId: { $exists: false } },
+              { $set: { mpOrderId: dataId } }
+            );
+          }
+        }
+      }
       if (order) await reconcileOnboardingOrder(order._id);
       return NextResponse.json({ ok: true });
     }
