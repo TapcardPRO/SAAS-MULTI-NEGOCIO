@@ -181,6 +181,7 @@ export async function POST(
         plan.slug
       )}`;
 
+    const previousSubscriptionId = String(auth.business.mercadoPagoSubscriptionId || "");
     const subscription =
       await mercadoPagoRequest(
         "/preapproval",
@@ -220,8 +221,15 @@ export async function POST(
             status:
               "pending",
           },
-        }
+        },
+        "new"
       );
+
+    const newSubscriptionId = String(newSubscriptionId);
+    const checkoutUrl = String(subscription.init_point || "");
+    if (!newSubscriptionId || !checkoutUrl) {
+      throw new Error("Mercado Pago não retornou os dados da nova assinatura.");
+    }
 
     const now =
       new Date();
@@ -237,25 +245,12 @@ export async function POST(
         },
         {
           $set: {
-            plan:
-              String(
-                plan.slug
-              ),
-
-            mercadoPagoSubscriptionId:
-              String(
-                subscription.id ||
-                  ""
-              ),
-
-            mercadoPagoCheckoutUrl:
-              String(
-                subscription.init_point ||
-                  ""
-              ),
-
-            billingUpdatedAt:
-              now,
+            mercadoPagoPendingSubscriptionId: newSubscriptionId,
+            mercadoPagoPendingCheckoutUrl: checkoutUrl,
+            mercadoPagoPendingAccount: "new",
+            mercadoPagoMigrationFromSubscriptionId: previousSubscriptionId,
+            mercadoPagoPendingPlan: String(plan.slug),
+            mercadoPagoPendingCreatedAt: now,
 
             updatedAt:
               now,
@@ -282,11 +277,10 @@ export async function POST(
                 plan.slug
               ),
 
-            mercadoPagoSubscriptionId:
-              String(
-                subscription.id ||
-                  ""
-              ),
+            mercadoPagoPendingSubscriptionId: newSubscriptionId,
+            mercadoPagoPendingAccount: "new",
+            mercadoPagoMigrationFromSubscriptionId: previousSubscriptionId,
+            mercadoPagoPendingPlan: String(plan.slug),
 
             externalReference,
 
@@ -304,11 +298,7 @@ export async function POST(
                   "monthly"
               ),
 
-            checkoutUrl:
-              String(
-                subscription.init_point ||
-                  ""
-              ),
+            pendingCheckoutUrl: checkoutUrl,
 
             updatedAt:
               now,
@@ -325,25 +315,6 @@ export async function POST(
         }
       );
 
-    const checkoutUrl =
-      String(
-        subscription.init_point ||
-          ""
-      );
-
-    if (!checkoutUrl) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "Mercado Pago criou a assinatura, mas não retornou o link de pagamento.",
-        },
-        {
-          status: 502,
-        }
-      );
-    }
-
     return NextResponse.json({
       ok: true,
 
@@ -351,8 +322,7 @@ export async function POST(
 
       subscriptionId:
         String(
-          subscription.id ||
-            ""
+          newSubscriptionId
         ),
     });
   } catch (error) {
