@@ -227,11 +227,11 @@ export async function POST(
                 "BRL",
             },
 
-            back_url:
-              `${siteUrl}/dashboard/assinatura`,
+            back_url: `${siteUrl}/dashboard/assinatura`,
 
-            status:
-              "pending",
+            notification_url: `${siteUrl}/api/webhooks/mercadopago?account=new`,
+
+            status: "pending",
           },
         },
         "new"
