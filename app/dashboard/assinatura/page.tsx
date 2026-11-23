@@ -135,7 +135,8 @@ export default function AssinaturaPage() {
   }
 
   async function subscribe() {
-    if (subscription?.publicOnboarding) {
+    const canMigrateRecurring = subscription?.mercadoPagoAccount !== "new" && Boolean(subscription?.mercadoPagoSubscriptionId);
+    if (subscription?.publicOnboarding && !canMigrateRecurring) {
       window.location.assign("/renovar");
       return;
     }
@@ -318,13 +319,13 @@ export default function AssinaturaPage() {
                 >
                   {paying
                     ? "Abrindo pagamento..."
-                    : subscription.publicOnboarding
-                      ? "Renovar assinatura"
-                      : subscription.migrationPending
-                        ? "Aguardando autorização"
-                        : subscription.mercadoPagoAccount === "new"
-                          ? (subscription.billingStatus === "active" ? "Assinatura na nova conta" : "Regularizar assinatura")
-                          : "Migrar recebimento para nova conta"}
+                    : subscription.migrationPending
+                      ? "Aguardando autorização"
+                      : subscription.mercadoPagoAccount === "new"
+                        ? (subscription.billingStatus === "active" ? "Assinatura na nova conta" : "Regularizar assinatura")
+                        : subscription.mercadoPagoSubscriptionId
+                          ? "Migrar recebimento para nova conta"
+                          : "Renovar assinatura"}
                 </button>
               )}
             </div>
