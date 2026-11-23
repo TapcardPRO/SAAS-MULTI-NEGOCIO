@@ -5,6 +5,9 @@ import { requireOnboardingOwner } from "@/lib/vellto-onboarding-auth";
 import { amountCents, isMethod, isPeriod, PERIODS } from "@/lib/vellto-onboarding";
 import { mercadoPagoRequest } from "@/lib/mercado-pago";
 
+// Cobranças criadas antes da troca da conta não podem ser reapresentadas.
+const MP_ACCOUNT_CUTOVER_AT = new Date("2026-11-23T00:00:00.000Z");
+
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const token = process.env.MERCADO_PAGO_ACCESS_TOKEN || "";
@@ -73,7 +76,12 @@ export async function POST(request: Request) {
       { sort: { createdAt: -1 } }
     );
 
-  if (pending && pending.providerAccount !== "legacy") {
+  const pendingCreatedAt = pending?.createdAt ? new Date(pending.createdAt).getTime() : 0;
+  const pendingBelongsToCurrentAccount = Boolean(
+    pending && pending.providerAccount === "legacy" && pendingCreatedAt >= MP_ACCOUNT_CUTOVER_AT.getTime()
+  );
+
+  if (pending && !pendingBelongsToCurrentAccount) {
     // Pedidos de outra conta não podem ser reaproveitados.
     // Marca como substituído e gera um pedido com a conta configurada atualmente.
     await auth.db.collection("vellto_onboarding_orders").updateOne(
@@ -82,7 +90,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (pending && pending.providerAccount === "legacy") {
+  if (pending && pendingBelongsToCurrentAccount) {
     if (pending.method !== method)
       return NextResponse.json(
         { message: "Já existe outro pagamento pendente para esta assinatura." },
