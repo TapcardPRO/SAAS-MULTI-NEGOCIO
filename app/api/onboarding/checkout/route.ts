@@ -6,7 +6,7 @@ import { amountCents, isMethod, isPeriod, PERIODS } from "@/lib/vellto-onboardin
 import { mercadoPagoRequest } from "@/lib/mercado-pago";
 
 // Cobranças criadas antes da troca da conta não podem ser reapresentadas.
-const MP_ACCOUNT_CUTOVER_AT = new Date("2026-11-23T00:00:00.000Z");
+const MP_ACCOUNT_CUTOVER_AT = new Date("2026-11-23T22:14:45.000Z");
 
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
