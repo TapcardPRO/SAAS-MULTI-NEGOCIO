@@ -144,7 +144,9 @@ export async function POST(request: NextRequest) {
       if (!subscriptionId) return NextResponse.json({ ok: true, ignored: true });
       const stored = await db.collection("saas_subscriptions").findOne({
         mercadoPagoSubscriptionId: subscriptionId,
-        mercadoPagoAccount: account,
+        ...(account === "new"
+          ? { mercadoPagoAccount: "new" }
+          : { $or: [{ mercadoPagoAccount: "legacy" }, { mercadoPagoAccount: { $exists: false } }] }),
       });
       if (!stored) return NextResponse.json({ ok: true, ignored: true });
       const businessId = stored.businessId;
