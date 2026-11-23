@@ -1,11 +1,10 @@
 const API_BASE =
   "https://api.mercadopago.com";
 
-export function hasMercadoPagoConfig() {
-  return Boolean(
-    process.env
-      .MERCADO_PAGO_ACCESS_TOKEN
-  );
+export function hasMercadoPagoConfig(account: "legacy" | "new" = "legacy") {
+  return Boolean(account === "new"
+    ? process.env.VELLTO_MP_NEW_ACCESS_TOKEN
+    : process.env.MERCADO_PAGO_ACCESS_TOKEN);
 }
 
 export async function mercadoPagoRequest(
@@ -18,15 +17,16 @@ export async function mercadoPagoRequest(
 
     body?: unknown;
     headers?: Record<string, string>;
-  } = {}
+  } = {},
+  account: "legacy" | "new" = "legacy"
 ) {
-  const token =
-    process.env
-      .MERCADO_PAGO_ACCESS_TOKEN;
+  const token = account === "new"
+    ? process.env.VELLTO_MP_NEW_ACCESS_TOKEN
+    : process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
   if (!token) {
     throw new Error(
-      "MERCADO_PAGO_ACCESS_TOKEN não configurado."
+      account === "new" ? "VELLTO_MP_NEW_ACCESS_TOKEN não configurado." : "MERCADO_PAGO_ACCESS_TOKEN não configurado."
     );
   }
 
