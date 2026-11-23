@@ -42,6 +42,18 @@ export async function POST(
       );
     }
 
+    if (auth.business.mercadoPagoPendingSubscriptionId && auth.business.mercadoPagoPendingCheckoutUrl) {
+      return NextResponse.json({
+        ok: true,
+        checkoutUrl: String(auth.business.mercadoPagoPendingCheckoutUrl),
+        subscriptionId: String(auth.business.mercadoPagoPendingSubscriptionId),
+        pending: true,
+      });
+    }
+    if (auth.business.mercadoPagoAccount === "new" && auth.business.billingStatus === "active") {
+      return NextResponse.json({ ok: false, message: "Esta assinatura já está vinculada à nova conta do Mercado Pago." }, { status: 409 });
+    }
+
     const body =
       await request
         .json()
