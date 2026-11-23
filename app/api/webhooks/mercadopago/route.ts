@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db";
 import { mapSubscriptionStatus, mercadoPagoRequest } from "@/lib/mercado-pago";
+import { reconcileOnboardingOrder } from "@/lib/vellto-onboarding-payments";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ function validNewAccountSignature(request: NextRequest, id: string) {
   const parts = signature.split(",").map((part) => part.trim());
   const ts = parts.find((part) => part.startsWith("ts="))?.slice(3) || "";
   const v1 = parts.find((part) => part.startsWith("v1="))?.slice(3) || "";
-  if (!/^\\d+$/.test(ts) || !/^[a-f0-9]{64}$/i.test(v1)) return false;
+  if (!/^\d+$/.test(ts) || !/^[a-f0-9]{64}$/i.test(v1)) return false;
   const timestamp = Number(ts);
   const timestampMs = timestamp >= 1e12 ? timestamp : timestamp * 1000;
   if (!Number.isSafeInteger(timestamp) || Math.abs(Date.now() - timestampMs) > 10 * 60_000) return false;
@@ -40,6 +41,36 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDb();
+
+    // O mesmo endpoint processa pedidos Pix e cartão do onboarding na conta nova.
+    if (account === "new" && (type === "order" || /^ORD[A-Z0-9]{6,70}$/i.test(dataId))) {
+      const order = await db.collection("vellto_onboarding_orders").findOne({
+        mpOrderId: dataId,
+        providerAccount: "new",
+        method: "pix",
+      });
+      if (order) await reconcileOnboardingOrder(order._id);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (account === "new" && type === "payment" && /^\\d+$/.test(dataId)) {
+      let order = await db.collection("vellto_onboarding_orders").findOne({
+        paymentId: dataId,
+        providerAccount: "new",
+      });
+      if (!order) {
+        const payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(dataId)}`, {}, "new");
+        const reference = String(payment.external_reference || "");
+        order = await db.collection("vellto_onboarding_orders").findOne({
+          reference,
+          providerAccount: "new",
+          method: "card",
+        });
+      }
+      if (order) await reconcileOnboardingOrder(order._id);
+      return NextResponse.json({ ok: true });
+    }
+
     if (type === "subscription_preapproval" || type === "preapproval") {
       const provider = await mercadoPagoRequest(`/preapproval/${encodeURIComponent(dataId)}`, {}, account);
       const externalReference = String(provider.external_reference || "");
