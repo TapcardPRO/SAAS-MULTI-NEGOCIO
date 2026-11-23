@@ -7,8 +7,8 @@ import { mercadoPagoRequest } from "@/lib/mercado-pago";
 
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
-  const token = process.env.MERCADO_PAGO_ACCESS_TOKEN || "";
-  if (!token) return NextResponse.json({ message: "Mercado Pago não configurado." }, { status: 503 });
+  const token = process.env.VELLTO_MP_NEW_ACCESS_TOKEN || "";
+  if (!token) return NextResponse.json({ message: "Conta nova do Mercado Pago não configurada." }, { status: 503 });
   // Somente credenciais de teste enquanto o fluxo não for homologado.
   if (process.env.VELLTO_ONBOARDING_LIVE_ENABLED !== "true" && process.env.VELLTO_MP_TEST_CREDENTIAL_VERIFIED !== "true")
     return NextResponse.json({ message: "Use credenciais TEST do Mercado Pago neste ambiente." }, { status: 503 });
@@ -74,6 +74,8 @@ export async function POST(request: Request) {
     );
 
   if (pending) {
+    if (pending.providerAccount !== "new")
+      return NextResponse.json({ message: "Existe um pagamento pendente iniciado na conta antiga. Aguarde a expiração ou conclua esse pagamento antes de gerar outro na nova conta." }, { status: 409 });
     if (pending.method !== method)
       return NextResponse.json(
         { message: "Já existe outro pagamento pendente para esta assinatura." },
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
   const reference = method === "pix"
     ? `vellto_pix_${randomUUID().replace(/-/g, "")}`
     : `vellto-onboard:${String(auth.businessId)}:${randomUUID()}`;
-  const orderResult = await auth.db.collection("vellto_onboarding_orders").insertOne({ businessId: auth.businessId, reference, method, period, amountCents: cents, status: "pending", createdAt: new Date() });
+  const orderResult = await auth.db.collection("vellto_onboarding_orders").insertOne({ businessId: auth.businessId, reference, method, period, amountCents: cents, providerAccount: "new", status: "pending", createdAt: new Date() });
   const orderId = orderResult.insertedId;
   try {
     const email = String(auth.user.email || "").trim().toLowerCase();
@@ -129,7 +131,7 @@ export async function POST(request: Request) {
             payment_method: { id: "pix", type: "bank_transfer" },
           }] },
         },
-      });
+      }, "new");
       const mpOrderId = String(mpOrder?.id || "");
       const transaction = Array.isArray(mpOrder?.transactions?.payments)
         ? mpOrder.transactions.payments[0] : null;
@@ -159,10 +161,10 @@ export async function POST(request: Request) {
       items: [{ id: `vellto-${period}`, title: `Vellto Agenda - ${PERIODS[period].label}`, quantity: 1, unit_price: cents / 100, currency_id: "BRL" }],
       payer: { email }, external_reference: reference,
       payment_methods: { excluded_payment_methods: [{ id: "pix" }], excluded_payment_types: [{ id: "ticket" }, { id: "bank_transfer" }, { id: "debit_card" }], installments: PERIODS[period].installments },
-      notification_url: `${baseUrl}/api/onboarding/webhook`,
+      notification_url: `${baseUrl}/api/onboarding/webhook?account=new`,
       back_urls: { success: returnUrl, failure: returnUrl, pending: returnUrl },
       auto_return: "approved",
-    } });
+    } }, "new");
     const checkoutUrl = String(preference.init_point || "");
     const url = new URL(checkoutUrl);
     if (

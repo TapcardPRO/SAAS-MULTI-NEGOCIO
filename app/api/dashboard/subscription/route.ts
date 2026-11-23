@@ -49,12 +49,8 @@ export async function GET() {
             ),
         });
 
-    const mercadoPagoSubscriptionId =
-      String(
-        auth.business
-          .mercadoPagoSubscriptionId ||
-          ""
-      );
+    const mercadoPagoSubscriptionId = String(auth.business.mercadoPagoSubscriptionId || "");
+    const mercadoPagoAccount = auth.business.mercadoPagoAccount === "new" ? "new" : "legacy";
 
     /*
     Sincronização de segurança:
@@ -63,15 +59,12 @@ export async function GET() {
     */
     if (
       mercadoPagoSubscriptionId &&
-      hasMercadoPagoConfig()
+      hasMercadoPagoConfig(mercadoPagoAccount)
     ) {
       try {
         const invoices =
           await mercadoPagoRequest(
-            `/authorized_payments/search?preapproval_id=${encodeURIComponent(
-              mercadoPagoSubscriptionId
-            )}`
-          );
+            `/authorized_payments/search?preapproval_id=${encodeURIComponent(mercadoPagoSubscriptionId)}`, {}, mercadoPagoAccount);
 
         const results =
           Array.isArray(
@@ -203,10 +196,13 @@ export async function GET() {
       ok: true,
 
       configured:
-        hasMercadoPagoConfig(),
+        hasMercadoPagoConfig(mercadoPagoAccount),
 
       subscription: {
         publicOnboarding: auth.business.signupSource === "public",
+        mercadoPagoAccount,
+        migrationPending: Boolean(auth.business.mercadoPagoPendingSubscriptionId),
+        migrationStatus: String(auth.business.mercadoPagoPendingStatus || ""),
         businessId:
           String(
             auth.businessId

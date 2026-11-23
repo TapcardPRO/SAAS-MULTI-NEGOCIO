@@ -10,9 +10,10 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
   if (!order) return false;
   if (order.activatedAt && order.status === "approved") return true;
   if (!isPeriod(order.period) || !isMethod(order.method)) return false;
+  const providerAccount = order.providerAccount === "new" ? "new" : "legacy";
   let payment: Record<string, unknown> | null = null;
   if (order.method === "pix" && order.mpOrderId) {
-    const providerOrder = await mercadoPagoRequest(`/v1/orders/${encodeURIComponent(String(order.mpOrderId))}`);
+    const providerOrder = await mercadoPagoRequest(`/v1/orders/${encodeURIComponent(String(order.mpOrderId))}`, {}, providerAccount);
     const txn = Array.isArray(providerOrder?.transactions?.payments)
       ? providerOrder.transactions.payments[0] : null;
     const status = String(providerOrder?.status || "");
@@ -44,13 +45,13 @@ export async function reconcileOnboardingOrder(orderId: ObjectId) {
       };
     }
   } else if (order.method === "pix" && order.paymentId && /^\d+$/.test(String(order.paymentId))) {
-    payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(String(order.paymentId))}`);
+    payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(String(order.paymentId))}`, {}, providerAccount);
   } else if (order.method === "card" && order.preferenceId) {
     // A preferência não prova pagamento. Buscar pagamento por referência e validar cada campo.
-    const result = await mercadoPagoRequest(`/v1/payments/search?external_reference=${encodeURIComponent(String(order.reference))}&limit=20`);
+    const result = await mercadoPagoRequest(`/v1/payments/search?external_reference=${encodeURIComponent(String(order.reference))}&limit=20`, {}, providerAccount);
     const results = Array.isArray(result?.results) ? result.results : [];
     const candidate = results.find((p: Record<string, unknown>) => String(p.external_reference) === String(order.reference) && p.status === "approved");
-    if (candidate?.id) payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(String(candidate.id))}`);
+    if (candidate?.id) payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(String(candidate.id))}`, {}, providerAccount);
   }
   // Um Pix rejeitado/cancelado não pode prender o cliente em cobrança pendente.
   // Sempre consultamos a API oficial antes de alterar o pedido.
