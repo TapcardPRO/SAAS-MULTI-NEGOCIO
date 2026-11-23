@@ -28,6 +28,7 @@ export default function IndiquePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     fetch("/api/dashboard/referrals", { cache: "no-store" })
@@ -39,6 +40,17 @@ export default function IndiquePage() {
       .catch((cause) => setError(cause instanceof Error ? cause.message : "Erro ao carregar indicações."))
       .finally(() => setLoading(false));
   }, []);
+
+  async function copyCode() {
+    if (!data?.referralCode) return;
+    try {
+      await navigator.clipboard.writeText(data.referralCode);
+      setCopiedCode(true);
+      window.setTimeout(() => setCopiedCode(false), 2200);
+    } catch {
+      setError("Não foi possível copiar o código automaticamente.");
+    }
+  }
 
   async function copyLink() {
     if (!data?.referralUrl) return;
@@ -68,19 +80,28 @@ export default function IndiquePage() {
 
       {error && <div role="alert" className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">{error}</div>}
 
-      <section className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/15 via-white/[0.035] to-transparent p-5 sm:p-8">
+      <section className="relative overflow-hidden rounded-3xl border-2 border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-white/[0.045] to-transparent p-5 shadow-[0_0_40px_rgba(16,185,129,0.08)] sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
         <div className="relative">
-          <div className="inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-300">Seu link exclusivo</div>
-          <h2 className="mt-4 text-2xl font-black sm:text-3xl">Cada indicação válida vale 1 mês grátis.</h2>
-          <p className="mt-2 text-sm text-zinc-400">Sem limite de indicações. Quanto mais empresas você trouxer, mais meses acumula.</p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-200">
-              <span className="block truncate">{data?.referralUrl || "Seu link está sendo preparado..."}</span>
-              <span className="mt-1 block text-xs text-zinc-500">Código: {data?.referralCode || "—"}</span>
+          <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-300">Seu benefício começa aqui</p>
+          <h2 className="mt-2 text-2xl font-black sm:text-3xl">Seu código de indicação</h2>
+          <p className="mt-2 text-sm text-zinc-300">Compartilhe com outros profissionais. Quando a primeira mensalidade deles for confirmada, você ganha 1 mês grátis.</p>
+          <div className="mt-5 rounded-2xl border border-emerald-300/30 bg-black/35 p-4 sm:p-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Código exclusivo</p>
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <p className="min-w-0 flex-1 break-all text-3xl font-black tracking-[.12em] text-white sm:text-4xl">{data?.referralCode || "Carregando..."}</p>
+              <button type="button" onClick={copyCode} disabled={!data?.referralCode} className="min-h-12 rounded-xl bg-emerald-400 px-6 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-300 disabled:opacity-50">{copiedCode ? "Código copiado!" : "Copiar código"}</button>
             </div>
-            <button type="button" onClick={copyLink} disabled={!data} className="min-h-12 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-50">{copied ? "Link copiado!" : "Copiar link"}</button>
-            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-emerald-400/30 px-5 py-3 text-sm font-bold text-emerald-300 hover:bg-emerald-400/10">Compartilhar no WhatsApp</a>
+          </div>
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-400">Ou compartilhe seu link direto</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-zinc-200">
+                <span className="block break-all">{data?.referralUrl || "Seu link está sendo preparado..."}</span>
+              </div>
+              <button type="button" onClick={copyLink} disabled={!data} className="min-h-12 rounded-xl border border-emerald-400/40 px-5 py-3 text-sm font-bold text-emerald-300 transition hover:bg-emerald-400/10 disabled:opacity-50">{copied ? "Link copiado!" : "Copiar link"}</button>
+              <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-zinc-950 hover:bg-emerald-400">Compartilhar no WhatsApp</a>
+            </div>
           </div>
         </div>
       </section>
