@@ -219,6 +219,10 @@ async function finalizeMigration(db: any, businessId: ObjectId) {
         mercadoPagoAccount: "new",
         billingStatus: "active",
         mercadoPagoMigrationStatus: previousId ? "cancellation_pending" : "completed",
+        ...(previousId ? {
+          mercadoPagoPreviousSubscriptionIdPendingCancel: previousId,
+          mercadoPagoPreviousSubscriptionAccountPendingCancel: previousAccount,
+        } : {}),
         billingUpdatedAt: now,
         updatedAt: now,
       },
@@ -242,6 +246,10 @@ async function finalizeMigration(db: any, businessId: ObjectId) {
         mercadoPagoAccount: "new",
         status: "authorized",
         mercadoPagoMigrationStatus: previousId ? "cancellation_pending" : "completed",
+        ...(previousId ? {
+          mercadoPagoPreviousSubscriptionIdPendingCancel: previousId,
+          mercadoPagoPreviousSubscriptionAccountPendingCancel: previousAccount,
+        } : {}),
         updatedAt: now,
       },
       $unset: {
@@ -266,11 +274,23 @@ async function finalizeMigration(db: any, businessId: ObjectId) {
     );
     await db.collection("businesses").updateOne(
       { _id: businessId, mercadoPagoSubscriptionId: newId },
-      { $set: { mercadoPagoMigrationStatus: "completed", updatedAt: new Date() } }
+      {
+        $set: { mercadoPagoMigrationStatus: "completed", updatedAt: new Date() },
+        $unset: {
+          mercadoPagoPreviousSubscriptionIdPendingCancel: "",
+          mercadoPagoPreviousSubscriptionAccountPendingCancel: "",
+        },
+      }
     );
     await db.collection("saas_subscriptions").updateOne(
       { businessId, mercadoPagoSubscriptionId: newId },
-      { $set: { mercadoPagoMigrationStatus: "completed", updatedAt: new Date() } }
+      {
+        $set: { mercadoPagoMigrationStatus: "completed", updatedAt: new Date() },
+        $unset: {
+          mercadoPagoPreviousSubscriptionIdPendingCancel: "",
+          mercadoPagoPreviousSubscriptionAccountPendingCancel: "",
+        },
+      }
     );
   } catch (error) {
     // A nova cobrança já está ativa; guardamos a pendência para correção sem afetar o acesso do cliente.
