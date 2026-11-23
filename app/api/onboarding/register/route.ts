@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { getDb } from "@/lib/db";
 import { createSessionToken, hashPassword } from "@/lib/auth";
 import { isPeriod } from "@/lib/vellto-onboarding";
+import { createReferralRecord } from "@/lib/vellto-referrals";
 
 export const dynamic = "force-dynamic";
 const slugify = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -82,6 +83,9 @@ export async function POST(request: Request) {
     };
     const inserted = await db.collection("businesses").insertOne(business);
     try {
+      if (referrer) {
+        await createReferralRecord(db, referrer._id, inserted.insertedId, referralCode);
+      }
       const userResult = await db.collection("users").insertOne({ name: ownerName, email, passwordHash, businessId: inserted.insertedId, role: "owner", active: true, createdAt: now, updatedAt: now });
       await db.collection("businesses").updateOne({ _id: inserted.insertedId }, { $set: { ownerUserId: userResult.insertedId } });
       const token = await createSessionToken(String(userResult.insertedId));
@@ -89,6 +93,7 @@ export async function POST(request: Request) {
       response.cookies.set("saas_session", token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 604800 });
       return response;
     } catch (error) {
+      await db.collection("vellto_referrals").deleteOne({ referredBusinessId: inserted.insertedId });
       await db.collection("businesses").deleteOne({ _id: inserted.insertedId });
       throw error;
     }
