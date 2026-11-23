@@ -16,6 +16,10 @@ type Subscription = {
   subscriptionEndsAt: string;
   mercadoPagoSubscriptionId: string;
   publicOnboarding: boolean;
+  migrationRequired: boolean;
+  migrationStatus: string;
+  pendingMercadoPagoSubscriptionId: string;
+  pendingMercadoPagoStatus: string;
 };
 
 type Payment = {
@@ -237,6 +241,25 @@ export default function AssinaturaPage() {
           </div>
         ) : null}
 
+        {subscription.migrationRequired || subscription.pendingMercadoPagoSubscriptionId || subscription.migrationStatus === "cancellation_pending" ? (
+          <section className="mb-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+            <p className="text-sm font-black text-emerald-400">
+              {subscription.pendingMercadoPagoSubscriptionId
+                ? "Atualização da assinatura em andamento"
+                : subscription.migrationStatus === "cancellation_pending"
+                  ? "Quase tudo pronto"
+                  : "Atualização necessária"}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[var(--vellto-text-secondary)]">
+              {subscription.pendingMercadoPagoSubscriptionId
+                ? "Conclua a autorização no Mercado Pago. A assinatura atual continuará funcionando até a nova autorização e o primeiro pagamento serem confirmados."
+                : subscription.migrationStatus === "cancellation_pending"
+                  ? "Sua nova assinatura já está ativa. Estamos finalizando o cancelamento da cobrança antiga."
+                  : "Estamos atualizando a conta responsável pelas cobranças da Vellto. Clique no botão abaixo para autorizar a nova assinatura com segurança."}
+            </p>
+          </section>
+        ) : null}
+
         <div className="grid gap-5 lg:grid-cols-3">
           <section className="rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-6 lg:col-span-2">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -313,9 +336,13 @@ export default function AssinaturaPage() {
                     ? "Abrindo pagamento..."
                     : subscription.publicOnboarding
                       ? "Renovar assinatura"
-                      : subscription.billingStatus === "active"
-                        ? "Gerar nova assinatura"
-                        : "Regularizar assinatura"}
+                      : subscription.pendingMercadoPagoSubscriptionId
+                        ? "Continuar atualização"
+                        : subscription.migrationRequired
+                          ? "Atualizar assinatura"
+                          : subscription.billingStatus === "active"
+                            ? "Gerar nova assinatura"
+                            : "Regularizar assinatura"}
                 </button>
               )}
             </div>
