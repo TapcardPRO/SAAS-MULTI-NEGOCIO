@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    if (type === "payment" && /^\\d+$/.test(dataId)) {
+    if (type === "payment" && /^\d+$/.test(dataId)) {
       const payment = await mercadoPagoRequest(`/v1/payments/${encodeURIComponent(dataId)}`, {}, account);
       const reference = String(payment.external_reference || "");
       const order = await db.collection("vellto_onboarding_orders").findOne({
