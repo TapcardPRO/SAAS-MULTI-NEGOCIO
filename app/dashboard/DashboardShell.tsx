@@ -188,10 +188,9 @@ export default function DashboardShell({
   const menuSections = [
     { title: "Visão geral", items: visibleMenu.filter((item) => item.href === "/dashboard") },
     { title: "Atendimento", items: visibleMenu.filter((item) => ["/dashboard/agenda", "/dashboard/lista-espera", "/dashboard/minhas-vagas"].includes(item.href)) },
-    { title: "Relacionamento", items: visibleMenu.filter((item) => ["/dashboard/clientes", "/dashboard/mensalistas"].includes(item.href)) },
+    { title: "Relacionamento", items: visibleMenu.filter((item) => ["/dashboard/clientes", "/dashboard/mensalistas", "/dashboard/indique"].includes(item.href)) },
     { title: "Equipe e serviços", items: visibleMenu.filter((item) => ["/dashboard/planos", "/dashboard/servicos", "/dashboard/profissionais", "/dashboard/horarios"].includes(item.href)) },
     { title: "Gestão", items: visibleMenu.filter((item) => ["/dashboard/minha-pagina", "/dashboard/meu-link", "/dashboard/financeiro", "/dashboard/despesas", "/dashboard/relatorios", "/dashboard/fechamento"].includes(item.href)) },
-    { title: "Relacionamento", items: visibleMenu.filter((item) => ["/dashboard/indique"].includes(item.href)) },
     { title: "Conta", items: visibleMenu.filter((item) => ["/dashboard/assinatura", "/dashboard/perfil", "/dashboard/configuracoes"].includes(item.href)) },
   ].filter((section) => section.items.length > 0);
 
