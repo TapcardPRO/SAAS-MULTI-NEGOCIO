@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const payerEmail = String(process.env.VELLTO_MP_TEST_PAYER_EMAIL || auth.user.email || "").trim();
     if (!payerEmail) return NextResponse.json({ message: "E-mail do pagador não configurado." }, { status: 400 });
     const reference = `vellto-pix:${String(auth.businessId)}:${randomUUID()}`;
-    // Novas cobranças Pix devem sempre sair pela conta nova do Mercado Pago.
+    // A cobrança usa a conta configurada em MERCADO_PAGO_ACCESS_TOKEN.
     const payment = await mercadoPagoRequest("/v1/payments", {
       method: "POST",
       headers: { "X-Idempotency-Key": randomUUID() },
@@ -30,13 +30,13 @@ export async function POST(request: NextRequest) {
         payer: { email: payerEmail },
         external_reference: reference,
       },
-    }, "new");
+    });
     const paymentId = String(payment.id || "");
     if (!paymentId) throw new Error("Mercado Pago não retornou ID da cobrança.");
     await auth.db.collection("vellto_pix_orders").insertOne({
       businessId: auth.businessId, paymentId, reference, amount: amountCents("monthly", "pix") / 100,
       status: String(payment.status || "pending"), period: "monthly", autoRenew: false,
-      confirmed: false, providerAccount: "new", createdAt: new Date(),
+      confirmed: false, providerAccount: "legacy", createdAt: new Date(),
     });
     return NextResponse.json({ ok: true, paymentId,
       qrCode: String(payment.point_of_interaction?.transaction_data?.qr_code || ""),
