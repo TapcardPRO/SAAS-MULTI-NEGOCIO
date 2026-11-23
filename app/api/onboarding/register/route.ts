@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     const category = String(body.category || "outros").trim().slice(0, 80);
     const whatsapp = String(body.whatsapp || "").replace(/[^0-9]/g, "").slice(0, 15);
     const period = body.period;
+    const referralCode = String(body.referralCode || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16);
     const slug = slugify(businessName);
     if (!businessName || businessName.length < 3 || !slug || !ownerName || ownerName.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10 || password.length > 128 || !isPeriod(period))
       return responseError("Confira nome, e-mail, senha (mínimo de 10 caracteres) e plano.", 400);
@@ -45,6 +46,19 @@ export async function POST(request: Request) {
     if (userExists) return responseError("Este e-mail já está cadastrado.", 409);
     if (slugExists) return responseError("Este nome de estabelecimento já está em uso. Tente um nome diferente.", 409);
     if (!plan?.slug) return responseError("Nenhum plano de recursos está configurado. Contate o suporte.", 503);
+    let referrer = null;
+    if (referralCode) {
+      referrer = await db.collection("businesses").findOne(
+        { referralCode, signupSource: "public", active: true },
+        { projection: { _id: 1, ownerUserId: 1 } }
+      );
+      if (!referrer) return responseError("Código de indicação inválido ou indisponível.", 400);
+      const referrerOwner = referrer.ownerUserId
+        ? await db.collection("users").findOne({ _id: referrer.ownerUserId }, { projection: { email: 1 } })
+        : null;
+      if (String(referrerOwner?.email || "").toLowerCase() === email)
+        return responseError("Você não pode usar seu próprio código de indicação.", 400);
+    }
     const passwordHash = await hashPassword(password);
     const now = new Date();
     // Bloqueado até pagamento validado pelo Mercado Pago. Dashboard existente já nega business.active=false.
@@ -56,6 +70,7 @@ export async function POST(request: Request) {
       bookingSectionLabel: "Agendamento", bookingSectionTitle: "Escolha seu horário",
       bookingSectionDescription: "Escolha o serviço e encontre o melhor horário para você.",
       plan: String(plan.slug), selectedPeriod: period, active: false, signupSource: "public",
+      ...(referrer ? { referredByBusinessId: referrer._id, referredByCode: referralCode } : {}),
       billingStatus: "pending", liveTestOnly: privateTestAllowed, trialStartedAt: null, trialEndsAt: null, subscriptionEndsAt: null,
       billingUpdatedAt: now, ownerUserId: null,
       workingHours: {
