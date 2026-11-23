@@ -16,6 +16,9 @@ type Subscription = {
   subscriptionEndsAt: string;
   mercadoPagoSubscriptionId: string;
   publicOnboarding: boolean;
+  mercadoPagoAccount?: string;
+  migrationPending?: boolean;
+  migrationStatus?: string;
 };
 
 type Payment = {
@@ -294,6 +297,12 @@ export default function AssinaturaPage() {
             </div>
 
             <div className="mt-6">
+              {subscription.migrationPending ? (
+                <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-500">
+                  Migração em andamento. Sua assinatura atual continua válida até a nova conta confirmar a autorização.
+                  {subscription.migrationStatus ? " Status: " + subscription.migrationStatus + "." : ""}
+                </div>
+              ) : null}
               {!configured ? (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-400">
                   Mercado Pago ainda não está configurado no servidor.
@@ -301,9 +310,7 @@ export default function AssinaturaPage() {
               ) : (
                 <button
                   type="button"
-                  disabled={
-                    paying
-                  }
+                  disabled={paying || Boolean(subscription.migrationPending)}
                   onClick={
                     subscribe
                   }
@@ -313,9 +320,11 @@ export default function AssinaturaPage() {
                     ? "Abrindo pagamento..."
                     : subscription.publicOnboarding
                       ? "Renovar assinatura"
-                      : subscription.billingStatus === "active"
-                        ? "Gerar nova assinatura"
-                        : "Regularizar assinatura"}
+                      : subscription.migrationPending
+                        ? "Aguardando autorização"
+                        : subscription.mercadoPagoAccount === "new"
+                          ? (subscription.billingStatus === "active" ? "Assinatura na nova conta" : "Regularizar assinatura")
+                          : "Migrar recebimento para nova conta"}
                 </button>
               )}
             </div>
