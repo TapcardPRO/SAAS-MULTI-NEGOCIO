@@ -25,6 +25,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const url = new URL(request.url);
   const account = url.searchParams.get("account") === "new" ? "new" : "legacy";
+  const accountFilter = account === "new"
+    ? { providerAccount: "new" }
+    : { $or: [{ providerAccount: "legacy" }, { providerAccount: { $exists: false } }] };
   const id = String(url.searchParams.get("data.id") || body?.data?.id || "");
   const topic = String(url.searchParams.get("type") || body?.type || body?.topic || "").toLowerCase();
   const mpOrder = topic === "order" || /^ORD[A-Z0-9]+$/i.test(id);
@@ -52,13 +55,13 @@ export async function POST(request: NextRequest) {
         await reconcileOnboardingOrder(order._id);
       return NextResponse.json({ ok: true });
     }
-    const order = await db.collection("vellto_onboarding_orders").findOne({ paymentId: id, providerAccount: account });
+    const order = await db.collection("vellto_onboarding_orders").findOne({ paymentId: id, ...accountFilter });
     if (order) await reconcileOnboardingOrder(order._id);
     else {
       // Para cartão, pagamento pode chegar antes da preferência ser associada ao pedido.
       const payment = await (await import("@/lib/mercado-pago")).mercadoPagoRequest(`/v1/payments/${encodeURIComponent(id)}`, {}, account);
       const reference = String(payment.external_reference || "");
-      const cardOrder = await db.collection("vellto_onboarding_orders").findOne({ reference, method: "card", providerAccount: account });
+      const cardOrder = await db.collection("vellto_onboarding_orders").findOne({ reference, method: "card", ...accountFilter });
       if (cardOrder) await reconcileOnboardingOrder(cardOrder._id);
     }
     return NextResponse.json({ ok: true });
