@@ -73,9 +73,16 @@ export async function POST(request: Request) {
       { sort: { createdAt: -1 } }
     );
 
-  if (pending) {
-    if (pending.providerAccount !== "new")
-      return NextResponse.json({ message: "Existe um pagamento pendente iniciado na conta antiga. Aguarde a expiração ou conclua esse pagamento antes de gerar outro na nova conta." }, { status: 409 });
+  if (pending && pending.providerAccount !== "new") {
+    // O pedido antigo não pode ser reaproveitado: ele pertence ao vendedor antigo.
+    // Marca como substituído no Vellto e gera um pedido novo usando o token novo.
+    await auth.db.collection("vellto_onboarding_orders").updateOne(
+      { _id: pending._id, status: "pending" },
+      { $set: { status: "superseded", supersededAt: new Date(), supersededReason: "account_migration" } }
+    );
+  }
+
+  if (pending && pending.providerAccount === "new") {
     if (pending.method !== method)
       return NextResponse.json(
         { message: "Já existe outro pagamento pendente para esta assinatura." },
