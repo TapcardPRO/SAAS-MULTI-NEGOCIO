@@ -161,7 +161,7 @@ export async function POST(request: Request) {
       items: [{ id: `vellto-${period}`, title: `Vellto Agenda - ${PERIODS[period].label}`, quantity: 1, unit_price: cents / 100, currency_id: "BRL" }],
       payer: { email }, external_reference: reference,
       payment_methods: { excluded_payment_methods: [{ id: "pix" }], excluded_payment_types: [{ id: "ticket" }, { id: "bank_transfer" }, { id: "debit_card" }], installments: PERIODS[period].installments },
-      notification_url: `${baseUrl}/api/onboarding/webhook?account=new`,
+      notification_url: `${baseUrl}/api/webhooks/mercadopago?account=new`,
       back_urls: { success: returnUrl, failure: returnUrl, pending: returnUrl },
       auto_return: "approved",
     } }, "new");
