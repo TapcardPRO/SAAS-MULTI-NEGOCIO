@@ -225,7 +225,7 @@ export async function POST(
         "new"
       );
 
-    const newSubscriptionId = String(newSubscriptionId);
+    const newSubscriptionId = String(subscription.id || "");
     const checkoutUrl = String(subscription.init_point || "");
     if (!newSubscriptionId || !checkoutUrl) {
       throw new Error("Mercado Pago não retornou os dados da nova assinatura.");
@@ -272,11 +272,6 @@ export async function POST(
             businessId:
               auth.businessId,
 
-            plan:
-              String(
-                plan.slug
-              ),
-
             mercadoPagoPendingSubscriptionId: newSubscriptionId,
             mercadoPagoPendingAccount: "new",
             mercadoPagoMigrationFromSubscriptionId: previousSubscriptionId,
@@ -284,19 +279,8 @@ export async function POST(
 
             externalReference,
 
-            status:
-              String(
-                subscription.status ||
-                  "pending"
-              ),
-
-            amount,
-
-            billingCycle:
-              String(
-                plan.billingCycle ||
-                  "monthly"
-              ),
+            pendingAmount: amount,
+            pendingBillingCycle: String(plan.billingCycle || "monthly"),
 
             pendingCheckoutUrl: checkoutUrl,
 
