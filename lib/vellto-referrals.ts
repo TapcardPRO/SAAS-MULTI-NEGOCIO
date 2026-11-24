@@ -9,21 +9,39 @@ export async function ensureReferralCode(db: ReferralDb, businessId: ObjectId) {
   await businesses.createIndex({ referralCode: 1 }, { unique: true, sparse: true, name: "uniq_business_referral_code" });
   const business = await businesses.findOne({ _id: businessId });
   if (!business) throw new Error("Empresa não encontrada.");
-  if (typeof business.referralCode === "string" && business.referralCode) return business.referralCode;
 
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const code = randomBytes(5).toString("hex").toUpperCase();
-    try {
-      const result = await businesses.updateOne(
-        { _id: businessId, $or: [{ referralCode: { $exists: false } }, { referralCode: null }] },
-        { $set: { referralCode: code, updatedAt: new Date() } }
-      );
-      if (result.modifiedCount === 1) return code;
-      const refreshed = await businesses.findOne({ _id: businessId });
-      if (typeof refreshed?.referralCode === "string" && refreshed.referralCode) return refreshed.referralCode;
-    } catch (error) {
-      if ((error as { code?: number })?.code !== 11000) throw error;
-    }
+  const slugSource = String(business.slug || business.name || "");
+  const base = slugSource.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+    .toUpperCase().trim().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
+  if (!base) throw new Error("Não foi possível criar um código a partir do nome da empresa.");
+
+  const currentCode = typeof business.referralCode === "string" ? business.referralCode : "";
+  const aliases = Array.isArray(business.referralCodeAliases) ? business.referralCodeAliases : [];
+  if (currentCode === base) return base;
+
+  const collision = await businesses.findOne({
+    _id: { $ne: businessId },
+    $or: [{ referralCode: base }, { referralCodeAliases: base }],
+  });
+  const code = collision ? `${base}-${String(businessId).slice(-5).toUpperCase()}` : base;
+  const legacyCodes = [...new Set([...aliases, ...(currentCode && currentCode !== code ? [currentCode] : [])])];
+
+  try {
+    const result = await businesses.updateOne(
+      { _id: businessId, referralCode: currentCode || { $exists: false } },
+      { $set: { referralCode: code, referralCodeAliases: legacyCodes, updatedAt: new Date() } }
+    );
+    if (result.modifiedCount === 1) return code;
+    const refreshed = await businesses.findOne({ _id: businessId });
+    if (typeof refreshed?.referralCode === "string" && refreshed.referralCode) return refreshed.referralCode;
+  } catch (error) {
+    if ((error as { code?: number })?.code !== 11000) throw error;
+    const uniqueCode = `${base}-${String(businessId).slice(-5).toUpperCase()}`;
+    const result = await businesses.updateOne(
+      { _id: businessId },
+      { $set: { referralCode: uniqueCode, referralCodeAliases: legacyCodes, updatedAt: new Date() } }
+    );
+    if (result.modifiedCount === 1) return uniqueCode;
   }
   throw new Error("Não foi possível gerar seu código de indicação.");
 }
