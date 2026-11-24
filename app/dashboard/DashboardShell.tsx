@@ -248,14 +248,16 @@ export default function DashboardShell({
       primary:
         business.primaryColor,
 
+      // A marca aparece nos detalhes; o painel mantém superfícies neutras
+      // para preservar conforto visual e legibilidade durante o trabalho.
       secondary:
-        business.secondaryColor,
+        "#10202b",
 
       background:
-        business.backgroundColor,
+        "#07111b",
 
       text:
-        business.textColor,
+        "#f8fafc",
     });
 
   return (
