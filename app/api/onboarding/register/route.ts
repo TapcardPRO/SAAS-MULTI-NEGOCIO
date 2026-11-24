@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const category = String(body.category || "outros").trim().slice(0, 80);
     const whatsapp = String(body.whatsapp || "").replace(/[^0-9]/g, "").slice(0, 15);
     const period = body.period;
-    const referralCode = String(body.referralCode || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 16);
+    const referralCode = String(body.referralCode || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").replace(/-+/g, "-").slice(0, 64);
     const slug = slugify(businessName);
     if (!businessName || businessName.length < 3 || !slug || !ownerName || ownerName.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10 || password.length > 128 || !isPeriod(period))
       return responseError("Confira nome, e-mail, senha (mínimo de 10 caracteres) e plano.", 400);
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     let referrer = null;
     if (referralCode) {
       referrer = await db.collection("businesses").findOne(
-        { referralCode, signupSource: "public", active: true },
+        { $or: [{ referralCode }, { referralCodeAliases: referralCode }], signupSource: "public", active: true },
         { projection: { _id: 1, ownerUserId: 1 } }
       );
       if (!referrer) return responseError("Código de indicação inválido ou indisponível.", 400);
