@@ -1457,11 +1457,12 @@ export default function MinhaPagina() {
             <button type="button" onClick={handleLogout} aria-label="Sair da conta" title="Sair" className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--vellto-border)] text-sm text-[var(--vellto-text-secondary)] transition hover:bg-white/5">↗</button>
           </div>
         </header>
-        <nav aria-label="Seções de personalização" className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-1 sm:grid-cols-4">
+        <nav aria-label="Seções de personalização" className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-1 sm:grid-cols-5">
           {[
             { id: "negocio", title: "Negócio", detail: "Dados e apresentação" },
             { id: "visual", title: "Visual", detail: "Logo e fotos" },
-            { id: "conteudo", title: "Conteúdo", detail: "Serviços e equipe" },
+            { id: "servicos", title: "Serviços", detail: "O que oferece" },
+            { id: "equipe", title: "Equipe", detail: "Profissionais" },
             { id: "agendamento", title: "Ação", detail: "Como receber clientes" },
           ].map((item) => (
             <button key={item.id} type="button" onClick={() => setActiveEditorStep(item.id)} aria-pressed={activeEditorStep === item.id}
@@ -1812,7 +1813,7 @@ export default function MinhaPagina() {
           </>
         ) : null}
 
-        {activeEditorStep === "conteudo" ? (
+        {activeEditorStep === "servicos" ? (
           <>
         {/* SERVIÇOS */}
         <Panel
@@ -2054,6 +2055,11 @@ export default function MinhaPagina() {
           </div>
         </Panel>
 
+          </>
+        ) : null}
+
+        {activeEditorStep === "equipe" ? (
+          <>
         {/* PROFISSIONAIS */}
         <Panel
           title="Profissionais"
