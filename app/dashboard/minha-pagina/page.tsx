@@ -1683,28 +1683,6 @@ export default function MinhaPagina() {
             }
           />
 
-          {form.logoUrl ? (
-            <div className="mt-4">
-              <img
-                src={form.logoUrl}
-                alt="Logo"
-                className="h-28 w-28 rounded-2xl object-cover"
-              />
-
-              <button
-                type="button"
-                onClick={() =>
-                  changeField(
-                    "logoUrl",
-                    ""
-                  )
-                }
-                className="mt-3 rounded-lg border border-red-500/30 px-4 py-2 text-sm text-red-400"
-              >
-                Remover logo
-              </button>
-            </div>
-          ) : null}
             {form.logoUrl ? (
               <div className="mt-3 flex items-center gap-3">
                 <img src={form.logoUrl} alt="Logo atual" className="h-14 w-14 rounded-xl border border-[var(--vellto-border)] bg-white object-contain p-1" />
@@ -1771,8 +1749,6 @@ export default function MinhaPagina() {
             </div>
           ) : null}
         </Panel>
-
-        </div>
 
         {/* GALERIA */}
         <div id="galeria" className="scroll-mt-28">
