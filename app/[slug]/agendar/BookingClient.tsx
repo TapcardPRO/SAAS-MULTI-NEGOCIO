@@ -2289,7 +2289,7 @@ function SummaryRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] py-2.5 first:pt-0 last:border-0 last:pb-0">
+    <div className="flex items-start justify-between gap-4 border-b py-2.5 first:pt-0 last:border-0 last:pb-0" style={{ borderColor: "var(--booking-border)" }}>
       <span className="text-xs opacity-50">
         {label}
       </span>
