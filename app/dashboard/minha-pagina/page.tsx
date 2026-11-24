@@ -135,6 +135,7 @@ export default function MinhaPagina() {
   const router = useRouter();
   const [activeEditorStep, setActiveEditorStep] = useState("negocio");
   const [logoSuggestedColor, setLogoSuggestedColor] = useState<string | null>(null);
+  const [selectedThemeId, setSelectedThemeId] = useState("custom");
 
   const [slug, setSlug] = useState("");
 
@@ -347,8 +348,7 @@ export default function MinhaPagina() {
           "#22c55e",
 
         secondaryColor:
-          data.business.secondaryColor ||
-          "#18181b",
+          data.business.secondaryColor ||          "#18181b",
 
         backgroundColor:
           data.business.backgroundColor ||
@@ -562,6 +562,7 @@ export default function MinhaPagina() {
       );
       if (logoColor) {
         setLogoSuggestedColor(logoColor);
+        setSelectedThemeId("logo");
         setForm((current) => ({
           ...current,
           ...buildLogoPalette(logoColor),
@@ -697,8 +698,7 @@ export default function MinhaPagina() {
       setServiceForm(
         (current) => ({
           ...current,
-          photoUrl: url,
-        })
+          photoUrl: url,        })
       );
 
       setServiceMessage(
@@ -1048,7 +1048,6 @@ export default function MinhaPagina() {
       );
     }
   }
-
   async function deleteService(
     service: Service
   ) {
@@ -1397,7 +1396,6 @@ export default function MinhaPagina() {
           color:
             var(--vellto-text);
         }
-
         /*
         Evita blocos realmente pretos nessa página.
         */
@@ -1692,18 +1690,69 @@ export default function MinhaPagina() {
               </div>
             ) : null}
             <div className="mt-5 border-t border-[var(--vellto-border)] pt-4">
-              <p className="mb-3 text-sm font-semibold">Estilo da página</p>
-              <div className="grid grid-cols-3 gap-2">
-                <button type="button" onClick={() => { if (logoSuggestedColor) setForm((current) => ({...current, ...buildLogoPalette(logoSuggestedColor)})); else document.getElementById("business-logo-upload")?.click(); }} className="min-h-16 rounded-xl border px-2 py-2 text-xs font-semibold transition" style={{borderColor: logoSuggestedColor ? "var(--vellto-primary)" : "var(--vellto-border)", backgroundColor:"var(--vellto-surface-2)"}}>
-                  <span className="mx-auto mb-1 flex w-fit gap-1"><span className="h-3 w-3 rounded-full" style={{backgroundColor:logoSuggestedColor || form.primaryColor}}/><span className="h-3 w-3 rounded-full border border-black/10 bg-white"/></span>Da minha logo
-                </button>
-                <button type="button" onClick={() => setForm((current) => ({...current, secondaryColor:"#e8edf5", backgroundColor:"#f7f9fc", textColor:"#172033"}))} className="min-h-16 rounded-xl border border-[var(--vellto-border)] bg-[#f7f9fc] px-2 py-2 text-xs font-semibold text-[#172033] transition hover:border-[var(--vellto-primary)]">
-                  <span className="mx-auto mb-1 block h-4 w-8 rounded-full border border-black/10 bg-white"/>Claro
-                </button>
-                <button type="button" onClick={() => setForm((current) => ({...current, secondaryColor:"#20242c", backgroundColor:"#101318", textColor:"#f8fafc"}))} className="min-h-16 rounded-xl border border-[var(--vellto-border)] bg-[#101318] px-2 py-2 text-xs font-semibold text-white transition hover:border-[var(--vellto-primary)]">
-                  <span className="mx-auto mb-1 block h-4 w-8 rounded-full border border-white/20 bg-[#20242c]"/>Escuro
-                </button>
+              <div className="mb-3">
+                <p className="text-sm font-semibold">Escolha um tema para sua página</p>
+                <p className="mt-1 text-xs text-[var(--vellto-text-muted)]">Toque em uma combinação pronta. As cores da página serão ajustadas automaticamente.</p>
               </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {PAGE_COLOR_THEMES.map((theme) => (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    onClick={() => {
+                      setForm((current) => ({ ...current, ...theme.colors }));
+                      setSelectedThemeId(theme.id);
+                    }}
+                    aria-pressed={selectedThemeId === theme.id}
+                    className={"min-w-0 rounded-2xl border p-2 text-left transition " + (selectedThemeId === theme.id ? "border-[var(--vellto-primary)] ring-2 ring-[var(--vellto-primary)]/20" : "border-[var(--vellto-border)] hover:border-[var(--vellto-primary)]")}
+                  >
+                    <span className="flex h-12 overflow-hidden rounded-xl border border-black/5">
+                      <span className="flex-1" style={{ backgroundColor: theme.colors.backgroundColor }} />
+                      <span className="flex-1" style={{ backgroundColor: theme.colors.secondaryColor }} />
+                      <span className="flex-1" style={{ backgroundColor: theme.colors.primaryColor }} />
+                      <span className="flex-1" style={{ backgroundColor: theme.colors.textColor }} />
+                    </span>
+                    <span className="mt-2 flex items-center justify-between gap-1">
+                      <span className="truncate text-xs font-semibold">{theme.name}</span>
+                      {selectedThemeId === theme.id ? <span className="text-[10px] font-bold text-[var(--vellto-primary)]">✓</span> : null}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 flex items-center gap-3 rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-3">
+                <label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-[var(--vellto-border)]" style={{ backgroundColor: form.primaryColor }}>
+                  <input
+                    type="color"
+                    aria-label="Escolher outra cor"
+                    value={form.primaryColor}
+                    onChange={(event) => {
+                      setForm((current) => ({ ...current, ...buildLogoPalette(event.target.value) }));
+                      setSelectedThemeId("custom");
+                    }}
+                    className="h-14 w-14 cursor-pointer opacity-0"
+                  />
+                </label>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">Minha própria cor</p>
+                  <p className="text-xs text-[var(--vellto-text-muted)]">Abra o seletor e escolha qualquer cor. O Vellto combina o restante.</p>
+                </div>
+                <span className="rounded-lg border border-[var(--vellto-border)] px-2 py-1 font-mono text-[10px] uppercase">{form.primaryColor}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (logoSuggestedColor) {
+                    setForm((current) => ({ ...current, ...buildLogoPalette(logoSuggestedColor) }));
+                    setSelectedThemeId("logo");
+                  } else {
+                    document.getElementById("business-logo-upload")?.click();
+                  }
+                }}
+                className={"mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition " + (selectedThemeId === "logo" ? "border-[var(--vellto-primary)] bg-[var(--vellto-primary-soft)]" : "border-[var(--vellto-border)] hover:border-[var(--vellto-primary)]")}
+              >
+                <span className="h-3 w-3 rounded-full" style={{ backgroundColor: logoSuggestedColor || form.primaryColor }} />
+                Usar cores da minha logo
+              </button>
             </div>
           </Panel>
         </div>
@@ -1747,8 +1796,7 @@ export default function MinhaPagina() {
               >
                 Remover capa
               </button>
-            </div>
-          ) : null}
+            </div>          ) : null}
         </Panel>
 
         {/* GALERIA */}
@@ -2097,8 +2145,7 @@ export default function MinhaPagina() {
                   professionalForm.photoUrl
                     ? "Trocar foto"
                     : "Escolher foto do profissional"
-                }
-                uploading={
+                }                uploading={
                   uploadingProfessionalPhoto
                 }
                 onChange={
@@ -2447,8 +2494,7 @@ export default function MinhaPagina() {
                     setPreviewDevice(
                       "tablet"
                     )
-                  }
-                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                  }                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
                     previewDevice ===
                     "tablet"
                       ? "bg-emerald-500 text-zinc-950"
@@ -2797,7 +2843,6 @@ function PublicPagePreview({
             >
               Equipe
             </p>
-
             <h2 className="mt-3 text-2xl font-black sm:text-3xl">
               Nossos profissionais
             </h2>
@@ -2976,6 +3021,17 @@ function PreviewInfo({
   );
 }
 
+const PAGE_COLOR_THEMES = [
+  { id: "ocean", name: "Oceano", colors: { primaryColor: "#087E8B", secondaryColor: "#E1F0F1", backgroundColor: "#F1F8F8", textColor: "#183238" } },
+  { id: "emerald", name: "Esmeralda", colors: { primaryColor: "#087A55", secondaryColor: "#E0EEE7", backgroundColor: "#F1F8F4", textColor: "#183329" } },
+  { id: "lavender", name: "Lavanda", colors: { primaryColor: "#7652B5", secondaryColor: "#ECE5F6", backgroundColor: "#F7F4FB", textColor: "#2D2440" } },
+  { id: "rose", name: "Rosé", colors: { primaryColor: "#B44770", secondaryColor: "#F4E3EA", backgroundColor: "#FCF3F6", textColor: "#3A2430" } },
+  { id: "terracotta", name: "Terracota", colors: { primaryColor: "#B9573C", secondaryColor: "#F1E2DA", backgroundColor: "#FBF4F0", textColor: "#3A2923" } },
+  { id: "gold", name: "Dourado", colors: { primaryColor: "#946B19", secondaryColor: "#EFE5CC", backgroundColor: "#FAF6EC", textColor: "#382F1D" } },
+  { id: "slate", name: "Minimalista", colors: { primaryColor: "#475569", secondaryColor: "#E5EAF0", backgroundColor: "#F3F5F8", textColor: "#172033" } },
+  { id: "night", name: "Noturno", colors: { primaryColor: "#A78BFA", secondaryColor: "#28243B", backgroundColor: "#14121E", textColor: "#F8F6FF" } },
+] as const;
+
 function buildLogoPalette(color: string) {
   const normalized = color.replace("#", "");
   const channels = [0, 2, 4].map((offset) => parseInt(normalized.slice(offset, offset + 2), 16));
@@ -2990,8 +3046,13 @@ function buildLogoPalette(color: string) {
   while (luminance(safePrimary) > 0.34) safePrimary = safePrimary.map((value) => Math.round(value * 0.88));
   const toHex = (value: number) => value.toString(16).padStart(2, "0");
   const primaryColor = `#${safePrimary.map(toHex).join("")}`;
-  const secondaryColor = `#${safePrimary.map((value) => toHex(Math.round(value * 0.22))).join("")}`;
-  return { primaryColor, secondaryColor, backgroundColor: "#f8fafc", textColor: "#172033" };
+  // Gera três níveis da mesma família cromática: destaque, cartões e fundo.
+  // O fundo recebe apenas um toque da cor da marca para manter leveza e harmonia.
+  const tint = (strength: number) =>
+    `#${safePrimary.map((value) => toHex(Math.round(255 - (255 - value) * strength))).join("")}`;
+  const secondaryColor = tint(0.12);
+  const backgroundColor = tint(0.045);
+  return { primaryColor, secondaryColor, backgroundColor, textColor: "#172033" };
 }
 
 async function extractLogoColor(file: File): Promise<string | null> {
@@ -3147,8 +3208,7 @@ function UploadField({
   text,
   uploading,
   onChange,
-}: {
-  id?: string;
+}: {  id?: string;
   text: string;
   uploading: boolean;
   onChange: (
