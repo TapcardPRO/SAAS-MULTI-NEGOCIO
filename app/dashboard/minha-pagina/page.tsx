@@ -133,6 +133,8 @@ const initialProfessionalForm: ProfessionalForm = {
 
 export default function MinhaPagina() {
   const router = useRouter();
+  const [activeEditorStep, setActiveEditorStep] = useState("geral");
+  const [logoSuggestedColor, setLogoSuggestedColor] = useState<string | null>(null);
 
   const [slug, setSlug] = useState("");
 
