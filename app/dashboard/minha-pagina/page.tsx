@@ -562,7 +562,10 @@ export default function MinhaPagina() {
       );
       if (logoColor) {
         setLogoSuggestedColor(logoColor);
-        changeField("primaryColor", logoColor);
+        setForm((current) => ({
+          ...current,
+          ...buildLogoPalette(logoColor),
+        }));
       }
 
       setMessage(
@@ -1724,116 +1727,90 @@ export default function MinhaPagina() {
 
         </div>
 
-        {/* CORES */}
+        {/* APARÊNCIA */}
         <div id="aparencia" className="scroll-mt-28">
-        <Panel
-          title="Cores"
-          className="mt-8"
-        >
-          {logoSuggestedColor ? (
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[var(--vellto-primary)]/30 bg-[var(--vellto-primary-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="h-9 w-9 shrink-0 rounded-full border border-white/20 shadow-sm" style={{ backgroundColor: logoSuggestedColor }} />
-                <div><p className="text-sm font-semibold">Cor identificada na sua logo</p><p className="text-xs text-[var(--vellto-text-muted)]">Use esta cor como destaque da página.</p></div>
-              </div>
-              <button type="button" onClick={() => changeField("primaryColor", logoSuggestedColor)} className="min-h-11 rounded-xl border border-[var(--vellto-primary)]/40 px-4 py-2 text-sm font-bold">Usar cor da logo</button>
-            </div>
-          ) : null}
-          <div className="mb-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/50 p-4">
-            <p className="text-sm font-semibold text-[var(--vellto-text)]">Combinações prontas</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">
-              Escolha uma identidade visual como ponto de partida. Você pode ajustar cada cor manualmente logo abaixo.
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { name: "Moderno", primary: "#16a34a", secondary: "#14251d", background: "#07120d", text: "#ffffff" },
-                { name: "Elegante", primary: "#c59b55", secondary: "#29231d", background: "#100e0c", text: "#ffffff" },
-                { name: "Beleza", primary: "#d96c91", secondary: "#35232d", background: "#160f14", text: "#ffffff" },
-                { name: "Claro", primary: "#2563eb", secondary: "#e8edf5", background: "#f7f9fc", text: "#172033" },
-              ].map((palette) => (
-                <button
-                  key={palette.name}
-                  type="button"
-                  onClick={() => setForm((current) => ({
+        <Panel title="Aparência da página" className="mt-8">
+          <p className="mb-4 text-sm leading-6 text-[var(--vellto-text-muted)]">
+            Não precisa escolher cor por cor. Envie sua logo e o Vellto combina automaticamente as cores. Depois, se quiser, escolha apenas o estilo da página.
+          </p>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (logoSuggestedColor) {
+                  setForm((current) => ({
                     ...current,
-                    primaryColor: palette.primary,
-                    secondaryColor: palette.secondary,
-                    backgroundColor: palette.background,
-                    textColor: palette.text,
-                  }))}
-                  className="flex min-h-[76px] flex-col items-start justify-between rounded-xl border border-[var(--vellto-border)] p-3 text-left transition hover:border-[var(--vellto-primary)]"
-                >
-                  <span className="text-xs font-semibold text-[var(--vellto-text)]">{palette.name}</span>
-                  <span className="flex gap-1.5" aria-hidden="true">
-                    {[palette.primary, palette.secondary, palette.background].map((color) => (
-                      <span key={color} className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
-                    ))}
-                  </span>
-                </button>
-              ))}
+                    ...buildLogoPalette(logoSuggestedColor),
+                  }));
+                } else {
+                  document.getElementById("business-logo-upload")?.click();
+                }
+              }}
+              className="flex min-h-28 flex-col items-start justify-between rounded-2xl border-2 p-4 text-left transition"
+              style={{ borderColor: logoSuggestedColor ? "var(--vellto-primary)" : "var(--vellto-border)" }}
+            >
+              <span className="text-sm font-bold">Cores da minha logo</span>
+              <span className="flex items-center gap-2">
+                <span className="h-6 w-6 rounded-full border border-black/10" style={{ backgroundColor: logoSuggestedColor || form.primaryColor }} />
+                <span className="h-6 w-6 rounded-full border border-black/10" style={{ backgroundColor: "#f8fafc" }} />
+                <span className="text-xs opacity-70">{logoSuggestedColor ? "Aplicar automaticamente" : "Envie sua logo"}</span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setForm((current) => ({
+                ...current,
+                secondaryColor: "#e8edf5",
+                backgroundColor: "#f7f9fc",
+                textColor: "#172033",
+              }))}
+              className="flex min-h-28 flex-col items-start justify-between rounded-2xl border border-[var(--vellto-border)] bg-[#f7f9fc] p-4 text-left text-[#172033] transition hover:border-[var(--vellto-primary)]"
+            >
+              <span className="text-sm font-bold">Visual claro</span>
+              <span className="flex items-center gap-2">
+                <span className="h-6 w-6 rounded-full border border-black/10" style={{ backgroundColor: form.primaryColor }} />
+                <span className="h-6 w-6 rounded-full bg-white border border-black/10" />
+                <span className="text-xs opacity-70">Leve e clean</span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setForm((current) => ({
+                ...current,
+                secondaryColor: "#20242c",
+                backgroundColor: "#101318",
+                textColor: "#f8fafc",
+              }))}
+              className="flex min-h-28 flex-col items-start justify-between rounded-2xl border border-[var(--vellto-border)] bg-[#101318] p-4 text-left text-white transition hover:border-[var(--vellto-primary)]"
+            >
+              <span className="text-sm font-bold">Visual escuro</span>
+              <span className="flex items-center gap-2">
+                <span className="h-6 w-6 rounded-full border border-white/20" style={{ backgroundColor: form.primaryColor }} />
+                <span className="h-6 w-6 rounded-full bg-[#20242c] border border-white/20" />
+                <span className="text-xs opacity-70">Moderno e elegante</span>
+              </span>
+            </button>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[var(--vellto-border)] p-4" style={{ backgroundColor: form.backgroundColor, color: form.textColor }}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-60">Prévia da identidade</p>
+                <p className="mt-1 text-sm font-semibold">{form.name || businessName || "Seu negócio"}</p>
+              </div>
+              {form.logoUrl ? <img src={form.logoUrl} alt="Sua logo" className="h-10 max-w-24 object-contain" /> : null}
             </div>
+            <button type="button" className="mt-4 min-h-10 rounded-xl px-4 py-2 text-xs font-bold" style={{ backgroundColor: form.primaryColor, color: "#ffffff" }}>
+              {form.mainButtonText || "Agendar agora"}
+            </button>
           </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <ColorField
-              label="Cor principal"
-              value={
-                form.primaryColor
-              }
-              onChange={(value) =>
-                changeField(
-                  "primaryColor",
-                  value
-                )
-              }
-            />
-
-            <ColorField
-              label="Cor secundária"
-              value={
-                form.secondaryColor
-              }
-              onChange={(value) =>
-                changeField(
-                  "secondaryColor",
-                  value
-                )
-              }
-            />
-
-            <ColorField
-              label="Cor do fundo"
-              value={
-                form.backgroundColor
-              }
-              onChange={(value) =>
-                changeField(
-                  "backgroundColor",
-                  value
-                )
-              }
-            />
-
-            <ColorField
-              label="Cor do texto"
-              value={
-                form.textColor
-              }
-              onChange={(value) =>
-                changeField(
-                  "textColor",
-                  value
-                )
-              }
-            />
-          </div>
-          <div className="mt-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-4" style={{ backgroundColor: form.backgroundColor, color: form.textColor }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Prévia das cores</p>
-            <div className="mt-3 flex items-center gap-2"><span className="h-7 w-7 rounded-lg" style={{ backgroundColor: form.primaryColor }} /><span className="h-7 w-7 rounded-lg" style={{ backgroundColor: form.secondaryColor }} /><span className="h-7 w-7 rounded-lg border border-black/10" style={{ backgroundColor: form.backgroundColor }} /><span className="text-xs opacity-70">Destaques e fundo da sua página</span></div>
-            <button type="button" className="mt-4 min-h-10 rounded-xl px-4 py-2 text-xs font-bold" style={{ backgroundColor: form.primaryColor, color: form.backgroundColor }}>{form.mainButtonText || "Agendar agora"}</button>
-          </div>
+          <p className="mt-3 text-xs text-[var(--vellto-text-muted)]">
+            O Vellto mantém o contraste e a leitura dos textos automaticamente. Você pode trocar o estilo quando quiser.
+          </p>
         </Panel>
-
         {/* LOGO */}
         <Panel
           title="Logo"
@@ -1841,6 +1818,7 @@ export default function MinhaPagina() {
         >
           <UploadField
             text={
+
               form.logoUrl
                 ? "Trocar logo"
                 : "Escolher logo"
@@ -3133,6 +3111,20 @@ function PreviewInfo({
       </p>
     </div>
   );
+}
+
+function buildLogoPalette(color: string) {
+  const normalized = color.replace("#", "");
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  const darken = (value: number) => Math.round(value * 0.28).toString(16).padStart(2, "0");
+  return {
+    primaryColor: color,
+    secondaryColor: `#${darken(r)}${darken(g)}${darken(b)}`,
+    backgroundColor: "#f8fafc",
+    textColor: "#172033",
+  };
 }
 
 async function extractLogoColor(file: File): Promise<string | null> {
