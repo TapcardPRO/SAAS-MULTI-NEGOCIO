@@ -2027,7 +2027,7 @@ function InfoCard({
 
   if (!href) {
     return (
-      <div className="border-b border-white/[0.06] last:border-0 sm:border-r lg:border-b-0">
+      <div className="border-b last:border-0 sm:border-r lg:border-b-0" style={{ borderColor: "var(--public-border)" }}>
         {content}
       </div>
     );
@@ -2048,7 +2048,7 @@ function InfoCard({
           ? "noreferrer"
           : undefined
       }
-      className="border-b border-white/[0.06] transition hover:bg-white/[0.025] sm:border-r lg:border-b-0"
+      className="border-b transition sm:border-r lg:border-b-0" style={{ borderColor: "var(--public-border)" }}
     >
       {content}
     </a>
