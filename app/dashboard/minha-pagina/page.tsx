@@ -225,7 +225,7 @@ export default function MinhaPagina() {
 
   const [previewDevice, setPreviewDevice] =
     useState<"mobile" | "tablet" | "desktop">(
-      "desktop"
+      "mobile"
     );
 
   const [
@@ -547,6 +547,7 @@ export default function MinhaPagina() {
       setUploadingLogo(true);
       setMessage("");
 
+      const logoColor = await extractLogoColor(file);
       const url =
         await uploadImage(
           file,
@@ -557,6 +558,9 @@ export default function MinhaPagina() {
         "logoUrl",
         url
       );
+      if (logoColor) {
+        changeField("primaryColor", logoColor);
+      }
 
       setMessage(
         "Logo enviada. Clique em Salvar alterações no final da página."
@@ -1434,9 +1438,9 @@ export default function MinhaPagina() {
 
   return (
     <main className="min-h-screen bg-[var(--vellto-surface-2)] text-[var(--vellto-text)]">
-      <div className="mx-auto max-w-7xl px-6 py-10">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10">
         {/* CABEÇALHO */}
-        <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-[var(--vellto-primary)]">
               Personalização
@@ -1452,13 +1456,13 @@ export default function MinhaPagina() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:gap-3">
             <button
               type="button"
               onClick={() =>
                 setPreviewOpen(true)
               }
-              className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400"
+              className="min-h-11 rounded-xl bg-[var(--vellto-primary)] px-5 py-3 text-sm font-bold text-[var(--vellto-on-primary)] transition hover:brightness-110"
             >
               👁 Ver prévia
             </button>
@@ -1467,7 +1471,7 @@ export default function MinhaPagina() {
               href={`/${slug}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-xl border border-[var(--vellto-border)] px-5 py-3 text-sm font-medium transition hover:bg-white/5"
+              className="min-h-11 rounded-xl border border-[var(--vellto-border)] px-5 py-3 text-center text-sm font-medium transition hover:bg-white/5"
             >
               Ver página publicada ↗
             </a>
@@ -1475,7 +1479,7 @@ export default function MinhaPagina() {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-xl border border-red-500/30 px-5 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+              className="min-h-11 rounded-xl border border-red-500/30 px-5 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
             >
               Sair
             </button>
@@ -1484,7 +1488,7 @@ export default function MinhaPagina() {
 
         {/* NAVEGAÇÃO DA PÁGINA */}
         <div className="sticky top-0 z-30 mb-8 overflow-x-auto border-y border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/95 py-3 backdrop-blur-xl">
-          <div className="flex min-w-max gap-2">
+          <div className="flex min-w-max gap-2 px-1">
             <a
               href="#geral"
               className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
@@ -1727,7 +1731,42 @@ export default function MinhaPagina() {
           title="Cores"
           className="mt-8"
         >
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="mb-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/50 p-4">
+            <p className="text-sm font-semibold text-[var(--vellto-text)]">Combinações prontas</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">
+              Escolha uma identidade visual como ponto de partida. Você pode ajustar cada cor manualmente logo abaixo.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { name: "Moderno", primary: "#16a34a", secondary: "#14251d", background: "#07120d", text: "#ffffff" },
+                { name: "Elegante", primary: "#c59b55", secondary: "#29231d", background: "#100e0c", text: "#ffffff" },
+                { name: "Beleza", primary: "#d96c91", secondary: "#35232d", background: "#160f14", text: "#ffffff" },
+                { name: "Claro", primary: "#2563eb", secondary: "#e8edf5", background: "#f7f9fc", text: "#172033" },
+              ].map((palette) => (
+                <button
+                  key={palette.name}
+                  type="button"
+                  onClick={() => setForm((current) => ({
+                    ...current,
+                    primaryColor: palette.primary,
+                    secondaryColor: palette.secondary,
+                    backgroundColor: palette.background,
+                    textColor: palette.text,
+                  }))}
+                  className="flex min-h-[76px] flex-col items-start justify-between rounded-xl border border-[var(--vellto-border)] p-3 text-left transition hover:border-[var(--vellto-primary)]"
+                >
+                  <span className="text-xs font-semibold text-[var(--vellto-text)]">{palette.name}</span>
+                  <span className="flex gap-1.5" aria-hidden="true">
+                    {[palette.primary, palette.secondary, palette.background].map((color) => (
+                      <span key={color} className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
+                    ))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <ColorField
               label="Cor principal"
               value={
@@ -3066,6 +3105,59 @@ function PreviewInfo({
   );
 }
 
+async function extractLogoColor(file: File): Promise<string | null> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+      bitmap.close();
+      return null;
+    }
+
+    const size = 48;
+    canvas.width = size;
+    canvas.height = size;
+    context.drawImage(bitmap, 0, 0, size, size);
+    bitmap.close();
+
+    const pixels = context.getImageData(0, 0, size, size).data;
+    const buckets = new Map<string, { count: number; r: number; g: number; b: number; saturation: number }>();
+
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index + 3] < 150) continue;
+      const r = pixels[index];
+      const g = pixels[index + 1];
+      const b = pixels[index + 2];
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const brightness = (r + g + b) / 3;
+      const saturation = max === 0 ? 0 : (max - min) / max;
+      if (brightness > 242 || brightness < 28 || saturation < 0.16) continue;
+
+      const key = [r, g, b].map((value) => Math.round(value / 24) * 24).join("-");
+      const current = buckets.get(key) || { count: 0, r: 0, g: 0, b: 0, saturation: 0 };
+      current.count += 1;
+      current.r += r;
+      current.g += g;
+      current.b += b;
+      current.saturation += saturation;
+      buckets.set(key, current);
+    }
+
+    const dominant = [...buckets.values()].sort((a, b) =>
+      b.count * (1 + b.saturation * 0.35) - a.count * (1 + a.saturation * 0.35)
+    )[0];
+
+    if (!dominant) return null;
+    const toHex = (value: number) => Math.round(value).toString(16).padStart(2, "0");
+    return `#${toHex(dominant.r / dominant.count)}${toHex(dominant.g / dominant.count)}${toHex(dominant.b / dominant.count)}`;
+  } catch (error) {
+    console.warn("Não foi possível identificar a cor da logo:", error);
+    return null;
+  }
+}
+
 function Panel({
   title,
   children,
@@ -3077,7 +3169,7 @@ function Panel({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-[var(--vellto-border)] bg-white/5 p-6 ${className}`}
+      className={`rounded-2xl border border-[var(--vellto-border)] bg-white/5 p-4 sm:p-6 ${className}`}
     >
       <h2 className="mb-5 text-xl font-semibold">
         {title}
