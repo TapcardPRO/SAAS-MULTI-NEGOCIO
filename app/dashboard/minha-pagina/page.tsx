@@ -3046,7 +3046,10 @@ function buildLogoPalette(color: string) {
   while (luminance(safePrimary) > 0.34) safePrimary = safePrimary.map((value) => Math.round(value * 0.88));
   const toHex = (value: number) => value.toString(16).padStart(2, "0");
   const primaryColor = `#${safePrimary.map(toHex).join("")}`;
-  const secondaryColor = `#${safePrimary.map((value) => toHex(Math.round(value * 0.22))).join("")}`;
+  // A cor secundária deve ser um tom suave da cor principal, não uma versão escurecida.
+  // Isso mantém cartões e áreas de destaque claros na página pública.
+  const secondaryChannels = safePrimary.map((value) => Math.round(value + (255 - value) * 0.90));
+  const secondaryColor = `#${secondaryChannels.map(toHex).join("")}`;
   return { primaryColor, secondaryColor, backgroundColor: "#f8fafc", textColor: "#172033" };
 }
 
