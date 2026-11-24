@@ -3022,13 +3022,13 @@ function PreviewInfo({
 }
 
 const PAGE_COLOR_THEMES = [
-  { id: "ocean", name: "Oceano", colors: { primaryColor: "#087E8B", secondaryColor: "#E5F3F4", backgroundColor: "#F7FBFC", textColor: "#183238" } },
-  { id: "emerald", name: "Esmeralda", colors: { primaryColor: "#087A55", secondaryColor: "#E4F2EC", backgroundColor: "#F8FCF9", textColor: "#183329" } },
-  { id: "lavender", name: "Lavanda", colors: { primaryColor: "#7652B5", secondaryColor: "#EEE8F8", backgroundColor: "#FBF9FE", textColor: "#2D2440" } },
-  { id: "rose", name: "Rosé", colors: { primaryColor: "#B44770", secondaryColor: "#F7E8EE", backgroundColor: "#FFFAFC", textColor: "#3A2430" } },
-  { id: "terracotta", name: "Terracota", colors: { primaryColor: "#B9573C", secondaryColor: "#F4E7E1", backgroundColor: "#FFFAF7", textColor: "#3A2923" } },
-  { id: "gold", name: "Dourado", colors: { primaryColor: "#946B19", secondaryColor: "#F3EBD8", backgroundColor: "#FFFCF6", textColor: "#382F1D" } },
-  { id: "slate", name: "Minimalista", colors: { primaryColor: "#475569", secondaryColor: "#E8EDF3", backgroundColor: "#F8FAFC", textColor: "#172033" } },
+  { id: "ocean", name: "Oceano", colors: { primaryColor: "#087E8B", secondaryColor: "#E1F0F1", backgroundColor: "#F1F8F8", textColor: "#183238" } },
+  { id: "emerald", name: "Esmeralda", colors: { primaryColor: "#087A55", secondaryColor: "#E0EEE7", backgroundColor: "#F1F8F4", textColor: "#183329" } },
+  { id: "lavender", name: "Lavanda", colors: { primaryColor: "#7652B5", secondaryColor: "#ECE5F6", backgroundColor: "#F7F4FB", textColor: "#2D2440" } },
+  { id: "rose", name: "Rosé", colors: { primaryColor: "#B44770", secondaryColor: "#F4E3EA", backgroundColor: "#FCF3F6", textColor: "#3A2430" } },
+  { id: "terracotta", name: "Terracota", colors: { primaryColor: "#B9573C", secondaryColor: "#F1E2DA", backgroundColor: "#FBF4F0", textColor: "#3A2923" } },
+  { id: "gold", name: "Dourado", colors: { primaryColor: "#946B19", secondaryColor: "#EFE5CC", backgroundColor: "#FAF6EC", textColor: "#382F1D" } },
+  { id: "slate", name: "Minimalista", colors: { primaryColor: "#475569", secondaryColor: "#E5EAF0", backgroundColor: "#F3F5F8", textColor: "#172033" } },
   { id: "night", name: "Noturno", colors: { primaryColor: "#A78BFA", secondaryColor: "#28243B", backgroundColor: "#14121E", textColor: "#F8F6FF" } },
 ] as const;
 
@@ -3046,11 +3046,13 @@ function buildLogoPalette(color: string) {
   while (luminance(safePrimary) > 0.34) safePrimary = safePrimary.map((value) => Math.round(value * 0.88));
   const toHex = (value: number) => value.toString(16).padStart(2, "0");
   const primaryColor = `#${safePrimary.map(toHex).join("")}`;
-  // A cor secundária deve ser um tom suave da cor principal, não uma versão escurecida.
-  // Isso mantém cartões e áreas de destaque claros na página pública.
-  const secondaryChannels = safePrimary.map((value) => Math.round(value + (255 - value) * 0.90));
-  const secondaryColor = `#${secondaryChannels.map(toHex).join("")}`;
-  return { primaryColor, secondaryColor, backgroundColor: "#f8fafc", textColor: "#172033" };
+  // Gera três níveis da mesma família cromática: destaque, cartões e fundo.
+  // O fundo recebe apenas um toque da cor da marca para manter leveza e harmonia.
+  const tint = (strength: number) =>
+    `#${safePrimary.map((value) => toHex(Math.round(255 - (255 - value) * strength))).join("")}`;
+  const secondaryColor = tint(0.12);
+  const backgroundColor = tint(0.045);
+  return { primaryColor, secondaryColor, backgroundColor, textColor: "#172033" };
 }
 
 async function extractLogoColor(file: File): Promise<string | null> {
