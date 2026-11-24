@@ -97,8 +97,8 @@ export default function VelltoSignupForm({ signupAvailable }: { signupAvailable:
                 <option value="barbearia">Barbearia</option><option value="salao">Salão de beleza</option><option value="manicure">Manicure</option><option value="lash_designer">Lash designer</option><option value="estetica">Estética</option><option value="clinica">Clínica</option><option value="outros">Outros serviços</option>
               </select>
             </label>
-            <label className="block text-sm font-semibold">Senha de acesso (mínimo de 10 caracteres)
-              <div className="relative mt-2"><input required minLength={10} maxLength={128} type={showPassword ? "text" : "password"}
+            <label className="block text-sm font-semibold">Senha de acesso (mínimo de 8 caracteres)
+              <div className="relative mt-2"><input required minLength={8} maxLength={128} type={showPassword ? "text" : "password"}
                 autoComplete="new-password" value={values.password} placeholder="Crie uma senha segura"
                 onChange={event => setValues(current => ({ ...current, password: event.target.value }))}
                 className="w-full rounded-xl border border-[#dfe7e2] bg-white px-4 py-3 pr-20 font-normal outline-none focus:border-emerald-500" />
