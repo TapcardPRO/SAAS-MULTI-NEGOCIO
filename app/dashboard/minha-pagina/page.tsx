@@ -2357,7 +2357,7 @@ export default function MinhaPagina() {
         ) : null}
 
         {/* SALVAR */}
-        <div className="mt-10 rounded-2xl border border-[var(--vellto-primary)]/20 bg-[var(--vellto-primary-soft)] p-4 sm:p-6">
+        <div className="mt-10 hidden rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-5 sm:block">
           <h2 className="text-lg font-bold sm:text-xl">Quase pronto!</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--vellto-text-secondary)]">
             Confira a aparência da sua página e salve para publicar as alterações. Suas mudanças ficam como rascunho nesta tela até você tocar em salvar.
@@ -2389,20 +2389,14 @@ export default function MinhaPagina() {
 
 
       {/* AÇÃO FIXA NO CELULAR: SALVAR SEM VOLTAR AO FIM DA PÁGINA */}
-      <div className="fixed inset-x-0 bottom-[76px] z-30 border-t border-[var(--vellto-border)] bg-[var(--vellto-surface)]/95 p-3 shadow-2xl backdrop-blur-xl sm:hidden">
-        <div className="mx-auto flex max-w-lg gap-2">
-          <button
-            type="button"
-            onClick={() => setPreviewOpen(true)}
-            className="min-h-12 flex-1 rounded-xl border border-[var(--vellto-border)] px-3 text-sm font-semibold"
-          >
-            Prévia
-          </button>
+      <div className="fixed inset-x-0 bottom-[76px] z-30 border-t border-[var(--vellto-border)] bg-[var(--vellto-surface)]/95 p-3 shadow-xl backdrop-blur-xl sm:hidden">
+        <div className="mx-auto max-w-lg">
+          {message ? <p role="status" aria-live="polite" className="mb-2 text-center text-xs text-[var(--vellto-text-secondary)]">{message}</p> : null}
           <button
             type="button"
             onClick={saveBusiness}
             disabled={savingBusiness || uploadingLogo || uploadingCover || uploadingGallery}
-            className="min-h-12 flex-[1.5] rounded-xl bg-[var(--vellto-primary)] px-3 text-sm font-bold text-[var(--vellto-on-primary)] disabled:opacity-50"
+            className="min-h-12 w-full rounded-xl bg-[var(--vellto-primary)] px-4 text-sm font-bold text-[var(--vellto-on-primary)] disabled:opacity-50"
           >
             {savingBusiness ? "Salvando..." : "Salvar alterações"}
           </button>
