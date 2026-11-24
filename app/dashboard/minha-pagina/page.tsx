@@ -559,6 +559,7 @@ export default function MinhaPagina() {
         url
       );
       if (logoColor) {
+        setLogoSuggestedColor(logoColor);
         changeField("primaryColor", logoColor);
       }
 
@@ -1486,36 +1487,40 @@ export default function MinhaPagina() {
           </div>
         </div>
 
-        {/* ATALHOS DE PERSONALIZAÇÃO */}
+        {/* GUIA DE CONFIGURAÇÃO */}
         <section className="mb-7 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-4 sm:p-5">
-          <div className="mb-4">
-            <p className="text-sm font-bold">Monte sua página em poucos passos</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">
-              Toque em uma etapa para ir direto ao que deseja configurar. Você pode voltar e ajustar quando quiser.
-            </p>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold">Vamos montar sua página</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">Siga as etapas. Você pode voltar e mudar tudo antes de publicar.</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-[var(--vellto-primary-soft)] px-3 py-1 text-xs font-bold text-[var(--vellto-primary)]">5 etapas</span>
+          </div>
+          <div className="mb-4 grid grid-cols-5 gap-1" aria-hidden="true">
+            {["geral", "aparencia", "galeria", "sobre", "agendamento"].map((step) => (
+              <span key={step} className={`h-1.5 rounded-full ${activeEditorStep === step ? "bg-[var(--vellto-primary)]" : "bg-[var(--vellto-border-strong)]"}`} />
+            ))}
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             {[
-              { href: "#geral", number: "01", title: "Seu negócio", detail: "Nome e contato", icon: "⌂" },
-              { href: "#aparencia", number: "02", title: "Visual", detail: "Logo e cores", icon: "✦" },
-              { href: "#galeria", number: "03", title: "Fotos", detail: "Capa e galeria", icon: "▧" },
-              { href: "#sobre", number: "04", title: "Conteúdo", detail: "Apresentação", icon: "✎" },
-              { href: "#agendamento", number: "05", title: "Ação principal", detail: "Como receber contatos", icon: "↗" },
+              { href: "#geral", id: "geral", number: "01", title: "Seu negócio", detail: "Nome e contato", icon: "⌂", done: Boolean(form.name.trim() && form.whatsapp.trim()) },
+              { href: "#aparencia", id: "aparencia", number: "02", title: "Visual", detail: "Logo e cores", icon: "✦", done: Boolean(form.logoUrl) },
+              { href: "#galeria", id: "galeria", number: "03", title: "Fotos", detail: "Capa e galeria", icon: "▧", done: Boolean(form.coverUrl || form.gallery.length) },
+              { href: "#sobre", id: "sobre", number: "04", title: "Conteúdo", detail: "Apresentação", icon: "✎", done: Boolean(form.description.trim()) },
+              { href: "#agendamento", id: "agendamento", number: "05", title: "Ação principal", detail: "Como receber contatos", icon: "↗", done: Boolean(form.mainButtonText.trim()) },
             ].map((step) => (
-              <a
-                key={step.number}
-                href={step.href}
-                className="group flex min-h-[94px] flex-col rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-3 text-left transition hover:border-[var(--vellto-primary)]/60 hover:bg-[var(--vellto-primary-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vellto-primary)]"
-              >
+              <a key={step.number} href={step.href} onClick={() => setActiveEditorStep(step.id)} aria-current={activeEditorStep === step.id ? "step" : undefined}
+                className={`group flex min-h-[94px] flex-col rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vellto-primary)] ${activeEditorStep === step.id ? "border-[var(--vellto-primary)] bg-[var(--vellto-primary-soft)]" : "border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] hover:border-[var(--vellto-primary)]/60"}`}>
                 <span className="flex w-full items-center justify-between">
                   <span className="text-lg text-[var(--vellto-primary)]" aria-hidden="true">{step.icon}</span>
-                  <span className="text-[10px] font-bold tracking-wider text-[var(--vellto-text-muted)]">{step.number}</span>
+                  <span className={`text-[10px] font-bold tracking-wider ${step.done ? "text-emerald-500" : "text-[var(--vellto-text-muted)]"}`}>{step.done ? "✓ Feito" : step.number}</span>
                 </span>
                 <span className="mt-2 text-xs font-bold text-[var(--vellto-text)]">{step.title}</span>
                 <span className="mt-0.5 text-[10px] leading-4 text-[var(--vellto-text-muted)]">{step.detail}</span>
               </a>
             ))}
           </div>
+          <p className="mt-3 text-[11px] text-[var(--vellto-text-muted)]">As etapas marcadas como “Feito” já têm informações preenchidas. Revise e publique quando estiver satisfeito.</p>
         </section>
 
         {/* INFORMAÇÕES */}
@@ -1723,6 +1728,15 @@ export default function MinhaPagina() {
           title="Cores"
           className="mt-8"
         >
+          {logoSuggestedColor ? (
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[var(--vellto-primary)]/30 bg-[var(--vellto-primary-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="h-9 w-9 shrink-0 rounded-full border border-white/20 shadow-sm" style={{ backgroundColor: logoSuggestedColor }} />
+                <div><p className="text-sm font-semibold">Cor identificada na sua logo</p><p className="text-xs text-[var(--vellto-text-muted)]">Use esta cor como destaque da página.</p></div>
+              </div>
+              <button type="button" onClick={() => changeField("primaryColor", logoSuggestedColor)} className="min-h-11 rounded-xl border border-[var(--vellto-primary)]/40 px-4 py-2 text-sm font-bold">Usar cor da logo</button>
+            </div>
+          ) : null}
           <div className="mb-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/50 p-4">
             <p className="text-sm font-semibold text-[var(--vellto-text)]">Combinações prontas</p>
             <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">
@@ -1810,6 +1824,11 @@ export default function MinhaPagina() {
                 )
               }
             />
+          </div>
+          <div className="mt-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-4" style={{ backgroundColor: form.backgroundColor, color: form.textColor }}>
+            <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Prévia das cores</p>
+            <div className="mt-3 flex items-center gap-2"><span className="h-7 w-7 rounded-lg" style={{ backgroundColor: form.primaryColor }} /><span className="h-7 w-7 rounded-lg" style={{ backgroundColor: form.secondaryColor }} /><span className="h-7 w-7 rounded-lg border border-black/10" style={{ backgroundColor: form.backgroundColor }} /><span className="text-xs opacity-70">Destaques e fundo da sua página</span></div>
+            <button type="button" className="mt-4 min-h-10 rounded-xl px-4 py-2 text-xs font-bold" style={{ backgroundColor: form.primaryColor, color: form.backgroundColor }}>{form.mainButtonText || "Agendar agora"}</button>
           </div>
         </Panel>
 
@@ -2498,7 +2517,7 @@ export default function MinhaPagina() {
         <div className="mt-10 rounded-2xl border border-[var(--vellto-primary)]/20 bg-[var(--vellto-primary-soft)] p-4 sm:p-6">
           <h2 className="text-lg font-bold sm:text-xl">Quase pronto!</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--vellto-text-secondary)]">
-            Confira a aparência da sua página e salve para publicar as alterações.
+            Confira a aparência da sua página e salve para publicar as alterações. Suas mudanças ficam como rascunho nesta tela até você tocar em salvar.
           </p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <button
