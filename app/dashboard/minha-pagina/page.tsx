@@ -133,6 +133,8 @@ const initialProfessionalForm: ProfessionalForm = {
 
 export default function MinhaPagina() {
   const router = useRouter();
+  const [activeEditorStep, setActiveEditorStep] = useState("geral");
+  const [logoSuggestedColor, setLogoSuggestedColor] = useState<string | null>(null);
 
   const [slug, setSlug] = useState("");
 
@@ -225,7 +227,7 @@ export default function MinhaPagina() {
 
   const [previewDevice, setPreviewDevice] =
     useState<"mobile" | "tablet" | "desktop">(
-      "desktop"
+      "mobile"
     );
 
   const [
@@ -547,6 +549,7 @@ export default function MinhaPagina() {
       setUploadingLogo(true);
       setMessage("");
 
+      const logoColor = await extractLogoColor(file);
       const url =
         await uploadImage(
           file,
@@ -557,6 +560,10 @@ export default function MinhaPagina() {
         "logoUrl",
         url
       );
+      if (logoColor) {
+        setLogoSuggestedColor(logoColor);
+        changeField("primaryColor", logoColor);
+      }
 
       setMessage(
         "Logo enviada. Clique em Salvar alterações no final da página."
@@ -1433,10 +1440,10 @@ export default function MinhaPagina() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--vellto-surface-2)] text-[var(--vellto-text)]">
-      <div className="mx-auto max-w-7xl px-6 py-10">
+    <main className="min-h-screen bg-[var(--vellto-surface-2)] pb-36 text-[var(--vellto-text)] sm:pb-10">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10">
         {/* CABEÇALHO */}
-        <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-[var(--vellto-primary)]">
               Personalização
@@ -1452,13 +1459,13 @@ export default function MinhaPagina() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:gap-3">
             <button
               type="button"
               onClick={() =>
                 setPreviewOpen(true)
               }
-              className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400"
+              className="min-h-11 rounded-xl bg-[var(--vellto-primary)] px-5 py-3 text-sm font-bold text-[var(--vellto-on-primary)] transition hover:brightness-110"
             >
               👁 Ver prévia
             </button>
@@ -1467,7 +1474,7 @@ export default function MinhaPagina() {
               href={`/${slug}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-xl border border-[var(--vellto-border)] px-5 py-3 text-sm font-medium transition hover:bg-white/5"
+              className="min-h-11 rounded-xl border border-[var(--vellto-border)] px-5 py-3 text-center text-sm font-medium transition hover:bg-white/5"
             >
               Ver página publicada ↗
             </a>
@@ -1475,52 +1482,48 @@ export default function MinhaPagina() {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-xl border border-red-500/30 px-5 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+              className="min-h-11 rounded-xl border border-red-500/30 px-5 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
             >
               Sair
             </button>
           </div>
         </div>
 
-        {/* NAVEGAÇÃO DA PÁGINA */}
-        <div className="sticky top-0 z-30 mb-8 overflow-x-auto border-y border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/95 py-3 backdrop-blur-xl">
-          <div className="flex min-w-max gap-2">
-            <a
-              href="#geral"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Geral
-            </a>
-
-            <a
-              href="#sobre"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Sobre nós
-            </a>
-
-            <a
-              href="#galeria"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Galeria
-            </a>
-
-            <a
-              href="#aparencia"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Aparência
-            </a>
-
-            <a
-              href="#agendamento"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Agendamento
-            </a>
+        {/* GUIA DE CONFIGURAÇÃO */}
+        <section className="mb-7 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-4 sm:p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold">Vamos montar sua página</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">Siga as etapas. Você pode voltar e mudar tudo antes de publicar.</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-[var(--vellto-primary-soft)] px-3 py-1 text-xs font-bold text-[var(--vellto-primary)]">5 etapas</span>
           </div>
-        </div>
+          <div className="mb-4 grid grid-cols-5 gap-1" aria-hidden="true">
+            {["geral", "aparencia", "galeria", "sobre", "agendamento"].map((step) => (
+              <span key={step} className={`h-1.5 rounded-full ${activeEditorStep === step ? "bg-[var(--vellto-primary)]" : "bg-[var(--vellto-border-strong)]"}`} />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {[
+              { href: "#geral", id: "geral", number: "01", title: "Seu negócio", detail: "Nome e contato", icon: "⌂", done: Boolean(form.name.trim() && form.whatsapp.trim()) },
+              { href: "#aparencia", id: "aparencia", number: "02", title: "Visual", detail: "Logo e cores", icon: "✦", done: Boolean(form.logoUrl) },
+              { href: "#galeria", id: "galeria", number: "03", title: "Fotos", detail: "Capa e galeria", icon: "▧", done: Boolean(form.coverUrl || form.gallery.length) },
+              { href: "#sobre", id: "sobre", number: "04", title: "Conteúdo", detail: "Apresentação", icon: "✎", done: Boolean(form.description.trim()) },
+              { href: "#agendamento", id: "agendamento", number: "05", title: "Ação principal", detail: "Como receber contatos", icon: "↗", done: Boolean(form.mainButtonText.trim()) },
+            ].map((step) => (
+              <a key={step.number} href={step.href} onClick={() => setActiveEditorStep(step.id)} aria-current={activeEditorStep === step.id ? "step" : undefined}
+                className={`group flex min-h-[94px] flex-col rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vellto-primary)] ${activeEditorStep === step.id ? "border-[var(--vellto-primary)] bg-[var(--vellto-primary-soft)]" : "border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] hover:border-[var(--vellto-primary)]/60"}`}>
+                <span className="flex w-full items-center justify-between">
+                  <span className="text-lg text-[var(--vellto-primary)]" aria-hidden="true">{step.icon}</span>
+                  <span className={`text-[10px] font-bold tracking-wider ${step.done ? "text-emerald-500" : "text-[var(--vellto-text-muted)]"}`}>{step.done ? "✓ Feito" : step.number}</span>
+                </span>
+                <span className="mt-2 text-xs font-bold text-[var(--vellto-text)]">{step.title}</span>
+                <span className="mt-0.5 text-[10px] leading-4 text-[var(--vellto-text-muted)]">{step.detail}</span>
+              </a>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] text-[var(--vellto-text-muted)]">As etapas marcadas como “Feito” já têm informações preenchidas. Revise e publique quando estiver satisfeito.</p>
+        </section>
 
         {/* INFORMAÇÕES */}
         <div id="geral" className="scroll-mt-28">
@@ -1727,7 +1730,51 @@ export default function MinhaPagina() {
           title="Cores"
           className="mt-8"
         >
-          <div className="grid gap-5 sm:grid-cols-2">
+          {logoSuggestedColor ? (
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[var(--vellto-primary)]/30 bg-[var(--vellto-primary-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="h-9 w-9 shrink-0 rounded-full border border-white/20 shadow-sm" style={{ backgroundColor: logoSuggestedColor }} />
+                <div><p className="text-sm font-semibold">Cor identificada na sua logo</p><p className="text-xs text-[var(--vellto-text-muted)]">Use esta cor como destaque da página.</p></div>
+              </div>
+              <button type="button" onClick={() => changeField("primaryColor", logoSuggestedColor)} className="min-h-11 rounded-xl border border-[var(--vellto-primary)]/40 px-4 py-2 text-sm font-bold">Usar cor da logo</button>
+            </div>
+          ) : null}
+          <div className="mb-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/50 p-4">
+            <p className="text-sm font-semibold text-[var(--vellto-text)]">Combinações prontas</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">
+              Escolha uma identidade visual como ponto de partida. Você pode ajustar cada cor manualmente logo abaixo.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { name: "Moderno", primary: "#16a34a", secondary: "#14251d", background: "#07120d", text: "#ffffff" },
+                { name: "Elegante", primary: "#c59b55", secondary: "#29231d", background: "#100e0c", text: "#ffffff" },
+                { name: "Beleza", primary: "#d96c91", secondary: "#35232d", background: "#160f14", text: "#ffffff" },
+                { name: "Claro", primary: "#2563eb", secondary: "#e8edf5", background: "#f7f9fc", text: "#172033" },
+              ].map((palette) => (
+                <button
+                  key={palette.name}
+                  type="button"
+                  onClick={() => setForm((current) => ({
+                    ...current,
+                    primaryColor: palette.primary,
+                    secondaryColor: palette.secondary,
+                    backgroundColor: palette.background,
+                    textColor: palette.text,
+                  }))}
+                  className="flex min-h-[76px] flex-col items-start justify-between rounded-xl border border-[var(--vellto-border)] p-3 text-left transition hover:border-[var(--vellto-primary)]"
+                >
+                  <span className="text-xs font-semibold text-[var(--vellto-text)]">{palette.name}</span>
+                  <span className="flex gap-1.5" aria-hidden="true">
+                    {[palette.primary, palette.secondary, palette.background].map((color) => (
+                      <span key={color} className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
+                    ))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <ColorField
               label="Cor principal"
               value={
@@ -1779,6 +1826,11 @@ export default function MinhaPagina() {
                 )
               }
             />
+          </div>
+          <div className="mt-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-4" style={{ backgroundColor: form.backgroundColor, color: form.textColor }}>
+            <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Prévia das cores</p>
+            <div className="mt-3 flex items-center gap-2"><span className="h-7 w-7 rounded-lg" style={{ backgroundColor: form.primaryColor }} /><span className="h-7 w-7 rounded-lg" style={{ backgroundColor: form.secondaryColor }} /><span className="h-7 w-7 rounded-lg border border-black/10" style={{ backgroundColor: form.backgroundColor }} /><span className="text-xs opacity-70">Destaques e fundo da sua página</span></div>
+            <button type="button" className="mt-4 min-h-10 rounded-xl px-4 py-2 text-xs font-bold" style={{ backgroundColor: form.primaryColor, color: form.backgroundColor }}>{form.mainButtonText || "Agendar agora"}</button>
           </div>
         </Panel>
 
@@ -2464,38 +2516,55 @@ export default function MinhaPagina() {
         </Panel>
 
         {/* SALVAR */}
-        <div className="mt-10 rounded-2xl border border-[var(--vellto-primary)]/20 bg-emerald-500/5 p-6">
-          <h2 className="text-xl font-bold">
-            Salvar alterações
-          </h2>
-
-          <p className="mt-2 text-sm text-[var(--vellto-text-secondary)]">
-            Depois de personalizar sua página, clique abaixo para salvar.
+        <div className="mt-10 rounded-2xl border border-[var(--vellto-primary)]/20 bg-[var(--vellto-primary-soft)] p-4 sm:p-6">
+          <h2 className="text-lg font-bold sm:text-xl">Quase pronto!</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--vellto-text-secondary)]">
+            Confira a aparência da sua página e salve para publicar as alterações. Suas mudanças ficam como rascunho nesta tela até você tocar em salvar.
           </p>
-
-          <button
-            type="button"
-            onClick={
-              saveBusiness
-            }
-            disabled={
-              savingBusiness ||
-              uploadingLogo ||
-              uploadingCover ||
-              uploadingGallery
-            }
-            className="mt-5 w-full rounded-xl bg-emerald-500 px-6 py-4 text-lg font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-50"
-          >
-            {savingBusiness
-              ? "Salvando..."
-              : "Salvar alterações"}
-          </button>
-
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="min-h-12 rounded-xl border border-[var(--vellto-border)] px-5 py-3 text-sm font-semibold transition hover:bg-white/5"
+            >
+              👁 Conferir minha página
+            </button>
+            <button
+              type="button"
+              onClick={saveBusiness}
+              disabled={savingBusiness || uploadingLogo || uploadingCover || uploadingGallery}
+              className="min-h-12 rounded-xl bg-[var(--vellto-primary)] px-6 py-3 text-sm font-bold text-[var(--vellto-on-primary)] transition hover:brightness-110 disabled:opacity-50"
+            >
+              {savingBusiness ? "Salvando..." : "Salvar e publicar alterações"}
+            </button>
+          </div>
           {message ? (
-            <p className="mt-4 rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/40 p-4 text-sm">
+            <p role="status" aria-live="polite" className="mt-4 rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/60 p-4 text-sm">
               {message}
             </p>
           ) : null}
+        </div>
+      </div>
+
+
+      {/* AÇÃO FIXA NO CELULAR: SALVAR SEM VOLTAR AO FIM DA PÁGINA */}
+      <div className="fixed inset-x-0 bottom-[76px] z-30 border-t border-[var(--vellto-border)] bg-[var(--vellto-surface)]/95 p-3 shadow-2xl backdrop-blur-xl sm:hidden">
+        <div className="mx-auto flex max-w-lg gap-2">
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="min-h-12 flex-1 rounded-xl border border-[var(--vellto-border)] px-3 text-sm font-semibold"
+          >
+            Prévia
+          </button>
+          <button
+            type="button"
+            onClick={saveBusiness}
+            disabled={savingBusiness || uploadingLogo || uploadingCover || uploadingGallery}
+            className="min-h-12 flex-[1.5] rounded-xl bg-[var(--vellto-primary)] px-3 text-sm font-bold text-[var(--vellto-on-primary)] disabled:opacity-50"
+          >
+            {savingBusiness ? "Salvando..." : "Salvar alterações"}
+          </button>
         </div>
       </div>
 
@@ -3066,6 +3135,59 @@ function PreviewInfo({
   );
 }
 
+async function extractLogoColor(file: File): Promise<string | null> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+      bitmap.close();
+      return null;
+    }
+
+    const size = 48;
+    canvas.width = size;
+    canvas.height = size;
+    context.drawImage(bitmap, 0, 0, size, size);
+    bitmap.close();
+
+    const pixels = context.getImageData(0, 0, size, size).data;
+    const buckets = new Map<string, { count: number; r: number; g: number; b: number; saturation: number }>();
+
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index + 3] < 150) continue;
+      const r = pixels[index];
+      const g = pixels[index + 1];
+      const b = pixels[index + 2];
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const brightness = (r + g + b) / 3;
+      const saturation = max === 0 ? 0 : (max - min) / max;
+      if (brightness > 242 || brightness < 28 || saturation < 0.16) continue;
+
+      const key = [r, g, b].map((value) => Math.round(value / 24) * 24).join("-");
+      const current = buckets.get(key) || { count: 0, r: 0, g: 0, b: 0, saturation: 0 };
+      current.count += 1;
+      current.r += r;
+      current.g += g;
+      current.b += b;
+      current.saturation += saturation;
+      buckets.set(key, current);
+    }
+
+    const dominant = [...buckets.values()].sort((a, b) =>
+      b.count * (1 + b.saturation * 0.35) - a.count * (1 + a.saturation * 0.35)
+    )[0];
+
+    if (!dominant) return null;
+    const toHex = (value: number) => Math.round(value).toString(16).padStart(2, "0");
+    return `#${toHex(dominant.r / dominant.count)}${toHex(dominant.g / dominant.count)}${toHex(dominant.b / dominant.count)}`;
+  } catch (error) {
+    console.warn("Não foi possível identificar a cor da logo:", error);
+    return null;
+  }
+}
+
 function Panel({
   title,
   children,
@@ -3077,7 +3199,7 @@ function Panel({
 }) {
   return (
     <section
-      className={`rounded-2xl border border-[var(--vellto-border)] bg-white/5 p-6 ${className}`}
+      className={`rounded-2xl border border-[var(--vellto-border)] bg-white/5 p-4 sm:p-6 ${className}`}
     >
       <h2 className="mb-5 text-xl font-semibold">
         {title}
