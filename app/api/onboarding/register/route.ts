@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     const period = body.period;
     const referralCode = String(body.referralCode || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").replace(/-+/g, "-").slice(0, 64);
     const slug = slugify(businessName);
-    if (!businessName || businessName.length < 3 || !slug || !ownerName || ownerName.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10 || password.length > 128 || !isPeriod(period))
-      return responseError("Confira nome, e-mail, senha (mínimo de 10 caracteres) e plano.", 400);
+    if (!businessName || businessName.length < 3 || !slug || !ownerName || ownerName.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8 || password.length > 128 || !isPeriod(period))
+      return responseError("Confira nome, e-mail, senha (mínimo de 8 caracteres) e plano.", 400);
     const db = await getDb();
     const [userExists, slugExists, plan] = await Promise.all([
       db.collection("users").findOne({ email }, { projection: { _id: 1 } }),
