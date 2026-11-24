@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getDb } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
+import GettingStartedGuide from "./GettingStartedGuide";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,9 @@ export default async function DashboardPage() {
     completedToday,
     revenueRows,
     totalClients,
+    totalServices,
+    totalProfessionals,
+    totalSchedules,
   ] = businessId
     ? await Promise.all([
         db.collection("appointments")
@@ -102,8 +106,17 @@ export default async function DashboardPage() {
         db.collection("clients").countDocuments({
           $or: tenantFilters,
         }),
+        db.collection("services").countDocuments({
+          $and: [{ $or: tenantFilters }, { active: { $ne: false } }],
+        }),
+        db.collection("professionals").countDocuments({
+          $and: [{ $or: tenantFilters }, { active: { $ne: false } }],
+        }),
+        db.collection("schedules").countDocuments({
+          businessId,
+        }),
       ])
-    : [[], 0, 0, [], 0];
+    : [[], 0, 0, [], 0, 0, 0, 0];
 
   const revenueToday = Number(revenueRows[0]?.total || 0);
   const formattedToday = new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "America/Sao_Paulo" }).format(new Date());
@@ -140,6 +153,14 @@ export default async function DashboardPage() {
             <Link href="/dashboard/agenda?novo=1" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 shadow-lg shadow-emerald-950/20 transition hover:-translate-y-0.5 hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"> <span className="text-xl leading-none">+</span> Novo agendamento</Link>
           </div>
         </section>
+
+        <GettingStartedGuide
+          businessName={business?.name || "seu negócio"}
+          hasServices={totalServices > 0}
+          hasProfessionals={totalProfessionals > 0}
+          hasSchedule={totalSchedules > 0}
+          hasPublicPage={Boolean(business?.slug)}
+        />
 
         <div className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2 sm:gap-4 2xl:grid-cols-4">
           <MetricCard title="Agendamentos hoje" value={String(appointmentsToday)} detail="Horários reservados" icon="▣" />
