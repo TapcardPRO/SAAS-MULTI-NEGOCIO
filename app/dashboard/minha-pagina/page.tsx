@@ -133,7 +133,7 @@ const initialProfessionalForm: ProfessionalForm = {
 
 export default function MinhaPagina() {
   const router = useRouter();
-  const [activeEditorStep, setActiveEditorStep] = useState("geral");
+  const [activeEditorStep, setActiveEditorStep] = useState("negocio");
   const [logoSuggestedColor, setLogoSuggestedColor] = useState<string | null>(null);
 
   const [slug, setSlug] = useState("");
@@ -562,7 +562,10 @@ export default function MinhaPagina() {
       );
       if (logoColor) {
         setLogoSuggestedColor(logoColor);
-        changeField("primaryColor", logoColor);
+        setForm((current) => ({
+          ...current,
+          ...buildLogoPalette(logoColor),
+        }));
       }
 
       setMessage(
@@ -1442,89 +1445,36 @@ export default function MinhaPagina() {
   return (
     <main className="min-h-screen bg-[var(--vellto-surface-2)] pb-36 text-[var(--vellto-text)] sm:pb-10">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10">
-        {/* CABEÇALHO */}
-        <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--vellto-primary)]">
-              Personalização
-            </p>
-
-            <h1 className="mt-2 text-3xl font-bold">
-              Minha página
-            </h1>
-
-            <p className="mt-2 text-[var(--vellto-text-secondary)]">
-              {businessName ||
-                form.name}
-            </p>
+        {/* CABEÇALHO E NAVEGAÇÃO SIMPLIFICADOS */}
+        <header className="mb-6 flex items-start justify-between gap-3 sm:mb-8">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--vellto-primary)]">PERSONALIZAÇÃO</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Minha página</h1>
+            <p className="mt-1 truncate text-sm text-[var(--vellto-text-secondary)]">{businessName || form.name || "Configure sua página pública"}</p>
           </div>
-
-          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                setPreviewOpen(true)
-              }
-              className="min-h-11 rounded-xl bg-[var(--vellto-primary)] px-5 py-3 text-sm font-bold text-[var(--vellto-on-primary)] transition hover:brightness-110"
-            >
-              👁 Ver prévia
+          <div className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={() => setPreviewOpen(true)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--vellto-primary)] px-3 py-2 text-sm font-semibold text-[var(--vellto-on-primary)] transition hover:brightness-110"><span aria-hidden="true">◉</span><span className="hidden sm:inline">Prévia</span></button>
+            <button type="button" onClick={handleLogout} aria-label="Sair da conta" title="Sair" className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--vellto-border)] text-sm text-[var(--vellto-text-secondary)] transition hover:bg-white/5">↗</button>
+          </div>
+        </header>
+        <nav aria-label="Seções de personalização" className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-1 sm:grid-cols-5">
+          {[
+            { id: "negocio", title: "Negócio", detail: "Dados e apresentação" },
+            { id: "visual", title: "Visual", detail: "Logo e fotos" },
+            { id: "servicos", title: "Serviços", detail: "O que oferece" },
+            { id: "equipe", title: "Equipe", detail: "Profissionais" },
+            { id: "agendamento", title: "Ação", detail: "Como receber clientes" },
+          ].map((item) => (
+            <button key={item.id} type="button" onClick={() => setActiveEditorStep(item.id)} aria-pressed={activeEditorStep === item.id}
+              className={"min-h-[58px] rounded-xl px-3 py-2 text-left transition sm:text-center " + (activeEditorStep === item.id ? "bg-[var(--vellto-primary-soft)] text-[var(--vellto-text)]" : "text-[var(--vellto-text-secondary)] hover:bg-white/5")}>
+              <span className="block text-sm font-semibold">{item.title}</span>
+              <span className="mt-0.5 hidden text-[10px] sm:block">{item.detail}</span>
             </button>
+          ))}
+        </nav>
 
-            <a
-              href={`/${slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className="min-h-11 rounded-xl border border-[var(--vellto-border)] px-5 py-3 text-center text-sm font-medium transition hover:bg-white/5"
-            >
-              Ver página publicada ↗
-            </a>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="min-h-11 rounded-xl border border-red-500/30 px-5 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
-            >
-              Sair
-            </button>
-          </div>
-        </div>
-
-        {/* GUIA DE CONFIGURAÇÃO */}
-        <section className="mb-7 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-4 sm:p-5">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold">Vamos montar sua página</p>
-              <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">Siga as etapas. Você pode voltar e mudar tudo antes de publicar.</p>
-            </div>
-            <span className="shrink-0 rounded-full bg-[var(--vellto-primary-soft)] px-3 py-1 text-xs font-bold text-[var(--vellto-primary)]">5 etapas</span>
-          </div>
-          <div className="mb-4 grid grid-cols-5 gap-1" aria-hidden="true">
-            {["geral", "aparencia", "galeria", "sobre", "agendamento"].map((step) => (
-              <span key={step} className={`h-1.5 rounded-full ${activeEditorStep === step ? "bg-[var(--vellto-primary)]" : "bg-[var(--vellto-border-strong)]"}`} />
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {[
-              { href: "#geral", id: "geral", number: "01", title: "Seu negócio", detail: "Nome e contato", icon: "⌂", done: Boolean(form.name.trim() && form.whatsapp.trim()) },
-              { href: "#aparencia", id: "aparencia", number: "02", title: "Visual", detail: "Logo e cores", icon: "✦", done: Boolean(form.logoUrl) },
-              { href: "#galeria", id: "galeria", number: "03", title: "Fotos", detail: "Capa e galeria", icon: "▧", done: Boolean(form.coverUrl || form.gallery.length) },
-              { href: "#sobre", id: "sobre", number: "04", title: "Conteúdo", detail: "Apresentação", icon: "✎", done: Boolean(form.description.trim()) },
-              { href: "#agendamento", id: "agendamento", number: "05", title: "Ação principal", detail: "Como receber contatos", icon: "↗", done: Boolean(form.mainButtonText.trim()) },
-            ].map((step) => (
-              <a key={step.number} href={step.href} onClick={() => setActiveEditorStep(step.id)} aria-current={activeEditorStep === step.id ? "step" : undefined}
-                className={`group flex min-h-[94px] flex-col rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vellto-primary)] ${activeEditorStep === step.id ? "border-[var(--vellto-primary)] bg-[var(--vellto-primary-soft)]" : "border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] hover:border-[var(--vellto-primary)]/60"}`}>
-                <span className="flex w-full items-center justify-between">
-                  <span className="text-lg text-[var(--vellto-primary)]" aria-hidden="true">{step.icon}</span>
-                  <span className={`text-[10px] font-bold tracking-wider ${step.done ? "text-emerald-500" : "text-[var(--vellto-text-muted)]"}`}>{step.done ? "✓ Feito" : step.number}</span>
-                </span>
-                <span className="mt-2 text-xs font-bold text-[var(--vellto-text)]">{step.title}</span>
-                <span className="mt-0.5 text-[10px] leading-4 text-[var(--vellto-text-muted)]">{step.detail}</span>
-              </a>
-            ))}
-          </div>
-          <p className="mt-3 text-[11px] text-[var(--vellto-text-muted)]">As etapas marcadas como “Feito” já têm informações preenchidas. Revise e publique quando estiver satisfeito.</p>
-        </section>
-
+        {activeEditorStep === "negocio" ? (
+          <>
         {/* INFORMAÇÕES */}
         <div id="geral" className="scroll-mt-28">
         <Panel title="Informações">
@@ -1552,26 +1502,6 @@ export default function MinhaPagina() {
                 )
               }
             />
-
-            <div>
-              <label className="mb-2 block text-sm text-[var(--vellto-text-secondary)]">
-                Sobre o negócio
-              </label>
-
-              <textarea
-                value={
-                  form.description
-                }
-                onChange={(e) =>
-                  changeField(
-                    "description",
-                    e.target.value
-                  )
-                }
-                rows={5}
-                className="w-full resize-none rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] px-4 py-3 outline-none focus:border-[var(--vellto-primary)]"
-              />
-            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
@@ -1649,6 +1579,11 @@ export default function MinhaPagina() {
           </Panel>
         </div>
 
+          </>
+        ) : null}
+
+        {activeEditorStep === "agendamento" ? (
+          <>
         {/* BOTÃO PRINCIPAL */}
         <div id="agendamento" className="scroll-mt-28">
         <Panel
@@ -1724,123 +1659,19 @@ export default function MinhaPagina() {
 
         </div>
 
-        {/* CORES */}
+          </>
+        ) : null}
+
+        {activeEditorStep === "visual" ? (
+          <>
+        {/* IDENTIDADE VISUAL */}
         <div id="aparencia" className="scroll-mt-28">
-        <Panel
-          title="Cores"
-          className="mt-8"
-        >
-          {logoSuggestedColor ? (
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[var(--vellto-primary)]/30 bg-[var(--vellto-primary-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="h-9 w-9 shrink-0 rounded-full border border-white/20 shadow-sm" style={{ backgroundColor: logoSuggestedColor }} />
-                <div><p className="text-sm font-semibold">Cor identificada na sua logo</p><p className="text-xs text-[var(--vellto-text-muted)]">Use esta cor como destaque da página.</p></div>
-              </div>
-              <button type="button" onClick={() => changeField("primaryColor", logoSuggestedColor)} className="min-h-11 rounded-xl border border-[var(--vellto-primary)]/40 px-4 py-2 text-sm font-bold">Usar cor da logo</button>
-            </div>
-          ) : null}
-          <div className="mb-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/50 p-4">
-            <p className="text-sm font-semibold text-[var(--vellto-text)]">Combinações prontas</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">
-              Escolha uma identidade visual como ponto de partida. Você pode ajustar cada cor manualmente logo abaixo.
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { name: "Moderno", primary: "#16a34a", secondary: "#14251d", background: "#07120d", text: "#ffffff" },
-                { name: "Elegante", primary: "#c59b55", secondary: "#29231d", background: "#100e0c", text: "#ffffff" },
-                { name: "Beleza", primary: "#d96c91", secondary: "#35232d", background: "#160f14", text: "#ffffff" },
-                { name: "Claro", primary: "#2563eb", secondary: "#e8edf5", background: "#f7f9fc", text: "#172033" },
-              ].map((palette) => (
-                <button
-                  key={palette.name}
-                  type="button"
-                  onClick={() => setForm((current) => ({
-                    ...current,
-                    primaryColor: palette.primary,
-                    secondaryColor: palette.secondary,
-                    backgroundColor: palette.background,
-                    textColor: palette.text,
-                  }))}
-                  className="flex min-h-[76px] flex-col items-start justify-between rounded-xl border border-[var(--vellto-border)] p-3 text-left transition hover:border-[var(--vellto-primary)]"
-                >
-                  <span className="text-xs font-semibold text-[var(--vellto-text)]">{palette.name}</span>
-                  <span className="flex gap-1.5" aria-hidden="true">
-                    {[palette.primary, palette.secondary, palette.background].map((color) => (
-                      <span key={color} className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
-                    ))}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <ColorField
-              label="Cor principal"
-              value={
-                form.primaryColor
-              }
-              onChange={(value) =>
-                changeField(
-                  "primaryColor",
-                  value
-                )
-              }
-            />
-
-            <ColorField
-              label="Cor secundária"
-              value={
-                form.secondaryColor
-              }
-              onChange={(value) =>
-                changeField(
-                  "secondaryColor",
-                  value
-                )
-              }
-            />
-
-            <ColorField
-              label="Cor do fundo"
-              value={
-                form.backgroundColor
-              }
-              onChange={(value) =>
-                changeField(
-                  "backgroundColor",
-                  value
-                )
-              }
-            />
-
-            <ColorField
-              label="Cor do texto"
-              value={
-                form.textColor
-              }
-              onChange={(value) =>
-                changeField(
-                  "textColor",
-                  value
-                )
-              }
-            />
-          </div>
-          <div className="mt-5 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-4" style={{ backgroundColor: form.backgroundColor, color: form.textColor }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Prévia das cores</p>
-            <div className="mt-3 flex items-center gap-2"><span className="h-7 w-7 rounded-lg" style={{ backgroundColor: form.primaryColor }} /><span className="h-7 w-7 rounded-lg" style={{ backgroundColor: form.secondaryColor }} /><span className="h-7 w-7 rounded-lg border border-black/10" style={{ backgroundColor: form.backgroundColor }} /><span className="text-xs opacity-70">Destaques e fundo da sua página</span></div>
-            <button type="button" className="mt-4 min-h-10 rounded-xl px-4 py-2 text-xs font-bold" style={{ backgroundColor: form.primaryColor, color: form.backgroundColor }}>{form.mainButtonText || "Agendar agora"}</button>
-          </div>
-        </Panel>
-
-        {/* LOGO */}
-        <Panel
-          title="Logo"
-          className="mt-8"
-        >
+          <Panel title="Identidade visual" className="mt-2">
+            <p className="mb-4 text-sm text-[var(--vellto-text-secondary)]">Adicione sua logo. O Vellto identifica as cores e prepara uma combinação automaticamente.</p>
           <UploadField
+            id="business-logo-upload"
             text={
+
               form.logoUrl
                 ? "Trocar logo"
                 : "Escolher logo"
@@ -1853,29 +1684,29 @@ export default function MinhaPagina() {
             }
           />
 
-          {form.logoUrl ? (
-            <div className="mt-4">
-              <img
-                src={form.logoUrl}
-                alt="Logo"
-                className="h-28 w-28 rounded-2xl object-cover"
-              />
-
-              <button
-                type="button"
-                onClick={() =>
-                  changeField(
-                    "logoUrl",
-                    ""
-                  )
-                }
-                className="mt-3 rounded-lg border border-red-500/30 px-4 py-2 text-sm text-red-400"
-              >
-                Remover logo
-              </button>
+            {form.logoUrl ? (
+              <div className="mt-3 flex items-center gap-3">
+                <img src={form.logoUrl} alt="Logo atual" className="h-14 w-14 rounded-xl border border-[var(--vellto-border)] bg-white object-contain p-1" />
+                <div className="min-w-0 flex-1"><p className="text-sm font-medium">Logo adicionada</p><p className="text-xs text-[var(--vellto-text-muted)]">Sua identidade visual está pronta.</p></div>
+                <button type="button" onClick={() => changeField("logoUrl", "")} className="text-xs font-medium text-red-400">Remover</button>
+              </div>
+            ) : null}
+            <div className="mt-5 border-t border-[var(--vellto-border)] pt-4">
+              <p className="mb-3 text-sm font-semibold">Estilo da página</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => { if (logoSuggestedColor) setForm((current) => ({...current, ...buildLogoPalette(logoSuggestedColor)})); else document.getElementById("business-logo-upload")?.click(); }} className="min-h-16 rounded-xl border px-2 py-2 text-xs font-semibold transition" style={{borderColor: logoSuggestedColor ? "var(--vellto-primary)" : "var(--vellto-border)", backgroundColor:"var(--vellto-surface-2)"}}>
+                  <span className="mx-auto mb-1 flex w-fit gap-1"><span className="h-3 w-3 rounded-full" style={{backgroundColor:logoSuggestedColor || form.primaryColor}}/><span className="h-3 w-3 rounded-full border border-black/10 bg-white"/></span>Da minha logo
+                </button>
+                <button type="button" onClick={() => setForm((current) => ({...current, secondaryColor:"#e8edf5", backgroundColor:"#f7f9fc", textColor:"#172033"}))} className="min-h-16 rounded-xl border border-[var(--vellto-border)] bg-[#f7f9fc] px-2 py-2 text-xs font-semibold text-[#172033] transition hover:border-[var(--vellto-primary)]">
+                  <span className="mx-auto mb-1 block h-4 w-8 rounded-full border border-black/10 bg-white"/>Claro
+                </button>
+                <button type="button" onClick={() => setForm((current) => ({...current, secondaryColor:"#20242c", backgroundColor:"#101318", textColor:"#f8fafc"}))} className="min-h-16 rounded-xl border border-[var(--vellto-border)] bg-[#101318] px-2 py-2 text-xs font-semibold text-white transition hover:border-[var(--vellto-primary)]">
+                  <span className="mx-auto mb-1 block h-4 w-8 rounded-full border border-white/20 bg-[#20242c]"/>Escuro
+                </button>
+              </div>
             </div>
-          ) : null}
-        </Panel>
+          </Panel>
+        </div>
 
         {/* CAPA */}
         <Panel
@@ -1919,8 +1750,6 @@ export default function MinhaPagina() {
             </div>
           ) : null}
         </Panel>
-
-        </div>
 
         {/* GALERIA */}
         <div id="galeria" className="scroll-mt-28">
@@ -1981,6 +1810,11 @@ export default function MinhaPagina() {
 
         </div>
 
+          </>
+        ) : null}
+
+        {activeEditorStep === "servicos" ? (
+          <>
         {/* SERVIÇOS */}
         <Panel
           title="Serviços"
@@ -2221,6 +2055,11 @@ export default function MinhaPagina() {
           </div>
         </Panel>
 
+          </>
+        ) : null}
+
+        {activeEditorStep === "equipe" ? (
+          <>
         {/* PROFISSIONAIS */}
         <Panel
           title="Profissionais"
@@ -2443,6 +2282,11 @@ export default function MinhaPagina() {
           </div>
         </Panel>
 
+          </>
+        ) : null}
+
+        {activeEditorStep === "agendamento" ? (
+          <>
         {/* SEÇÃO FINAL */}
         <Panel
           title="Seção final da página"
@@ -2515,8 +2359,11 @@ export default function MinhaPagina() {
           </div>
         </Panel>
 
+          </>
+        ) : null}
+
         {/* SALVAR */}
-        <div className="mt-10 rounded-2xl border border-[var(--vellto-primary)]/20 bg-[var(--vellto-primary-soft)] p-4 sm:p-6">
+        <div className="mt-10 hidden rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-5 sm:block">
           <h2 className="text-lg font-bold sm:text-xl">Quase pronto!</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--vellto-text-secondary)]">
             Confira a aparência da sua página e salve para publicar as alterações. Suas mudanças ficam como rascunho nesta tela até você tocar em salvar.
@@ -2548,20 +2395,14 @@ export default function MinhaPagina() {
 
 
       {/* AÇÃO FIXA NO CELULAR: SALVAR SEM VOLTAR AO FIM DA PÁGINA */}
-      <div className="fixed inset-x-0 bottom-[76px] z-30 border-t border-[var(--vellto-border)] bg-[var(--vellto-surface)]/95 p-3 shadow-2xl backdrop-blur-xl sm:hidden">
-        <div className="mx-auto flex max-w-lg gap-2">
-          <button
-            type="button"
-            onClick={() => setPreviewOpen(true)}
-            className="min-h-12 flex-1 rounded-xl border border-[var(--vellto-border)] px-3 text-sm font-semibold"
-          >
-            Prévia
-          </button>
+      <div className="fixed inset-x-0 bottom-[76px] z-30 border-t border-[var(--vellto-border)] bg-[var(--vellto-surface)]/95 p-3 shadow-xl backdrop-blur-xl sm:hidden">
+        <div className="mx-auto max-w-lg">
+          {message ? <p role="status" aria-live="polite" className="mb-2 text-center text-xs text-[var(--vellto-text-secondary)]">{message}</p> : null}
           <button
             type="button"
             onClick={saveBusiness}
             disabled={savingBusiness || uploadingLogo || uploadingCover || uploadingGallery}
-            className="min-h-12 flex-[1.5] rounded-xl bg-[var(--vellto-primary)] px-3 text-sm font-bold text-[var(--vellto-on-primary)] disabled:opacity-50"
+            className="min-h-12 w-full rounded-xl bg-[var(--vellto-primary)] px-4 text-sm font-bold text-[var(--vellto-on-primary)] disabled:opacity-50"
           >
             {savingBusiness ? "Salvando..." : "Salvar alterações"}
           </button>
@@ -3135,6 +2976,24 @@ function PreviewInfo({
   );
 }
 
+function buildLogoPalette(color: string) {
+  const normalized = color.replace("#", "");
+  const channels = [0, 2, 4].map((offset) => parseInt(normalized.slice(offset, offset + 2), 16));
+  const luminance = (values: number[]) => {
+    const linear = values.map((value) => {
+      const channel = value / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  let safePrimary = channels;
+  while (luminance(safePrimary) > 0.34) safePrimary = safePrimary.map((value) => Math.round(value * 0.88));
+  const toHex = (value: number) => value.toString(16).padStart(2, "0");
+  const primaryColor = `#${safePrimary.map(toHex).join("")}`;
+  const secondaryColor = `#${safePrimary.map((value) => toHex(Math.round(value * 0.22))).join("")}`;
+  return { primaryColor, secondaryColor, backgroundColor: "#f8fafc", textColor: "#172033" };
+}
+
 async function extractLogoColor(file: File): Promise<string | null> {
   try {
     const bitmap = await createImageBitmap(file);
@@ -3284,10 +3143,12 @@ function ColorField({
 }
 
 function UploadField({
+  id,
   text,
   uploading,
   onChange,
 }: {
+  id?: string;
   text: string;
   uploading: boolean;
   onChange: (
@@ -3301,6 +3162,7 @@ function UploadField({
         : text}
 
       <input
+        id={id}
         type="file"
         accept="image/*"
         className="hidden"
