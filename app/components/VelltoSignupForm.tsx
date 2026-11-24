@@ -19,6 +19,7 @@ export default function VelltoSignupForm({ signupAvailable }: { signupAvailable:
     businessName: "", ownerName: "", email: "", password: "", category: "barbearia", whatsapp: "",
   });
   const [liveTestCode, setLiveTestCode] = useState("");
+  const [referralCode, setReferralCode] = useState(() => params.get("ref") || "");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,7 +30,7 @@ export default function VelltoSignupForm({ signupAvailable }: { signupAvailable:
       const response = await fetch("/api/onboarding/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, period, liveTestCode: privateTest ? liveTestCode : undefined, referralCode: params.get("ref") || undefined }),
+        body: JSON.stringify({ ...values, period, liveTestCode: privateTest ? liveTestCode : undefined, referralCode: referralCode.trim() || undefined }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || "Não foi possível criar a conta.");
@@ -104,6 +105,11 @@ export default function VelltoSignupForm({ signupAvailable }: { signupAvailable:
                 <button type="button" onClick={() => setShowPassword(show => !show)}
                   className="absolute inset-y-0 right-2 px-2 text-xs font-bold text-emerald-800">{showPassword ? "Ocultar" : "Mostrar"}</button>
               </div>
+            </label>
+            <label className="block text-sm font-semibold">Código de indicação <span className="font-normal text-zinc-500">(opcional)</span>
+              <input type="text" maxLength={64} autoComplete="off" value={referralCode} onChange={event => setReferralCode(event.target.value.toUpperCase())} placeholder="Ex.: STUDIO-MARIA"
+                className="mt-2 w-full rounded-xl border border-[#dfe7e2] bg-white px-4 py-3 font-normal uppercase outline-none focus:border-emerald-500" />
+              <span className="mt-1 block text-xs font-normal text-zinc-500">Se recebeu um link de indicação, o código já aparecerá preenchido.</span>
             </label>
             {privateTest && <label className="block text-sm font-semibold">Código privado de homologação
               <input required type="password" autoComplete="off" value={liveTestCode} onChange={event => setLiveTestCode(event.target.value)}
