@@ -839,6 +839,103 @@ export default function DashboardShell({
           }
         }
 
+
+        /*
+        ===================================================
+        EXPERIÊNCIA MOBILE GLOBAL
+        Aplicada a todas as áreas do painel, sem alterar
+        regras de negócio ou o comportamento dos formulários.
+        ===================================================
+        */
+        @media (max-width: 767px) {
+          .vellto-dashboard-theme main {
+            width: 100%;
+            min-width: 0;
+            overflow-x: clip;
+          }
+
+          .vellto-dashboard-theme main > div {
+            min-width: 0;
+            max-width: 100%;
+          }
+
+          .vellto-dashboard-theme main [class*="grid-cols-"] > * {
+            min-width: 0;
+          }
+
+          .vellto-dashboard-theme main [class*="overflow-x-auto"],
+          .vellto-dashboard-theme main [class*="overflow-x-scroll"] {
+            max-width: 100%;
+            overscroll-behavior-x: contain;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .vellto-dashboard-theme main table {
+            min-width: 560px;
+          }
+
+          .vellto-dashboard-theme main input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+          .vellto-dashboard-theme main select,
+          .vellto-dashboard-theme main textarea {
+            max-width: 100%;
+            min-height: 44px;
+          }
+
+          .vellto-dashboard-theme main textarea {
+            min-height: 104px;
+          }
+
+          .vellto-dashboard-theme main button,
+          .vellto-dashboard-theme main a[class*="rounded"] {
+            touch-action: manipulation;
+          }
+
+          .vellto-dashboard-theme main button:not([aria-label]),
+          .vellto-dashboard-theme main a[class*="bg-"] {
+            min-height: 44px;
+          }
+
+          .vellto-dashboard-theme main h1 {
+            font-size: clamp(1.45rem, 6vw, 2rem);
+            line-height: 1.15;
+          }
+
+          .vellto-dashboard-theme main h2 {
+            line-height: 1.2;
+          }
+
+          .vellto-dashboard-theme main [role="dialog"],
+          .vellto-dashboard-theme main [aria-modal="true"] {
+            max-width: calc(100vw - 1rem);
+            max-height: calc(100dvh - 2rem);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+          }
+
+          .vellto-dashboard-theme main .sticky {
+            scroll-margin-top: 4.5rem;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .vellto-dashboard-theme > header {
+            padding-left: 0.625rem;
+            padding-right: 0.625rem;
+          }
+
+          .vellto-dashboard-theme main [class*="p-6"],
+          .vellto-dashboard-theme main [class*="p-7"],
+          .vellto-dashboard-theme main [class*="p-8"] {
+            padding: 1rem;
+          }
+
+          .vellto-dashboard-theme main [class*="gap-6"],
+          .vellto-dashboard-theme main [class*="gap-7"],
+          .vellto-dashboard-theme main [class*="gap-8"] {
+            gap: 0.875rem;
+          }
+        }
+
         .vellto-dashboard-theme main h1,
         .vellto-dashboard-theme main h2,
         .vellto-dashboard-theme main h3 {
