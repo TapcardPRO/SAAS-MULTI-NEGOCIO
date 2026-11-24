@@ -846,6 +846,114 @@ OPTIONS
 =========================================================
 */
 
+
+/*
+=========================================================
+PUT - EDITAR DADOS DO MENSALISTA
+=========================================================
+*/
+export async function PUT(request: NextRequest) {
+  try {
+    const auth = await getAuthenticatedBusiness();
+    if ("error" in auth) return auth.error;
+
+    const { db, user, business, businessId } = auth;
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ message: "Dados enviados são inválidos." }, { status: 400 });
+    }
+
+    const id = String(body.id || body.membershipId || "").trim();
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json({ message: "Mensalista inválido." }, { status: 400 });
+    }
+
+    const tenantFilters: any[] = [
+      { businessId },
+      { businessId: businessId.toString() },
+    ];
+    if (business.slug) tenantFilters.push({ businessSlug: business.slug });
+
+    const ownerFilter: any = {
+      _id: new ObjectId(id),
+      $or: tenantFilters,
+    };
+
+    if (user.role === "employee") {
+      const professionalId = String(user.professionalId || "");
+      if (!ObjectId.isValid(professionalId)) {
+        return NextResponse.json({ message: "Profissional não vinculado ao usuário." }, { status: 403 });
+      }
+      ownerFilter.professionalId = { $in: [professionalId, new ObjectId(professionalId)] };
+    }
+
+    const existing = await db.collection("memberships").findOne(ownerFilter);
+    if (!existing) {
+      return NextResponse.json({ message: "Mensalista não encontrado ou sem permissão para alterá-lo." }, { status: 404 });
+    }
+
+    const update: Record<string, unknown> = { updatedAt: new Date() };
+
+    if (body.paymentStatus !== undefined) {
+      if (!["paid", "pending"].includes(String(body.paymentStatus))) {
+        return NextResponse.json({ message: "Situação de pagamento inválida." }, { status: 400 });
+      }
+      update.paymentStatus = body.paymentStatus;
+      update.paymentPaidAt = body.paymentStatus === "paid" ? (existing.paymentPaidAt || new Date()) : null;
+    }
+
+    if (body.paymentMethod !== undefined) {
+      if (!["pix", "cash", "card", "later"].includes(String(body.paymentMethod))) {
+        return NextResponse.json({ message: "Forma de pagamento inválida." }, { status: 400 });
+      }
+      update.paymentMethod = body.paymentMethod;
+    }
+
+    if (body.paymentDueDate !== undefined) {
+      const dueDate = String(body.paymentDueDate || "").trim();
+      if (dueDate && !isValidDateString(dueDate)) {
+        return NextResponse.json({ message: "Data de vencimento inválida." }, { status: 400 });
+      }
+      if (body.paymentStatus !== "paid" && !dueDate) {
+        return NextResponse.json({ message: "Informe o vencimento do pagamento." }, { status: 400 });
+      }
+      update.paymentDueDate = dueDate;
+    }
+
+    if (body.active !== undefined) update.active = body.active !== false;
+
+    if (body.remainingUses !== undefined) {
+      const remainingUses = Number(body.remainingUses);
+      const totalUses = Number(existing.totalUses || 0);
+      if (!Number.isInteger(remainingUses) || remainingUses < 0 || remainingUses > totalUses) {
+        return NextResponse.json({ message: `O saldo deve ser um número inteiro entre 0 e ${totalUses}.` }, { status: 400 });
+      }
+      update.remainingUses = remainingUses;
+      update.usedUses = totalUses - remainingUses;
+    }
+
+    await db.collection("memberships").updateOne(ownerFilter, { $set: update });
+    const updated = await db.collection("memberships").findOne({ _id: new ObjectId(id) });
+
+    return NextResponse.json({
+      message: "Mensalista atualizado com sucesso.",
+      membership: {
+        _id: String(updated?._id),
+        paymentStatus: updated?.paymentStatus || "pending",
+        paymentMethod: updated?.paymentMethod || "later",
+        paymentDueDate: updated?.paymentDueDate || "",
+        active: updated?.active !== false,
+        totalUses: Number(updated?.totalUses || 0),
+        usedUses: Number(updated?.usedUses || 0),
+        remainingUses: Number(updated?.remainingUses || 0),
+      },
+    });
+  } catch (error) {
+    console.error("PUT MEMBERSHIPS ERROR:", error);
+    return NextResponse.json({ message: "Erro interno ao atualizar mensalista." }, { status: 500 });
+  }
+}
+
 export async function OPTIONS() {
   return new NextResponse(
     null,

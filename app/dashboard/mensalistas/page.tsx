@@ -118,6 +118,14 @@ export default function MensalistasPage() {
   const [paymentDueDate, setPaymentDueDate] =
     useState("");
 
+  const [editing, setEditing] = useState<Membership | null>(null);
+  const [editPaymentStatus, setEditPaymentStatus] = useState<PaymentStatus>("pending");
+  const [editPaymentMethod, setEditPaymentMethod] = useState<PaymentMethod>("pix");
+  const [editPaymentDueDate, setEditPaymentDueDate] = useState("");
+  const [editRemainingUses, setEditRemainingUses] = useState("0");
+  const [editActive, setEditActive] = useState(true);
+
+
   useEffect(() => {
     loadMemberships();
   }, []);
@@ -344,6 +352,61 @@ export default function MensalistasPage() {
           ? error.message
           : "Erro ao cadastrar mensalista"
       );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+
+  function openEditMembership(membership: Membership) {
+    setMessage("");
+    setSuccess("");
+    setEditing(membership);
+    setEditPaymentStatus(membership.paymentStatus === "paid" ? "paid" : "pending");
+    setEditPaymentMethod((membership.paymentMethod as PaymentMethod) || "later");
+    setEditPaymentDueDate(membership.paymentDueDate || "");
+    setEditRemainingUses(String(membership.remainingUses ?? 0));
+    setEditActive(membership.active !== false);
+  }
+
+  async function saveMembershipChanges() {
+    if (!editing) return;
+    if (editPaymentStatus === "pending" && !editPaymentDueDate) {
+      setMessage("Informe o vencimento do pagamento.");
+      return;
+    }
+    const remaining = Number(editRemainingUses);
+    if (!Number.isInteger(remaining) || remaining < 0 || remaining > Number(editing.totalUses || 0)) {
+      setMessage("Informe um saldo válido para este pacote.");
+      return;
+    }
+    try {
+      setSaving(true);
+      setMessage("");
+      setSuccess("");
+      const response = await fetch("/api/dashboard/memberships", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editing._id,
+          paymentStatus: editPaymentStatus,
+          paymentMethod: editPaymentMethod,
+          paymentDueDate: editPaymentDueDate,
+          remainingUses: remaining,
+          active: editActive,
+        }),
+      });
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        setMessage(data.message || "Não foi possível atualizar o mensalista.");
+        return;
+      }
+      setEditing(null);
+      setSuccess("Mensalista atualizado com sucesso.");
+      await loadMemberships();
+    } catch (error) {
+      console.error(error);
+      setMessage(error instanceof Error ? error.message : "Erro ao atualizar mensalista.");
     } finally {
       setSaving(false);
     }
@@ -615,6 +678,16 @@ export default function MensalistasPage() {
                         )}
                       />
                     </div>
+
+                    <div className="mt-5 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => openEditMembership(membership)}
+                        className="rounded-xl border border-emerald-500/30 px-4 py-2 text-sm font-semibold text-emerald-400 transition hover:bg-emerald-500/10"
+                      >
+                        Gerenciar mensalista
+                      </button>
+                    </div>
                   </article>
                 )
               )}
@@ -622,6 +695,59 @@ export default function MensalistasPage() {
           )}
         </section>
       </div>
+
+
+      {editing ? (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a141d]">
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 p-5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">Gerenciar mensalista</p>
+                <h2 className="mt-1 text-xl font-bold">{editing.clientName || "Cliente"}</h2>
+                <p className="mt-1 text-sm text-zinc-500">{editing.planName || "Plano"} · {editing.remainingUses ?? 0} usos restantes</p>
+              </div>
+              <button type="button" disabled={saving} onClick={() => setEditing(null)} className="rounded-xl border border-white/10 px-4 py-2">✕</button>
+            </div>
+            <div className="space-y-5 p-5">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Situação do pagamento</label>
+                <select value={editPaymentStatus} onChange={(event) => setEditPaymentStatus(event.target.value as PaymentStatus)} className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3">
+                  <option value="pending">Pendente</option>
+                  <option value="paid">Pago</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Forma de pagamento</label>
+                <select value={editPaymentMethod} onChange={(event) => setEditPaymentMethod(event.target.value as PaymentMethod)} className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3">
+                  <option value="pix">Pix</option>
+                  <option value="cash">Dinheiro</option>
+                  <option value="card">Cartão</option>
+                  <option value="later">A combinar / depois</option>
+                </select>
+              </div>
+              {editPaymentStatus === "pending" ? (
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Vencimento do pagamento</label>
+                  <input type="date" value={editPaymentDueDate} onChange={(event) => setEditPaymentDueDate(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3" />
+                </div>
+              ) : null}
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-500">Usos restantes</label>
+                <input type="number" min="0" max={editing.totalUses ?? 0} step="1" value={editRemainingUses} onChange={(event) => setEditRemainingUses(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#071018] px-4 py-3" />
+                <p className="mt-2 text-xs text-zinc-500">O total contratado é {editing.totalUses ?? 0}. Ajustar o saldo atualiza automaticamente os usos já consumidos.</p>
+              </div>
+              <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/10 p-4 text-sm">
+                <input type="checkbox" checked={editActive} onChange={(event) => setEditActive(event.target.checked)} className="h-4 w-4 accent-emerald-500" />
+                Mensalista ativo
+              </label>
+              <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
+                <button type="button" disabled={saving} onClick={() => setEditing(null)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold">Cancelar</button>
+                <button type="button" disabled={saving} onClick={saveMembershipChanges} className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-zinc-950 disabled:opacity-50">{saving ? "Salvando..." : "Salvar alterações"}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showForm ? (
         <div className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-4">
