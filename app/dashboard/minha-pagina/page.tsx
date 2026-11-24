@@ -1817,6 +1817,7 @@ export default function MinhaPagina() {
           className="mt-8"
         >
           <UploadField
+            id="business-logo-upload"
             text={
 
               form.logoUrl
@@ -3276,10 +3277,12 @@ function ColorField({
 }
 
 function UploadField({
+  id,
   text,
   uploading,
   onChange,
 }: {
+  id?: string;
   text: string;
   uploading: boolean;
   onChange: (
@@ -3293,6 +3296,7 @@ function UploadField({
         : text}
 
       <input
+        id={id}
         type="file"
         accept="image/*"
         className="hidden"
