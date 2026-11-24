@@ -1437,7 +1437,7 @@ export default function MinhaPagina() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--vellto-surface-2)] text-[var(--vellto-text)]">
+    <main className="min-h-screen bg-[var(--vellto-surface-2)] pb-36 text-[var(--vellto-text)] sm:pb-10">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10">
         {/* CABEÇALHO */}
         <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
@@ -1486,45 +1486,37 @@ export default function MinhaPagina() {
           </div>
         </div>
 
-        {/* NAVEGAÇÃO DA PÁGINA */}
-        <div className="sticky top-0 z-30 mb-8 overflow-x-auto border-y border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/95 py-3 backdrop-blur-xl">
-          <div className="flex min-w-max gap-2 px-1">
-            <a
-              href="#geral"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Geral
-            </a>
-
-            <a
-              href="#sobre"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Sobre nós
-            </a>
-
-            <a
-              href="#galeria"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Galeria
-            </a>
-
-            <a
-              href="#aparencia"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Aparência
-            </a>
-
-            <a
-              href="#agendamento"
-              className="rounded-xl border border-[var(--vellto-border)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--vellto-primary)]/40 hover:bg-emerald-500/10 hover:text-[var(--vellto-primary)]"
-            >
-              Agendamento
-            </a>
+        {/* ATALHOS DE PERSONALIZAÇÃO */}
+        <section className="mb-7 rounded-2xl border border-[var(--vellto-border)] bg-[var(--vellto-surface)] p-4 sm:p-5">
+          <div className="mb-4">
+            <p className="text-sm font-bold">Monte sua página em poucos passos</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--vellto-text-muted)]">
+              Toque em uma etapa para ir direto ao que deseja configurar. Você pode voltar e ajustar quando quiser.
+            </p>
           </div>
-        </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {[
+              { href: "#geral", number: "01", title: "Seu negócio", detail: "Nome e contato", icon: "⌂" },
+              { href: "#aparencia", number: "02", title: "Visual", detail: "Logo e cores", icon: "✦" },
+              { href: "#galeria", number: "03", title: "Fotos", detail: "Capa e galeria", icon: "▧" },
+              { href: "#sobre", number: "04", title: "Conteúdo", detail: "Apresentação", icon: "✎" },
+              { href: "#agendamento", number: "05", title: "Ação principal", detail: "Como receber contatos", icon: "↗" },
+            ].map((step) => (
+              <a
+                key={step.number}
+                href={step.href}
+                className="group flex min-h-[94px] flex-col rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)] p-3 text-left transition hover:border-[var(--vellto-primary)]/60 hover:bg-[var(--vellto-primary-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vellto-primary)]"
+              >
+                <span className="flex w-full items-center justify-between">
+                  <span className="text-lg text-[var(--vellto-primary)]" aria-hidden="true">{step.icon}</span>
+                  <span className="text-[10px] font-bold tracking-wider text-[var(--vellto-text-muted)]">{step.number}</span>
+                </span>
+                <span className="mt-2 text-xs font-bold text-[var(--vellto-text)]">{step.title}</span>
+                <span className="mt-0.5 text-[10px] leading-4 text-[var(--vellto-text-muted)]">{step.detail}</span>
+              </a>
+            ))}
+          </div>
+        </section>
 
         {/* INFORMAÇÕES */}
         <div id="geral" className="scroll-mt-28">
@@ -2503,38 +2495,55 @@ export default function MinhaPagina() {
         </Panel>
 
         {/* SALVAR */}
-        <div className="mt-10 rounded-2xl border border-[var(--vellto-primary)]/20 bg-emerald-500/5 p-6">
-          <h2 className="text-xl font-bold">
-            Salvar alterações
-          </h2>
-
-          <p className="mt-2 text-sm text-[var(--vellto-text-secondary)]">
-            Depois de personalizar sua página, clique abaixo para salvar.
+        <div className="mt-10 rounded-2xl border border-[var(--vellto-primary)]/20 bg-[var(--vellto-primary-soft)] p-4 sm:p-6">
+          <h2 className="text-lg font-bold sm:text-xl">Quase pronto!</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--vellto-text-secondary)]">
+            Confira a aparência da sua página e salve para publicar as alterações.
           </p>
-
-          <button
-            type="button"
-            onClick={
-              saveBusiness
-            }
-            disabled={
-              savingBusiness ||
-              uploadingLogo ||
-              uploadingCover ||
-              uploadingGallery
-            }
-            className="mt-5 w-full rounded-xl bg-emerald-500 px-6 py-4 text-lg font-bold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-50"
-          >
-            {savingBusiness
-              ? "Salvando..."
-              : "Salvar alterações"}
-          </button>
-
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="min-h-12 rounded-xl border border-[var(--vellto-border)] px-5 py-3 text-sm font-semibold transition hover:bg-white/5"
+            >
+              👁 Conferir minha página
+            </button>
+            <button
+              type="button"
+              onClick={saveBusiness}
+              disabled={savingBusiness || uploadingLogo || uploadingCover || uploadingGallery}
+              className="min-h-12 rounded-xl bg-[var(--vellto-primary)] px-6 py-3 text-sm font-bold text-[var(--vellto-on-primary)] transition hover:brightness-110 disabled:opacity-50"
+            >
+              {savingBusiness ? "Salvando..." : "Salvar e publicar alterações"}
+            </button>
+          </div>
           {message ? (
-            <p className="mt-4 rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/40 p-4 text-sm">
+            <p role="status" aria-live="polite" className="mt-4 rounded-xl border border-[var(--vellto-border)] bg-[var(--vellto-surface-2)]/60 p-4 text-sm">
               {message}
             </p>
           ) : null}
+        </div>
+      </div>
+
+
+      {/* AÇÃO FIXA NO CELULAR: SALVAR SEM VOLTAR AO FIM DA PÁGINA */}
+      <div className="fixed inset-x-0 bottom-[76px] z-30 border-t border-[var(--vellto-border)] bg-[var(--vellto-surface)]/95 p-3 shadow-2xl backdrop-blur-xl sm:hidden">
+        <div className="mx-auto flex max-w-lg gap-2">
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="min-h-12 flex-1 rounded-xl border border-[var(--vellto-border)] px-3 text-sm font-semibold"
+          >
+            Prévia
+          </button>
+          <button
+            type="button"
+            onClick={saveBusiness}
+            disabled={savingBusiness || uploadingLogo || uploadingCover || uploadingGallery}
+            className="min-h-12 flex-[1.5] rounded-xl bg-[var(--vellto-primary)] px-3 text-sm font-bold text-[var(--vellto-on-primary)] disabled:opacity-50"
+          >
+            {savingBusiness ? "Salvando..." : "Salvar alterações"}
+          </button>
         </div>
       </div>
 
