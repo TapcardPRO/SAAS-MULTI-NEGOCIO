@@ -11,6 +11,9 @@ type Business = {
   name: string;
   slug: string;
   manualPrepaymentEnabled: boolean;
+  customerNoticeEnabled?: boolean;
+  customerNoticeTitle?: string;
+  customerNoticeMessage?: string;
   paymentPixKey: string;
   paymentCardLink: string;
   paymentWhatsApp: string;
@@ -768,6 +771,37 @@ export default function BookingClient({
               ? `Sua solicitacao foi enviada para ${business.name}. O profissional enviara as instrucoes pelo WhatsApp. O horario so sera confirmado apos a conferencia do pagamento.${paymentDeadline ? " O prazo termina em " + new Date(paymentDeadline).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }) + "." : ""}`
               : `Seu agendamento foi enviado para ${business.name}.`}
           </p>
+
+          {business.customerNoticeEnabled && business.customerNoticeMessage?.trim() && (
+            <section
+              className="mt-6 rounded-2xl border p-5 text-left"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.surface2,
+              }}
+              role="note"
+              aria-label="Aviso da empresa"
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-lg"
+                  style={{
+                    backgroundColor: theme.primarySoft,
+                    color: theme.primary,
+                  }}
+                  aria-hidden="true"
+                >
+                  !
+                </span>
+                <h2 className="font-black">
+                  {business.customerNoticeTitle?.trim() || "Aviso importante"}
+                </h2>
+              </div>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6" style={{ color: theme.text }}>
+                {business.customerNoticeMessage}
+              </p>
+            </section>
+          )}
 
           <div
             className="mt-7 rounded-2xl border p-5 text-left"
