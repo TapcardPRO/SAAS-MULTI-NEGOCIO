@@ -633,12 +633,13 @@ export async function getPublicBookingAvailability(
     remainingSeats: number;
   }[] = [];
 
+  // day.end é o último horário permitido para INICIAR o atendimento,
+  // não o limite para terminar. A duração continua valendo para conflitos.
   for (
     let start =
       startOfDay;
 
-    start +
-      totalDuration <=
+    start <=
     endOfDay;
 
     start += professionalCapacity > 1 ? 60 : 15
