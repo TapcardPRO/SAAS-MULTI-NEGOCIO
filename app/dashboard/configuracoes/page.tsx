@@ -32,6 +32,9 @@ type SettingsData = {
     paymentCardLink: string;
     paymentMessageTemplate: string;
     paymentHoldMinutes: number;
+    customerNoticeEnabled: boolean;
+    customerNoticeTitle: string;
+    customerNoticeMessage: string;
     plan: string;
     active: boolean;
   };
@@ -59,6 +62,13 @@ export default function ConfiguracoesPage() {
     useState(false);
 
   const [savingPayment, setSavingPayment] = useState(false);
+  const [savingNotice, setSavingNotice] = useState(false);
+
+  const [noticeForm, setNoticeForm] = useState({
+    customerNoticeEnabled: false,
+    customerNoticeTitle: "Aviso importante",
+    customerNoticeMessage: "",
+  });
 
   const [paymentForm, setPaymentForm] = useState({
     manualPrepaymentEnabled: false,
@@ -166,6 +176,12 @@ export default function ConfiguracoesPage() {
         paymentMessageTemplate: json.business?.paymentMessageTemplate || "",
       });
 
+      setNoticeForm({
+        customerNoticeEnabled: json.business?.customerNoticeEnabled === true,
+        customerNoticeTitle: json.business?.customerNoticeTitle || "Aviso importante",
+        customerNoticeMessage: json.business?.customerNoticeMessage || "",
+      });
+
       setAccountForm({
         name:
           json.user?.name || "",
@@ -205,6 +221,28 @@ export default function ConfiguracoesPage() {
       setError(err instanceof Error ? err.message : "Erro ao salvar pagamento.");
     } finally {
       setSavingPayment(false);
+    }
+  }
+
+  async function saveNotice(event: FormEvent) {
+    event.preventDefault();
+    clearMessages();
+    setSavingNotice(true);
+    try {
+      const response = await fetch("/api/dashboard/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section: "customer_notice", ...noticeForm }),
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.message || "Não foi possível salvar o aviso.");
+      setMessage(json.message || "Aviso atualizado.");
+      await load();
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar o aviso.");
+    } finally {
+      setSavingNotice(false);
     }
   }
 
@@ -610,6 +648,54 @@ export default function ConfiguracoesPage() {
               </div>
               <div className="mt-6 flex justify-end">
                 <SaveButton loading={savingPayment} text="Salvar cobranca antecipada" />
+              </div>
+            </form>
+
+            <form
+              onSubmit={saveNotice}
+              className="rounded-2xl border border-emerald-500/20 bg-white/[0.025] p-5 sm:p-6"
+            >
+              <SectionTitle
+                title="Aviso para clientes"
+                description="Exiba uma orientação importante na tela que aparece após a cliente concluir o agendamento."
+              />
+              <label className="mt-6 flex items-center gap-3 rounded-xl border border-white/10 p-4 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={noticeForm.customerNoticeEnabled}
+                  onChange={e => setNoticeForm(c => ({ ...c, customerNoticeEnabled: e.target.checked }))}
+                  className="h-5 w-5 accent-emerald-500"
+                />
+                Exibir aviso após o agendamento
+              </label>
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">Título do aviso</label>
+                  <input
+                    value={noticeForm.customerNoticeTitle}
+                    maxLength={80}
+                    onChange={e => setNoticeForm(c => ({ ...c, customerNoticeTitle: e.target.value }))}
+                    placeholder="Ex.: Aviso importante"
+                    className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">Mensagem</label>
+                  <textarea
+                    value={noticeForm.customerNoticeMessage}
+                    maxLength={800}
+                    rows={5}
+                    onChange={e => setNoticeForm(c => ({ ...c, customerNoticeMessage: e.target.value }))}
+                    placeholder="Ex.: Chegue com 10 minutos de antecedência. Em caso de atraso, avise pelo WhatsApp."
+                    className="w-full resize-y rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm"
+                  />
+                  <p className="mt-2 text-xs text-zinc-400">
+                    Até 800 caracteres. O aviso só aparece para clientes quando estiver ativado.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <SaveButton loading={savingNotice} text="Salvar aviso" />
               </div>
             </form>
 
