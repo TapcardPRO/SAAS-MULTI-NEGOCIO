@@ -631,8 +631,10 @@ export async function getPublicBookingAvailability(
     let start =
       startOfDay;
 
-    start +
-      totalDuration <=
+    // O horário final configurado é o último horário de INÍCIO
+    // disponibilizado pela empresa. A duração do serviço pode
+    // ultrapassar o encerramento do expediente nesse último slot.
+    start <=
     endOfDay;
 
     start += 15
