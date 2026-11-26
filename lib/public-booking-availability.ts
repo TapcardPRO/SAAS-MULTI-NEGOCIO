@@ -637,8 +637,9 @@ export async function getPublicBookingAvailability(
     let start =
       startOfDay;
 
-    start +
-      totalDuration <=
+    // O encerramento configurado define o último horário de início.
+    // O procedimento pode terminar depois desse horário.
+    start <=
     endOfDay;
 
     start += professionalCapacity > 1 ? 60 : 15
