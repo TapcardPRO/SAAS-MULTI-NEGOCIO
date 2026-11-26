@@ -189,6 +189,9 @@ export default async function AgendarPage({
 
         slug,
         manualPrepaymentEnabled: business.manualPrepaymentEnabled === true,
+        customerNoticeEnabled: business.customerNoticeEnabled === true,
+        customerNoticeTitle: String(business.customerNoticeTitle || "Aviso importante"),
+        customerNoticeMessage: String(business.customerNoticeMessage || ""),
         // Informacoes publicas EXCLUSIVAMENTE para clientes autenticados e
         // estabelecimentos que optaram por cobranca antecipada.
         paymentPixKey: business.manualPrepaymentEnabled === true
