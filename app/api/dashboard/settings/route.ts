@@ -80,6 +80,9 @@ export async function GET() {
         paymentCardLink: String(auth.business.paymentCardLink || ""),
         paymentMessageTemplate: String(auth.business.paymentMessageTemplate || DEFAULT_PAYMENT_MESSAGE),
         paymentHoldMinutes: paymentHoldMinutes(auth.business.paymentHoldMinutes),
+        customerNoticeEnabled: auth.business.customerNoticeEnabled === true,
+        customerNoticeTitle: String(auth.business.customerNoticeTitle || "Aviso importante"),
+        customerNoticeMessage: String(auth.business.customerNoticeMessage || ""),
         plan:
           auth.business.plan || "",
         active:
@@ -249,6 +252,43 @@ export async function PUT(
         },
       });
       return NextResponse.json({ ok: true, message: "Instrucoes de pagamento atualizadas." });
+    }
+
+    /*
+    =========================================
+    AVISO EXIBIDO APÓS O AGENDAMENTO
+    =========================================
+    */
+    if (section === "customer_notice") {
+      const customerNoticeEnabled = body.customerNoticeEnabled === true;
+      const customerNoticeTitle = String(body.customerNoticeTitle || "Aviso importante").trim();
+      const customerNoticeMessage = String(body.customerNoticeMessage || "").trim();
+
+      if (customerNoticeTitle.length > 80 || customerNoticeMessage.length > 800) {
+        return fail("O título deve ter até 80 caracteres e o aviso até 800 caracteres.");
+      }
+      if (customerNoticeEnabled && !customerNoticeMessage) {
+        return fail("Escreva a mensagem do aviso antes de ativá-lo.");
+      }
+
+      await auth.db.collection("businesses").updateOne(
+        { _id: auth.businessId },
+        {
+          $set: {
+            customerNoticeEnabled,
+            customerNoticeTitle: customerNoticeTitle || "Aviso importante",
+            customerNoticeMessage,
+            updatedAt: new Date(),
+          },
+        }
+      );
+
+      return NextResponse.json({
+        ok: true,
+        message: customerNoticeEnabled
+          ? "Aviso para clientes ativado e salvo."
+          : "Configuração do aviso salva.",
+      });
     }
 
     /*
