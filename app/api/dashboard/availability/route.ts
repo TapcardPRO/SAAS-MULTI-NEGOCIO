@@ -499,10 +499,12 @@ export async function GET(
       endTime: string;
     }> = [];
 
+    // day.end é o último horário permitido para INICIAR o serviço.
+    // O término pode ultrapassá-lo; duração segue valendo para conflitos.
     for (
       let start =
         startOfDay;
-      start + duration <=
+      start <=
       endOfDay;
       start += slotInterval
     ) {
